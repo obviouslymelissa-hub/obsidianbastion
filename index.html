@@ -18,30 +18,25 @@
     }
     html,body{height:100%;margin:0}
     body{
-      background:radial-gradient(1200px 600px at 10% 10%,rgba(75,85,99,0.06),transparent 8%), radial-gradient(1000px 400px at 90% 90%,rgba(139,92,246,0.04),transparent 12%), var(--bg);
+      background:radial-gradient(1200px 600px at 10% 10%,rgba(75,85,99,0.06),transparent 8%),
+                  radial-gradient(1000px 400px at 90% 90%,rgba(139,92,246,0.04),transparent 12%),
+                  var(--bg);
       color:#dfe7f2;
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
       display:flex;align-items:center;justify-content:center;padding:2rem;
     }
     .shell{width:100%;max-width:1100px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:24px;box-shadow:0 8px 30px rgba(2,6,23,0.6);position:relative;overflow:hidden}
-
-    /* subtle starfield */
     .stars{position:absolute;inset:0;pointer-events:none;opacity:.18;background-image:radial-gradient(#fff 0.8px, transparent 0.9px);background-size:3px 3px;mix-blend-mode:screen;filter:blur(0.6px)}
-
     header{display:flex;align-items:flex-start;gap:20px}
     .brand{display:flex;flex-direction:column}
-    .shipname{font-size:28px;letter-spacing:1px;font-weight:700;color:linear-gradient(90deg,var(--accent),var(--accent2));display:flex;align-items:center;gap:12px}
-    .shipname .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(107,114,128,0.12);font-weight:800;color:#04101a}
+    .shipname{font-size:28px;letter-spacing:1px;font-weight:700;display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:900;color:#04101a}
     .subtitle{font-size:12px;color:var(--muted);margin-top:6px}
-
     .controls{margin-left:auto;display:flex;gap:10px;align-items:center}
     .btn{background:var(--panel);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px;cursor:pointer}
     .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#031323;border:none;box-shadow:0 6px 18px rgba(110,231,255,0.06)}
-
     main{display:grid;grid-template-columns:1fr 340px;gap:20px;margin-top:20px}
-
-    /* left: system panels */
     .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden;min-height:120px;display:flex;flex-direction:column;gap:10px}
     .card h3{margin:0;font-size:14px}
@@ -51,46 +46,39 @@
     .link-card .icon{width:48px;height:48;border-radius:8px;background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);}
     .link-card a{color:var(--accent);text-decoration:none;font-weight:600}
     .card:hover{transform:translateY(-6px);transition:transform .18s ease}
-
-    /* right: console / nav */
     .side{display:flex;flex-direction:column;gap:14px}
     .terminal{background:#02040a;border-radius:8px;padding:12px;color:#8fb7c7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;height:170px;overflow:auto;border:1px solid rgba(110,231,255,0.04)}
     .links-list{display:flex;flex-direction:column;gap:8px}
     .nav-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
     .nav-item a{color:var(--accent);text-decoration:none;font-weight:600}
     .small{font-size:12px;color:var(--muted)}
-
-    /* add modal */
-    .fab{position:absolute;right:22px;bottom:22px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#021018;font-weight:700;box-shadow:0 12px 30px rgba(0,0,0,0.6);cursor:pointer}
-
-    /* responsive */
-    @media (max-width:880px){main{grid-template-columns:1fr;}
-      .grid{grid-template-columns:repeat(1,1fr)}
-      .side{order:2}
-    }
-
-    /* scanning overlay */
+    @media (max-width:880px){main{grid-template-columns:1fr;} .grid{grid-template-columns:repeat(1,1fr)} .side{order:2}}
     .scan{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.02) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);mix-blend-mode:overlay;opacity:.04;pointer-events:none}
+    .status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px;box-shadow:0 1px 4px rgba(0,0,0,0.6)}
+    .status-ok{background:linear-gradient(90deg,#7ef5b6,#3bd17d)}
+    .status-warn{background:linear-gradient(90deg,#ffd36b,#ff9f43)}
+    .status-off{background:linear-gradient(90deg,#a7b1c9,#6b7280)}
   </style>
 </head>
 <body>
   <div class="shell" role="application" aria-label="Obsidian Bastian onboard computer">
     <div class="stars" aria-hidden="true"></div>
     <div class="scan" aria-hidden="true"></div>
+
     <header>
       <div class="brand">
         <div style="display:flex;align-items:center;gap:12px">
-          <div class="logo" style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:900;color:#04101a">OB</div>
+          <div class="logo">OB</div>
           <div>
             <div class="shipname">Obsidian Bastian <span style="font-size:12px;color:var(--muted);margin-left:8px">— Onboard Systems</span></div>
-            <div class="subtitle">Mission Control Interface · Expandable diagnostics hub</div>
+            <div class="subtitle">Mission Control Interface · Diagnostics hub</div>
           </div>
         </div>
       </div>
 
       <div class="controls" role="toolbar" aria-label="Controls">
         <button class="btn" id="refreshBtn" title="Refresh status">Refresh</button>
-        <button class="btn primary" id="addBtn" title="Add new system link">+ Add System</button>
+        <!-- Add button removed intentionally (read-only mode) -->
       </div>
     </header>
 
@@ -100,13 +88,13 @@
           <!-- Cards will be generated by JS -->
         </div>
 
-        <div style="margin-top:14px;color:var(--muted);font-size:13px">Tip: Use "Add System" to register new diagnostic tools and systems. Entries are saved to your browser (localStorage) so you can prototype quickly.</div>
+        <div style="margin-top:14px;color:var(--muted);font-size:13px">
+          Tip: This is a read-only systems dashboard. To add entries, edit index.html in the repository (or tell me and I can add them for you).
+        </div>
       </section>
 
       <aside class="side" aria-label="Side panel">
-        <div class="terminal" id="terminal" aria-live="polite">
-          Initializing Obsidian Bastian mainframe...
-        </div>
+        <div class="terminal" id="terminal" aria-live="polite">Initializing Obsidian Bastian mainframe...</div>
 
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Systems</strong><span class="small">click to open</span></div>
@@ -117,156 +105,87 @@
 
     </main>
 
-    <div class="fab" id="fab" title="Add new system">+</div>
-
-    <!-- Add / Edit modal -->
-    <div id="modal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:60">
-      <form id="modalForm" style="background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:18px;border-radius:10px;width:420px;border:1px solid rgba(255,255,255,0.04);display:flex;flex-direction:column;gap:10px">
-        <h3 style="margin:0">Register system</h3>
-        <label class="small">Name<input id="sname" required placeholder="Diagnostics / Weather / Navigation" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit"></label>
-        <label class="small">URL<input id="surl" required placeholder="./mainframeweather.html or https://example.com" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit"></label>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-          <button type="button" class="btn" id="cancel">Cancel</button>
-          <button type="submit" class="btn primary">Save</button>
-        </div>
-      </form>
-    </div>
-
     <div style="position:absolute;left:20px;bottom:16px;color:var(--muted);font-size:12px">Obsidian Bastian · onboard computer</div>
   </div>
 
   <script>
-    // Simple client-side app to manage links in localStorage and provide interactive UI
-    const defaultSystems = [
-      {name: 'Mainframe Weather', url: './mainframeweather.html'},
-      {name: 'Diagnostics Console', url: './diagnostics.html'},
+    // Read-only systems list (edit this array in the file to add more)
+    const systems = [
+      {name: 'Mainframe Weather', url: './mainframeweather.html', status: 'ok'},
+      {name: 'Diagnostics Console', url: './diagnostics.html', status: 'ok'},
+      // Add more systems here by editing index.html:
+      // {name: 'Navigation', url: './navigation.html', status: 'off'},
     ];
 
-    const storageKey = 'obsidian-systems-v1';
     const cardsEl = document.getElementById('cards');
     const linksEl = document.getElementById('links');
     const term = document.getElementById('terminal');
 
-    function loadSystems(){
-      try{
-        const raw = localStorage.getItem(storageKey);
-        if(!raw){
-          localStorage.setItem(storageKey, JSON.stringify(defaultSystems));
-          return [...defaultSystems];
-        }
-        return JSON.parse(raw);
-      }catch(e){
-        console.error(e);
-        localStorage.removeItem(storageKey);
-        return [...defaultSystems];
-      }
-    }
-
-    function saveSystems(list){
-      localStorage.setItem(storageKey, JSON.stringify(list));
-    }
-
     function render(){
-      const list = loadSystems();
       cardsEl.innerHTML = '';
       linksEl.innerHTML = '';
-      list.forEach((s, i)=>{
-        // card
+      systems.forEach((s, i) => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `<div class="link-card"><div class="icon">${escapeInitials(s.name)}</div><div><h3>${escapeHtml(s.name)}</h3><p class="small">${escapeHtml(s.url)}</p></div></div><div class="action"><a class="btn" href="${s.url}" target="_blank" rel="noopener">Open</a><button class="btn" data-edit="${i}">Edit</button><button class="btn" data-delete="${i}">Remove</button></div>`;
+        const statusClass = statusClassFor(s.status);
+        const statusText = readableStatus(s.status);
+        card.innerHTML = `
+          <div class="link-card">
+            <div class="icon">${initials(s.name)}</div>
+            <div>
+              <h3>${escapeHtml(s.name)}</h3>
+              <p class="small">${escapeHtml(s.url)}</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:auto">
+            <span class="status-dot ${statusClass}" title="Status: ${statusText}" aria-hidden="true"></span>
+            <div style="flex:1;color:var(--muted);font-size:13px">${statusText}</div>
+            <div class="action"><a class="btn" href="${s.url}" target="_blank" rel="noopener">Open</a></div>
+          </div>
+        `;
         cardsEl.appendChild(card);
 
-        // nav list
         const nav = document.createElement('div');
         nav.className = 'nav-item';
-        nav.innerHTML = `<div style="flex:1"><a href="${s.url}" target="_blank" rel="noopener">${escapeHtml(s.name)}</a><div class="small">${escapeHtml(s.url)}</div></div><div><button class="btn" data-edit="${i}">Edit</button></div>`;
+        nav.innerHTML = `<div style="flex:1"><a href="${s.url}" target="_blank" rel="noopener">${escapeHtml(s.name)}</a><div class="small">${escapeHtml(s.url)}</div></div>`;
         linksEl.appendChild(nav);
       });
-
-      // wire buttons
-      document.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', e=>{
-        const idx = Number(e.currentTarget.dataset.edit);
-        openModalFor(idx);
-      }));
-      document.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click', e=>{
-        const idx = Number(e.currentTarget.dataset.delete);
-        if(confirm('Remove system "'+loadSystems()[idx].name+'"?')){
-          const arr = loadSystems(); arr.splice(idx,1); saveSystems(arr); render(); writeTerminal('System removed: '+idx);
-        }
-      }));
     }
 
+    // Helpers
     function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function escapeInitials(s){ return (s||'').split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase(); }
-
-    // modal logic
-    const modal = document.getElementById('modal');
-    const modalForm = document.getElementById('modalForm');
-    const sname = document.getElementById('sname');
-    const surl = document.getElementById('surl');
-    let editIndex = -1;
-
-    document.getElementById('addBtn').addEventListener('click', ()=>openModalFor(-1));
-    document.getElementById('fab').addEventListener('click', ()=>openModalFor(-1));
-    document.getElementById('cancel').addEventListener('click', closeModal);
-
-    modalForm.addEventListener('submit', e=>{
-      e.preventDefault();
-      const name = sname.value.trim();
-      let url = surl.value.trim();
-      if(!/^https?:\/\//.test(url) && !url.startsWith('./') && !url.startsWith('/')){
-        // allow local relative files
-        url = './'+url;
-      }
-      const list = loadSystems();
-      if(editIndex>=0){
-        list[editIndex] = {name, url};
-        writeTerminal('Updated system: '+name);
-      }else{
-        list.push({name, url});
-        writeTerminal('Added system: '+name);
-      }
-      saveSystems(list); render(); closeModal();
-    });
-
-    function openModalFor(idx){
-      editIndex = idx;
-      const list = loadSystems();
-      if(idx>=0){ sname.value = list[idx].name; surl.value = list[idx].url; }
-      else{ sname.value=''; surl.value=''; }
-      modal.style.display='flex'; sname.focus();
+    function initials(s){ return (s||'').split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase(); }
+    function statusClassFor(st){
+      if(st === 'ok') return 'status-ok';
+      if(st === 'warn') return 'status-warn';
+      return 'status-off';
     }
-    function closeModal(){ modal.style.display='none'; editIndex=-1; }
+    function readableStatus(st){
+      if(st === 'ok') return 'Online · Nominal';
+      if(st === 'warn') return 'Degraded · Check';
+      return 'Offline · Unavailable';
+    }
 
-    // terminal simulation
+    // Terminal simulation
     function writeTerminal(msg){ const now = new Date().toLocaleTimeString(); term.innerText = now + ' · ' + msg + '\n' + term.innerText; }
     document.getElementById('refreshBtn').addEventListener('click', ()=>{
-      writeTerminal('Status updated — ' + new Date().toLocaleString());
-      // fake checks
-      setTimeout(()=>writeTerminal('Sensors: OK | Power: 98% | Hull: Nominal'), 400);
-      setTimeout(()=>writeTerminal('Comms: Link stable | Nav: Offline (simulation)'), 800);
+      writeTerminal('Manual status refresh — ' + new Date().toLocaleString());
+      // simulate status checks and update cards' statuses visually (no persistent change)
+      setTimeout(()=>writeTerminal('Sensors: OK | Power: 98% | Hull: Nominal'), 300);
+      setTimeout(()=>writeTerminal('Comms: Link stable | Nav: Offline (simulation)'), 700);
     });
 
-    // initial boot log
     (function boot(){
-      const steps = [
-        'Bootloader OK', 'Kernel loaded', 'Subsystems enumerated', 'Diagnostics ready', 'Comm channels initialized'
-      ];
-      steps.forEach((s,i)=>setTimeout(()=>writeTerminal(s), i*350));
-      setTimeout(()=>{
-        render();
-        writeTerminal('Ready — use Add System to register tools.');
-      }, steps.length*360);
+      const steps = ['Bootloader OK', 'Kernel loaded', 'Subsystems enumerated', 'Diagnostics ready', 'Comm channels initialized'];
+      steps.forEach((s,i)=>setTimeout(()=>writeTerminal(s), i*300));
+      setTimeout(()=>{ render(); writeTerminal('Ready — read-only systems registry loaded.'); }, steps.length*320);
     })();
 
-    // allow opening via hash to specific system index
+    // Optionally allow opening a system via #open=index
     if(location.hash.startsWith('#open=')){
       const idx = Number(location.hash.replace('#open=',''));
-      const list = loadSystems();
-      if(list[idx]) window.open(list[idx].url, '_blank');
+      if(systems[idx]) window.open(systems[idx].url, '_blank');
     }
-
   </script>
 </body>
 </html>
