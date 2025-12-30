@@ -1,191 +1,270 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Obsidian Bastian — Onboard Systems</title>
-  <meta name="description" content="Obsidian Bastian — onboard computer. Links to diagnostics and ship systems." />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Obsidian Bastian — Control UI</title>
   <style>
-    /* Futuristic/spacey UI */
-    :root{
-      --bg:#05060a;
-      --panel:rgba(255,255,255,0.035);
-      --accent:#6ee7ff;
-      --accent2:#9b8cff;
-      --muted:rgba(255,255,255,0.6);
-      color-scheme:dark;
-      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-    }
-    html,body{height:100%;margin:0}
-    body{
-      background:radial-gradient(1200px 600px at 10% 10%,rgba(75,85,99,0.06),transparent 8%),
-                  radial-gradient(1000px 400px at 90% 90%,rgba(139,92,246,0.04),transparent 12%),
-                  var(--bg);
-      color:#dfe7f2;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      display:flex;align-items:center;justify-content:center;padding:2rem;
-    }
-    .shell{width:100%;max-width:1100px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:24px;box-shadow:0 8px 30px rgba(2,6,23,0.6);position:relative;overflow:hidden}
-    .stars{position:absolute;inset:0;pointer-events:none;opacity:.18;background-image:radial-gradient(#fff 0.8px, transparent 0.9px);background-size:3px 3px;mix-blend-mode:screen;filter:blur(0.6px)}
-    header{display:flex;align-items:flex-start;gap:20px}
-    .brand{display:flex;flex-direction:column}
-    .shipname{font-size:28px;letter-spacing:1px;font-weight:700;display:flex;align-items:center;gap:12px}
-    .logo{width:56px;height:56;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:900;color:#04101a}
-    .subtitle{font-size:12px;color:var(--muted);margin-top:6px}
-    .controls{margin-left:auto;display:flex;gap:10px;align-items:center}
-    .btn{background:var(--panel);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px;cursor:pointer}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#031323;border:none;box-shadow:0 6px 18px rgba(110,231,255,0.06)}
-    main{display:grid;grid-template-columns:1fr 340px;gap:20px;margin-top:20px}
-    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden;min-height:120px;display:flex;flex-direction:column;gap:10px}
-    .card h3{margin:0;font-size:14px}
-    .card p{margin:0;color:var(--muted);font-size:13px}
-    .card .action{margin-top:auto;display:flex;gap:8px}
-    .link-card{display:flex;align-items:center;gap:12px}
-    .link-card .icon{width:48px;height:48;border-radius:8px;background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);}
-    .link-card a{color:var(--accent);text-decoration:none;font-weight:600}
-    .card:hover{transform:translateY(-6px);transition:transform .18s ease}
-    .side{display:flex;flex-direction:column;gap:14px}
-    .terminal{background:#02040a;border-radius:8px;padding:12px;color:#8fb7c7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;height:170px;overflow:auto;border:1px solid rgba(110,231,255,0.04)}
-    .links-list{display:flex;flex-direction:column;gap:8px}
-    .nav-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
-    .nav-item a{color:var(--accent);text-decoration:none;font-weight:600}
-    .small{font-size:12px;color:var(--muted)}
-    @media (max-width:880px){main{grid-template-columns:1fr;} .grid{grid-template-columns:repeat(1,1fr)} .side{order:2}}
-    .scan{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.02) 0%, transparent 50%, rgba(255,255,255,0.02) 100%);mix-blend-mode:overlay;opacity:.04;pointer-events:none}
-    .status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px;box-shadow:0 1px 4px rgba(0,0,0,0.6)}
-    .status-ok{background:linear-gradient(90deg,#7ef5b6,#3bd17d)}
-    .status-warn{background:linear-gradient(90deg,#ffd36b,#ff9f43)}
-    .status-off{background:linear-gradient(90deg,#a7b1c9,#6b7280)}
+    :root{--bg:#0b1220;--panel:#0f1724;--accent:#7bd389;--muted:#9aa6b2;--danger:#ff7b7b}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071017 0%, #0b1220 60%);color:#e6eef3}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);backdrop-filter: blur(4px);border-bottom:1px solid rgba(255,255,255,0.03)}
+    header h1{margin:0;font-size:18px;letter-spacing:0.6px}
+    header .controls{display:flex;gap:8px}
+    button{background:var(--panel);border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:6px;cursor:pointer}
+    button.primary{background:linear-gradient(90deg,#114b3b,#427f62);color:white;border:none}
+    main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
+    .left{display:grid;grid-template-rows:auto 1fr;gap:14px}
+    .gauges{display:flex;gap:12px;align-items:stretch}
+    .gauge-card{flex:1;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center}
+    .gauge-title{font-size:13px;color:var(--muted);margin-bottom:6px}
+    svg.gauge{width:160px;height:120px;overflow:visible}
+    .needle{stroke:#fff;stroke-width:2;stroke-linecap:round}
+    .gauge-value{font-size:22px;margin-top:6px}
+    .panels{display:flex;gap:12px}
+    .panel{background:var(--panel);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);flex:1}
+    .panel h3{margin:0 0 8px 0;font-size:13px;color:var(--muted)}
+    .placeholder{height:140px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+    .sidebar{display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .telemetry{font-family:monospace;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:10px;border-radius:6px;max-height:220px;overflow:auto;color:#cfeff0}
+    .errors{color:var(--danger);font-weight:600}
+    footer{padding:12px 18px;color:var(--muted);font-size:13px}
+    .kbd-list{display:flex;flex-direction:column;gap:6px;font-size:13px}
+    .kbd{display:inline-block;background:#08121a;border:1px solid rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;color:var(--muted);font-family:monospace}
+    a.link{color:var(--accent);text-decoration:none}
+    @media (max-width:900px){main{grid-template-columns:1fr;}.sidebar{order:2}}
   </style>
 </head>
 <body>
-  <div class="shell" role="application" aria-label="Obsidian Bastian onboard computer">
-    <div class="stars" aria-hidden="true"></div>
-    <div class="scan" aria-hidden="true"></div>
-
-    <header>
-      <div class="brand">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="logo">OB</div>
-          <div>
-            <div class="shipname">Obsidian Bastian <span style="font-size:12px;color:var(--muted);margin-left:8px">— Onboard Systems</span></div>
-            <div class="subtitle">Mission Control Interface · Diagnostics hub</div>
-          </div>
-        </div>
+<header>
+  <h1>Obsidian Bastian — Mission UI</h1>
+  <div class="controls">
+    <button id="btn-help">Shortcuts (H)</button>
+    <button id="btn-diagnostics">Diagnostics (D)</button>
+    <button id="btn-weather">Mainframe Weather (M)</button>
+    <button id="btn-toggle-gauges" class="primary">Toggle Gauges (G)</button>
+  </div>
+</header>
+<main>
+  <div class="left">
+    <section class="gauges" id="gauges">
+      <div class="gauge-card">
+        <div class="gauge-title">Life Support — O2</div>
+        <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
+          <defs>
+            <linearGradient id="o2" x1="0" x2="1">
+              <stop offset="0%" stop-color="#7bd389"/>
+              <stop offset="100%" stop-color="#2ec4b6"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+          <path id="o2-arc" d="" stroke="url(#o2)" stroke-width="8" fill="none" stroke-linecap="round"></path>
+        </svg>
+        <div class="gauge-value" id="o2-val">-- %</div>
       </div>
 
-      <div class="controls" role="toolbar" aria-label="Controls">
-        <button class="btn" id="refreshBtn" title="Refresh status">Refresh</button>
-        <!-- Add button removed intentionally (read-only mode) -->
+      <div class="gauge-card">
+        <div class="gauge-title">Pressure</div>
+        <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
+          <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+          <path id="p-arc" d="" stroke="#66a0ff" stroke-width="8" fill="none" stroke-linecap="round"></path>
+        </svg>
+        <div class="gauge-value" id="p-val">-- kPa</div>
       </div>
-    </header>
 
-    <main>
-      <section>
-        <div class="grid" id="cards">
-          <!-- Cards will be generated by JS -->
-        </div>
+      <div class="gauge-card">
+        <div class="gauge-title">Power</div>
+        <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
+          <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+          <path id="pw-arc" d="" stroke="#ffcb6b" stroke-width="8" fill="none" stroke-linecap="round"></path>
+        </svg>
+        <div class="gauge-value" id="pw-val">-- %</div>
+      </div>
+    </section>
 
-        <div style="margin-top:14px;color:var(--muted);font-size:13px">
-          Tip: This is a read-only systems dashboard. To add entries, edit index.html in the repository (or tell me and I can add them for you).
-        </div>
-      </section>
+    <section class="panels">
+      <div class="panel">
+        <h3>Life Support</h3>
+        <div class="placeholder" id="life-placeholder">Placeholder: Systems nominal (simulated)</div>
+        <div style="margin-top:8px;font-size:13px;color:var(--muted)">Quick actions: <button id="btn-evac">Trigger Evac</button> <button id="btn-cycle">Cycle Scrubbers</button></div>
+      </div>
 
-      <aside class="side" aria-label="Side panel">
-        <div class="terminal" id="terminal" aria-live="polite">Initializing Obsidian Bastian mainframe...</div>
-
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>Systems</strong><span class="small">click to open</span></div>
-          <div class="links-list" id="links"></div>
-        </div>
-
-      </aside>
-
-    </main>
-
-    <div style="position:absolute;left:20px;bottom:16px;color:var(--muted);font-size:12px">Obsidian Bastian · onboard computer</div>
+      <div class="panel">
+        <h3>Communications</h3>
+        <div class="placeholder" id="comm-placeholder">Placeholder: Link to mission control pending</div>
+        <div style="margin-top:8px;font-size:13px;color:var(--muted)">Status: <span id="comm-status">Standby</span></div>
+      </div>
+    </section>
   </div>
 
-  <script>
-    // Read-only systems list (edit this array in the file to add more)
-    const systems = [
-      {name: 'Mainframe Weather', url: './mainframeweather.html', status: 'ok'},
-      {name: 'Diagnostics Console', url: './diagnostics.html', status: 'ok'},
-      // Add more systems here by editing index.html:
-      // {name: 'Navigation', url: './navigation.html', status: 'off'},
-    ];
+  <aside class="sidebar">
+    <div class="card">
+      <h3>Telemetry</h3>
+      <div class="telemetry" id="telemetry">
+        <!-- simulated telemetry lines -->
+      </div>
+    </div>
 
-    const cardsEl = document.getElementById('cards');
-    const linksEl = document.getElementById('links');
-    const term = document.getElementById('terminal');
+    <div class="card">
+      <h3>Error Log</h3>
+      <div id="error-log" style="max-height:120px;overflow:auto;color:var(--danger);font-weight:600;">No critical errors</div>
+    </div>
 
-    function render(){
-      cardsEl.innerHTML = '';
-      linksEl.innerHTML = '';
-      systems.forEach((s, i) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const statusClass = statusClassFor(s.status);
-        const statusText = readableStatus(s.status);
-        card.innerHTML = `
-          <div class="link-card">
-            <div class="icon">${initials(s.name)}</div>
-            <div>
-              <h3>${escapeHtml(s.name)}</h3>
-              <p class="small">${escapeHtml(s.url)}</p>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;margin-top:auto">
-            <span class="status-dot ${statusClass}" title="Status: ${statusText}" aria-hidden="true"></span>
-            <div style="flex:1;color:var(--muted);font-size:13px">${statusText}</div>
-            <div class="action"><a class="btn" href="${s.url}" target="_blank" rel="noopener">Open</a></div>
-          </div>
-        `;
-        cardsEl.appendChild(card);
+    <div class="card">
+      <h3>Keyboard Shortcuts</h3>
+      <div class="kbd-list">
+        <div><span class="kbd">H</span> Toggle this help</div>
+        <div><span class="kbd">G</span> Toggle gauges</div>
+        <div><span class="kbd">L</span> Toggle Life Support placeholder</div>
+        <div><span class="kbd">C</span> Toggle Communications placeholder</div>
+        <div><span class="kbd">D</span> Open Diagnostics</div>
+        <div><span class="kbd">M</span> Open Mainframe Weather</div>
+      </div>
+    </div>
+  </aside>
+</main>
 
-        const nav = document.createElement('div');
-        nav.className = 'nav-item';
-        nav.innerHTML = `<div style="flex:1"><a href="${s.url}" target="_blank" rel="noopener">${escapeHtml(s.name)}</a><div class="small">${escapeHtml(s.url)}</div></div>`;
-        linksEl.appendChild(nav);
-      });
-    }
+<footer>
+  Last simulated update: <span id="last-updated">--</span>
+</footer>
 
-    // Helpers
-    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function initials(s){ return (s||'').split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase(); }
-    function statusClassFor(st){
-      if(st === 'ok') return 'status-ok';
-      if(st === 'warn') return 'status-warn';
-      return 'status-off';
-    }
-    function readableStatus(st){
-      if(st === 'ok') return 'Online · Nominal';
-      if(st === 'warn') return 'Degraded · Check';
-      return 'Offline · Unavailable';
-    }
+<script>
+// Utility to draw circular arc (from -135deg to +135deg) based on percent 0..1
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return [
+    "M", start.x, start.y,
+    "A", r, r, 0, largeArcFlag, 0, end.x, end.y
+  ].join(" ");
+}
+function polarToCartesian(cx, cy, r, angleInDegrees) {
+  const angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+  return { x: cx + (r * Math.cos(angleInRadians)), y: cy + (r * Math.sin(angleInRadians)) };
+}
 
-    // Terminal simulation
-    function writeTerminal(msg){ const now = new Date().toLocaleTimeString(); term.innerText = now + ' · ' + msg + '\n' + term.innerText; }
-    document.getElementById('refreshBtn').addEventListener('click', ()=>{
-      writeTerminal('Manual status refresh — ' + new Date().toLocaleString());
-      // simulate status checks and update cards' statuses visually (no persistent change)
-      setTimeout(()=>writeTerminal('Sensors: OK | Power: 98% | Hull: Nominal'), 300);
-      setTimeout(()=>writeTerminal('Comms: Link stable | Nav: Offline (simulation)'), 700);
-    });
+const arcStart = -135; // degrees
+const arcEnd = 135;
 
-    (function boot(){
-      const steps = ['Bootloader OK', 'Kernel loaded', 'Subsystems enumerated', 'Diagnostics ready', 'Comm channels initialized'];
-      steps.forEach((s,i)=>setTimeout(()=>writeTerminal(s), i*300));
-      setTimeout(()=>{ render(); writeTerminal('Ready — read-only systems registry loaded.'); }, steps.length*320);
-    })();
+function setGauge(pathEl, percent) {
+  percent = Math.max(0, Math.min(1, percent));
+  const angle = arcStart + (arcEnd - arcStart) * percent;
+  // draw arc from start to this angle
+  const d = describeArc(50,50,34,arcStart, angle);
+  pathEl.setAttribute('d', d);
+}
 
-    // Optionally allow opening a system via #open=index
-    if(location.hash.startsWith('#open=')){
-      const idx = Number(location.hash.replace('#open=',''));
-      if(systems[idx]) window.open(systems[idx].url, '_blank');
-    }
-  </script>
+// Telemetry simulation state
+const telemetry = {
+  o2: 78.0, // percent
+  pressure: 101.3, // kPa
+  power: 86.0 // percent
+};
+
+const telemetryEl = document.getElementById('telemetry');
+const errorLogEl = document.getElementById('error-log');
+const lastUpdatedEl = document.getElementById('last-updated');
+
+function simulateStep() {
+  // random small fluctuations
+  telemetry.o2 += (Math.random()-0.5)*0.4;
+  telemetry.pressure += (Math.random()-0.5)*0.18;
+  telemetry.power += (Math.random()-0.5)*0.6;
+  // clamp
+  telemetry.o2 = Math.max(55, Math.min(100, telemetry.o2));
+  telemetry.pressure = Math.max(90, Math.min(110, telemetry.pressure));
+  telemetry.power = Math.max(10, Math.min(100, telemetry.power));
+
+  // update gauges
+  setGauge(document.getElementById('o2-arc'), (telemetry.o2-55)/(100-55));
+  setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90));
+  setGauge(document.getElementById('pw-arc'), telemetry.power/100);
+
+  // update values
+  document.getElementById('o2-val').textContent = telemetry.o2.toFixed(1) + ' %';
+  document.getElementById('p-val').textContent = telemetry.pressure.toFixed(1) + ' kPa';
+  document.getElementById('pw-val').textContent = telemetry.power.toFixed(0) + ' %';
+
+  // append telemetry lines
+  const now = new Date();
+  const ts = now.toISOString().slice(11,23);
+  const lines = [
+    `${ts} O2: ${telemetry.o2.toFixed(1)}%`,
+    `${ts} Pressure: ${telemetry.pressure.toFixed(1)} kPa`,
+    `${ts} Power: ${telemetry.power.toFixed(0)}%`
+  ];
+  telemetryEl.innerHTML = lines.map(l=>`<div>${l}</div>`).join('');
+
+  lastUpdatedEl.textContent = now.toISOString().replace('T',' ').slice(0,19);
+
+  // occasionally emit a vague error
+  if (Math.random() < 0.06) {
+    pushVagueError();
+  }
+}
+
+function pushVagueError() {
+  const messages = [
+    'Subsystem latency exceeded expected threshold',
+    'Telemetry buffer underrun — retry scheduled',
+    'Intermittent signal degradation detected',
+    'Resource allocation warning: throttling non-critical tasks',
+    'Anomalous reading flagged for review'
+  ];
+  const msg = messages[Math.floor(Math.random()*messages.length)];
+  const when = new Date().toISOString().slice(11,19);
+  const line = document.createElement('div');
+  line.textContent = `${when} — ${msg}`;
+  errorLogEl.prepend(line);
+  // keep last 20
+  while (errorLogEl.children.length > 20) errorLogEl.removeChild(errorLogEl.lastChild);
+}
+
+// wire up buttons and shortcuts
+const btnHelp = document.getElementById('btn-help');
+const btnDiag = document.getElementById('btn-diagnostics');
+const btnWeather = document.getElementById('btn-weather');
+const btnToggleG = document.getElementById('btn-toggle-gauges');
+const lifePlaceholder = document.getElementById('life-placeholder');
+const commPlaceholder = document.getElementById('comm-placeholder');
+const commStatus = document.getElementById('comm-status');
+
+btnHelp.addEventListener('click', ()=>{ alert('Keyboard shortcuts:\nH: Toggle help\nG: Toggle gauges\nL: Toggle Life Support\nC: Toggle Communications\nD: Open Diagnostics\nM: Open Mainframe Weather'); });
+btnDiag.addEventListener('click', ()=>{ window.location.href='diagnostics.html'; });
+btnWeather.addEventListener('click', ()=>{ window.location.href='mainframeweather.html'; });
+btnToggleG.addEventListener('click', ()=>{ toggleGauges(); });
+
+document.getElementById('btn-evac').addEventListener('click', ()=>{ pushVagueError(); alert('Evac trigger simulated — this is a placeholder.'); });
+document.getElementById('btn-cycle').addEventListener('click', ()=>{ commStatus.textContent='Cycling'; setTimeout(()=>commStatus.textContent='Standby',1500); });
+
+function toggleGauges(){ const g = document.getElementById('gauges'); g.style.display = (g.style.display==='none') ? 'flex': 'none'; }
+function toggleLife(){ lifePlaceholder.style.display = (lifePlaceholder.style.display==='none') ? 'flex':'none'; }
+function toggleComm(){ commPlaceholder.style.display = (commPlaceholder.style.display==='none') ? 'flex':'none'; }
+
+// keyboard shortcuts
+document.addEventListener('keydown', (e)=>{
+  if (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA')) return;
+  const k = e.key.toLowerCase();
+  if (k==='h') { btnHelp.click(); }
+  else if (k==='g'){ toggleGauges(); }
+  else if (k==='l'){ toggleLife(); }
+  else if (k==='c'){ toggleComm(); }
+  else if (k==='d'){ window.location.href='diagnostics.html'; }
+  else if (k==='m'){ window.location.href='mainframeweather.html'; }
+});
+
+// initial draw
+setGauge(document.getElementById('o2-arc'), (telemetry.o2-55)/(100-55));
+setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90));
+setGauge(document.getElementById('pw-arc'), telemetry.power/100);
+
+// start simulation
+simulateStep();
+setInterval(simulateStep, 1100);
+
+// small UX nicety: start with some vague errors to feel "alive"
+for (let i=0;i<2;i++) setTimeout(pushVagueError, 300*i+600);
+</script>
 </body>
 </html>

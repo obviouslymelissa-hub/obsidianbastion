@@ -1,197 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>MAINFRAME PATCH: WX->DIAG Override</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mainframe Weather — Obsidian Bastian</title>
   <style>
-    :root {
-      --bg: #0b0f14;
-      --panel: #111821;
-      --accent: #00d4ff;
-      --accent2: #70ffb3;
-      --warn: #ffdc5e;
-      --error: #ff6b6b;
-      --text: #cfe3ff;
-      --muted: #6b7a8f;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-    .frame {
-      max-width: 800px; margin: 4vh auto; padding: 18px; background: linear-gradient(180deg, #0c131b 0%, #0a1017 100%);
-      border: 1px solid #0f2331; border-radius: 8px; box-shadow: 0 0 0 1px #0a1a26, 0 6px 24px rgba(0, 212, 255, 0.08);
-    }
-    .header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-    }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px dashed #183044; border-radius: 6px; color: var(--muted);
-    }
-    .badge .led {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);
-      animation: pulse 1.8s infinite;
-    }
-    @keyframes pulse { 0%, 100% { opacity: 0.6 } 50% { opacity: 1 } }
-    h1 {
-      font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
-      margin: 0; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.25));
-    }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .panel {
-      background: var(--panel); border: 1px solid #183044; border-radius: 6px; padding: 12px;
-      box-shadow: inset 0 0 18px rgba(0, 212, 255, 0.04);
-    }
-    .panel h2 {
-      margin: 0 0 10px; font-size: 12px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase;
-    }
-    .log {
-      height: 160px; overflow: auto; padding: 8px; background: #0a1219; border: 1px solid #132637; border-radius: 4px;
-      line-height: 1.35;
-    }
-    .log .ok { color: var(--accent2); }
-    .log .warn { color: var(--warn); }
-    .log .err { color: var(--error); }
-    .kvs { display: grid; grid-template-columns: 120px 1fr; gap: 6px 10px; font-size: 13px; }
-    .kvs .k { color: var(--muted); }
-    .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
-    button {
-      all: unset; cursor: pointer; padding: 10px 12px; border-radius: 6px;
-      background: linear-gradient(180deg, #0f2636 0%, #0b1f2c 100%); border: 1px solid #1b3f57; color: var(--text);
-      box-shadow: 0 0 0 1px #0a1a26, inset 0 0 12px rgba(0, 212, 255, 0.08);
-    }
-    button.primary { border-color: #1a7490; color: #eaffff; }
-    button.primary:hover { box-shadow: 0 0 0 1px #1a7490, 0 0 12px rgba(0,212,255,0.18); }
-    .statusline {
-      margin-top: 12px; padding: 10px; border: 1px dashed #244457; border-radius: 6px; color: var(--muted);
-    }
-    .footer {
-      margin-top: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px;
-    }
-    .chip { display: inline-block; padding: 4px 8px; border: 1px solid #193445; border-radius: 999px; color: var(--accent); }
-    .inline-led { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background: var(--accent2); box-shadow: 0 0 6px var(--accent2); margin-right: 6px; }
-    a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted #1b3f57; }
+    body{background:#071217;color:#d7eef0;font-family:Inter,system-ui,Arial;padding:24px}
+    .card{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    a{color:#66a0ff}
   </style>
 </head>
 <body>
-  <div class="frame" role="application" aria-label="Spaceship mainframe override patch">
-    <div class="header">
-      <h1>MAINFRAME PATCH: WX->DIAG OVERRIDE</h1>
-      <div class="badge" aria-live="polite">
-        <span class="led" aria-hidden="true"></span>
-        CHANNEL: SYS/CORE/IO
-      </div>
-    </div>
-
-    <div class="grid">
-      <section class="panel" aria-labelledby="telemetry">
-        <h2 id="telemetry">Route bindings</h2>
-        <div class="kvs" id="bindings">
-          <div class="k">WX_FEED:</div><div>/bus/weather/planetary</div>
-          <div class="k">DIAG_BUS:</div><div>/bus/diagnostics/core</div>
-          <div class="k">CPU MODE:</div><div id="cpuMode">PASSIVE-LISTENER (WX)</div>
-          <div class="k">PATCH STATUS:</div><div id="patchStatus">UNAPPLIED</div>
-          <div class="k">AUTH TOKEN:</div><div id="authToken">—</div>
-        </div>
-        <div class="row">
-          <button id="mintToken">Mint auth token</button>
-          <button id="applyPatch" class="primary">Apply override</button>
-          <button id="revertPatch">Revert</button>
-        </div>
-        <div class="statusline" id="statusline">
-          <span class="inline-led"></span> Ready. Weather chatter detected on DIAG bus; awaiting override.
-        </div>
-      </section>
-
-      <section class="panel" aria-labelledby="console">
-        <h2 id="console">Console</h2>
-        <div class="log" id="log" aria-live="polite" aria-atomic="false">
-          <div class="warn">[WX] Route leak: /bus/weather/* shadowing /bus/diagnostics/core</div>
-          <div class="err">[CORE] DIAG idle. Received: “Overcast with a chance of micrometeors.”</div>
-          <div class="warn">[MUX] Priority inversion: WX=5, DIAG=3 (expected DIAG≥WX)</div>
-          <div class="ok">[SYS] Patch ready. Authorize to remap WX->null and DIAG->active.</div>
-        </div>
-        <div class="row">
-          <button id="runDiag" class="primary">Run quick diagnostic</button>
-          <button id="purgeWx">Purge weather feed</button>
-        </div>
-      </section>
-    </div>
-
-    <div class="footer">
-      <div><span class="chip">Build v0.0.7</span> • <span class="chip">Channel integrity: 99.94%</span></div>
-      <div>Docs: <a href="#" aria-label="diagnostics api reference">diag://api</a></div>
-    </div>
+  <h1>Mainframe Weather</h1>
+  <div class="card">
+    <p>This page is a placeholder for mainframe weather — a conceptual dashboard for load, latency, and contention over time.</p>
+    <p>Planned features:</p>
+    <ul>
+      <li>CPU/IO load trends</li>
+      <li>Network contention and packet loss summary</li>
+      <li>Service-level impact annotations</li>
+    </ul>
+    <p><a href="index.html">← Return to Mission UI</a></p>
   </div>
-
-  <script>
-    const log = document.getElementById('log');
-    const statusline = document.getElementById('statusline');
-    const applyBtn = document.getElementById('applyPatch');
-    const revertBtn = document.getElementById('revertPatch');
-    const purgeBtn = document.getElementById('purgeWx');
-    const runDiagBtn = document.getElementById('runDiag');
-    const mintTokenBtn = document.getElementById('mintToken');
-    const cpuMode = document.getElementById('cpuMode');
-    const patchStatus = document.getElementById('patchStatus');
-    const authToken = document.getElementById('authToken');
-
-    const append = (msg, type='ok') => {
-      const div = document.createElement('div');
-      div.className = type;
-      div.textContent = msg;
-      log.appendChild(div);
-      log.scrollTop = log.scrollHeight;
-    };
-
-    mintTokenBtn.addEventListener('click', () => {
-      const token = 'DIAG-' + Math.random().toString(36).slice(2,8).toUpperCase();
-      authToken.textContent = token;
-      append(`[AUTH] Token minted: ${token}`, 'ok');
-      statusline.innerHTML = '<span class="inline-led"></span> Token accepted. You may apply override.';
-    });
-
-    applyBtn.addEventListener('click', () => {
-      if (authToken.textContent === '—') {
-        append('[AUTH] No token present. Mint a token first.', 'err');
-        statusline.textContent = 'Authorization required. Mint token.';
-        return;
-      }
-      patchStatus.textContent = 'APPLIED';
-      cpuMode.textContent = 'ACTIVE-DIAGNOSTIC';
-      append('[PATCH] Remapping: /bus/weather/* -> null', 'ok');
-      append('[PATCH] Elevating DIAG priority: 7 (WX demoted: 1)', 'ok');
-      append('[CORE] Diagnostics online. Weather feed quarantined.', 'ok');
-      statusline.innerHTML = '<span class="inline-led"></span> Override applied. Mainframe follows diagnostics.'
-    });
-
-    revertBtn.addEventListener('click', () => {
-      patchStatus.textContent = 'UNAPPLIED';
-      cpuMode.textContent = 'PASSIVE-LISTENER (WX)';
-      append('[PATCH] Reverted. Weather feed restored to listener mode.', 'warn');
-      statusline.textContent = 'Reverted to pre-patch state. WX chatter may resume.';
-    });
-
-    purgeBtn.addEventListener('click', () => {
-      append('[MUX] Flushed 42 WX frames. Residual chatter: 0.', 'ok');
-      statusline.textContent = 'Weather frames purged.';
-    });
-
-    runDiagBtn.addEventListener('click', () => {
-      append('[DIAG] Running quickcheck: cpu, mem, io, nav...', 'ok');
-      setTimeout(() => append('[DIAG] cpu: nominal (98.7%), mem: stable (67%), io: synced, nav: locked', 'ok'), 600);
-      setTimeout(() => append('[DIAG] Hull microfractures: none. Reactor ripple: 0.02%', 'ok'), 1200);
-      setTimeout(() => append('[DIAG] Completed. No anomalies.', 'ok'), 1800);
-      statusline.textContent = 'Diagnostics complete. System is healthy.';
-    });
-
-    // Fun: simulate the "weather problem" recurrences until patched.
-    const wxTicker = setInterval(() => {
-      if (patchStatus.textContent === 'APPLIED') return;
-      append('[WX] “Light solar winds from the Proxima quadrant. Dress warmly.”', 'warn');
-    }, 4000);
-
-    // Accessibility: announce status changes decoratively without spam.
-    statusline.setAttribute('aria-live', 'polite');
-  </script>
 </body>
 </html>
