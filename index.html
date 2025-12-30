@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Obsidian Bastian — Family Home</title>
+  <meta name="description" content="Welcome aboard the Obsidian Bastian — family homepage for events, ship info, and celebrations." />
+  <style>
+    :root{
+      --bg:#071227; --card:#0f1a2a; --accent:#6be0a1; --accent2:#7cc4ff; --muted:#9fb3c6;
+      font-system: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui, -apple-system, "Segoe UI", Roboto; background:linear-gradient(180deg,#031022 0%, #061428 100%); color:#eaf6f3; line-height:1.5}
+    .container{max-width:1100px;margin:28px auto;padding:22px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#052022}
+    h1{margin:0;font-size:1.5rem}
+    nav a{color:var(--accent2); text-decoration:none; margin-left:14px}
+    .hero{margin-top:18px;padding:20px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border:1px solid rgba(255,255,255,0.03)}
+    .hero p{margin:8px 0 0 0;color:var(--muted)}
+    .cards{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .events .event{padding:12px;border-radius:8px;background:rgba(11,18,30,0.4);margin-bottom:12px}
+    .event h4{margin:0 0 6px 0}
+    .muted{color:var(--muted);font-size:0.95rem}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#042024;text-decoration:none;font-weight:600}
+    footer{margin-top:20px;color:var(--muted);font-size:0.9rem;text-align:center}
+    @media (max-width:900px){.cards{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">OB</div>
+        <div>
+          <h1>Obsidian Bastian</h1>
+          <div class="muted">Family ship — welcome aboard</div>
+        </div>
+      </div>
+      <nav>
+        <a href="onboardcomputer.html">Onboard Computer</a>
+        <a href="#about">About</a>
+        <a href="#events">Events</a>
+      </nav>
+    </header>
+
+    <section class="hero card">
+      <h2>Welcome to the Obsidian Bastian</h2>
+      <p class="muted">This is the family homepage for our imaginary spaceship. Use this page to share event details, announcements, photos, and important ship info with family members.</p>
+      <p style="margin-top:12px;">
+        <a class="btn" href="#events">See upcoming events</a>
+        <a class="btn" href="onboardcomputer.html" style="background:transparent;border:1px solid rgba(255,255,255,0.06;color:var(--accent2);margin-left:8px">View Onboard Computer</a>
+      </p>
+    </section>
+
+    <div class="cards">
+      <main class="card">
+        <section id="about">
+          <h3>About the Ship</h3>
+          <p class="muted">Obsidian Bastian is an imaginary family spacecraft where we celebrate milestones, host parties, and keep a log of memories. Add descriptions here about the ship's mission, crew (family members), and rules of the ship.</p>
+          <ul>
+            <li><strong>Mission:</strong> Celebrate, connect, and create memories together.</li>
+            <li><strong>Crew:</strong> Family members and guests (list names or roles here).</li>
+            <li><strong>Where we meet:</strong> This site for announcements; physical events in the real world.</li>
+          </ul>
+        </section>
+
+        <section id="events" class="events" style="margin-top:16px">
+          <h3>Upcoming Events</h3>
+
+          <!-- Example birthday event - edit as needed -->
+          <div class="event">
+            <h4>Birthday Party — Bastian (Example)</h4>
+            <div class="muted">Date: 2026-01-18 | Time: 15:00 — 18:00</div>
+            <p>Location: The Galactic Garden (your real venue). Please bring your party hat and a small token for the treasure chest activity.</p>
+            <p><strong>RSVP:</strong> <a href="mailto:party@family.example?subject=RSVP%20Bastian%20Birthday">party@family.example</a> or call <span class="muted">+1 (555) 123-4567</span></p>
+            <p><strong>Notes:</strong> Allergies, dietary needs, and whether you'll bring kids. Add additional info here.</p>
+          </div>
+
+          <!-- Template for more events -->
+          <div class="event">
+            <h4>Event title here</h4>
+            <div class="muted">Date: YYYY-MM-DD | Time: HH:MM</div>
+            <p>Short description and details, plus RSVP link and any attachments or instructions.</p>
+          </div>
+
+          <p class="muted">Tip: To add more events, duplicate one of the .event blocks and edit the content. If you'd like a calendar view or subscription (iCal), I can add that.</p>
+        </section>
+      </main>
+
+      <aside class="card">
+        <h4>Quick Info</h4>
+        <p class="muted"><strong>Host:</strong> Captain Parent</p>
+        <p class="muted"><strong>Contact:</strong> <a href="mailto:captain@family.example">captain@family.example</a></p>
+
+        <h4 style="margin-top:14px">Useful Links</h4>
+        <ul style="padding-left:14px;margin:6px 0">
+          <li><a href="onboardcomputer.html">Onboard Computer (internal)</a></li>
+          <li><a href="#events">Events & RSVP</a></li>
+          <li><a href="#about">About the Ship</a></li>
+        </ul>
+
+        <h4 style="margin-top:14px">Want images?</h4>
+        <p class="muted">You can add a photo gallery here or embed an album link (Google Photos / Flickr / Imgur). I can add a simple gallery section if you provide image links.</p>
+      </aside>
+    </div>
+
+    <footer>
+      <div>© Family Fleet — Obsidian Bastian • <span class="muted">Public homepage — share with family</span></div>
+    </footer>
+  </div>
+</body>
+</html>
