@@ -210,7 +210,7 @@
       <div class="card" style="overflow:hidden">
         <h3 style="margin:0 0 8px 0;font-size:13px">Quick Trends</h3>
         <div class="mini-charts">
-          <div class="mini card" aria-hidden="false">
+          <div class="mini card">
             <canvas id="miniCpu" height="60" style="width:100%"></canvas>
             <div class="small" style="padding:6px">CPU</div>
           </div>
@@ -497,7 +497,7 @@
     // Export CSV of visible window
     document.getElementById('exportCsv').addEventListener('click', ()=>{
       // merge by timestamp (we use same timestamps)
-      const rows = [['timestamp,iso,epoch_ms,cpu_pct,io_ms,net_ms,packet_loss_pct,contention']];
+      const rows = [['timestamp_iso', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
       for (let i=0;i<series.cpu.length;i++){
         const t = series.cpu[i].x;
         const cpu = series.cpu[i].y;
@@ -505,9 +505,9 @@
         const net = series.net[i]?.y ?? '';
         const pl = series.packetLoss[i]?.y ?? '';
         const cont = series.contention[i]?.y ?? '';
-        rows.push([ `${new Date(t).toISOString()},${t},${cpu},${io},${net},${pl},${cont}` ]);
+        rows.push([new Date(t).toISOString(), t, cpu, io, net, pl, cont]);
       }
-      const csv = rows.map(r=>r.join('')).join('\n');
+      const csv = rows.map(r=>r.join(',')).join('\n');
       const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
