@@ -1,26 +1,590 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Mainframe Weather — Obsidian Bastian</title>
+
+  <!-- Inter is optional; if you prefer a local font, remove the link -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN (lightweight and easy to use) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
   <style>
-    body{background:#071217;color:#d7eef0;font-family:Inter,system-ui,Arial;padding:24px}
-    .card{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-    a{color:#66a0ff}
+    :root{
+      --bg:#071217;
+      --muted:#7fb1bf;
+      --card: rgba(255,255,255,0.02);
+      --card-border: rgba(255,255,255,0.03);
+      --accent:#66a0ff;
+      --accent-2:#78e08f;
+      --danger:#ff7b7b;
+      --glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      --radius:12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", monospace;
+    }
+
+    html,body{height:100%}
+    body{
+      margin:0;
+      min-height:100%;
+      font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:#d7eef0;
+      padding:24px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:18px;
+    }
+
+    header .title{
+      display:flex;
+      gap:12px;
+      align-items:baseline;
+    }
+    h1{font-size:20px;margin:0;font-weight:600}
+    .muted {color:var(--muted); font-size:13px}
+
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--card-border);
+      padding:14px;
+      border-radius:var(--radius);
+      box-shadow: 0 4px 20px rgba(2,8,12,0.4);
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    /* left column (summary) */
+    .left{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .summary .stat{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      padding:10px;
+    }
+
+    .stat .label{color:var(--muted);font-size:13px}
+    .stat .value{font-weight:600;font-size:18px}
+
+    .mini-charts{
+      display:flex;
+      gap:8px;
+      margin-top:6px;
+    }
+    .mini{
+      flex:1;
+      min-width:0;
+    }
+
+    /* main area */
+    .main{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .toolbar .left, .toolbar .right{display:flex;gap:8px;align-items:center}
+
+    button, .seg button{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:inherit;
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:13px;
+    }
+    button.primary{
+      background:linear-gradient(90deg,var(--accent),#7dbdff);
+      color:#021219;
+      border:0;
+      font-weight:600;
+    }
+
+    .seg{display:flex;background:rgba(255,255,255,0.02);border-radius:10px;padding:4px}
+    .seg button.active{background:rgba(255,255,255,0.04);}
+
+    .chart-wrap{
+      padding:12px;
+      background:var(--glass);
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    footer{margin-top:16px;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:900px){
+      .layout{grid-template-columns: 1fr; }
+      .left{order:2}
+    }
+
+    .note{font-size:13px;color:var(--muted)}
+    .small{font-size:12px;color:var(--muted)}
+    .badge{font-size:12px;padding:6px;border-radius:8px;background:rgba(0,0,0,0.2)}
   </style>
 </head>
 <body>
-  <h1>Mainframe Weather</h1>
-  <div class="card">
-    <p>This page is a placeholder for mainframe weather — a conceptual dashboard for load, latency, and contention over time.</p>
-    <p>Planned features:</p>
-    <ul>
-      <li>CPU/IO load trends</li>
-      <li>Network contention and packet loss summary</li>
-      <li>Service-level impact annotations</li>
-    </ul>
-    <p><a href="index.html">← Return to Mission UI</a></p>
+  <header>
+    <div class="title">
+      <h1>Mainframe Weather</h1>
+      <div class="muted">observability dashboard — load, latency & contention</div>
+    </div>
+
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="Time range">
+        <button data-range="1h" class="active" aria-pressed="true">1h</button>
+        <button data-range="6h">6h</button>
+        <button data-range="24h">24h</button>
+      </div>
+
+      <button id="modeToggle" title="Switch between simulated / live data">Simulated</button>
+      <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="left">
+      <div class="card summary" aria-labelledby="overviewHeading">
+        <h2 id="overviewHeading" style="margin:0 0 10px 0;font-size:14px">Overview</h2>
+
+        <div class="stat" title="Current CPU utilization">
+          <div>
+            <div class="label">CPU Utilization</div>
+            <div class="small">avg across LPARs</div>
+          </div>
+          <div class="value" id="cpuNow">—%</div>
+        </div>
+
+        <div class="stat" title="I/O wait / throughput">
+          <div>
+            <div class="label">IO Wait</div>
+            <div class="small">avg</div>
+          </div>
+          <div class="value" id="ioNow">— ms</div>
+        </div>
+
+        <div class="stat" title="Network latency / errors">
+          <div>
+            <div class="label">Network Latency</div>
+            <div class="small">p50 / packet loss</div>
+          </div>
+          <div class="value" id="netNow">— ms</div>
+        </div>
+
+        <div style="margin-top:10px" class="note">Top contributors, recent incidents, and quick links live here.</div>
+      </div>
+
+      <div class="card" style="overflow:hidden">
+        <h3 style="margin:0 0 8px 0;font-size:13px">Quick Trends</h3>
+        <div class="mini-charts">
+          <div class="mini card" aria-hidden="false">
+            <canvas id="miniCpu" height="60" style="width:100%"></canvas>
+            <div class="small" style="padding:6px">CPU</div>
+          </div>
+          <div class="mini card">
+            <canvas id="miniIo" height="60" style="width:100%"></canvas>
+            <div class="small" style="padding:6px">IO Wait</div>
+          </div>
+          <div class="mini card">
+            <canvas id="miniNet" height="60" style="width:100%"></canvas>
+            <div class="small" style="padding:6px">Net Latency</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;font-size:13px">Notes</h3>
+        <p class="small">Planned features: annotations for service-level impact, heatmap of contention, historical baselining, and live alerts.</p>
+        <p class="small"><a href="index.html" style="color:var(--accent)">← Return to Mission UI</a></p>
+      </div>
+    </div>
+
+    <main class="main">
+      <div class="card toolbar">
+        <div class="left">
+          <div class="badge" id="healthBadge">Health: Good</div>
+          <div class="small" style="margin-left:8px" id="lastUpdated">last updated: —</div>
+        </div>
+        <div class="right">
+          <button id="zoomOut">Zoom out</button>
+          <button id="zoomIn">Zoom in</button>
+        </div>
+      </div>
+
+      <div class="card chart-wrap" aria-live="polite">
+        <canvas id="mainChart" height="220"></canvas>
+      </div>
+
+      <div class="card chart-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">
+          <h4 style="margin:0 0 8px 0;font-size:13px">Service Contention</h4>
+          <canvas id="contentionChart" height="140"></canvas>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <h4 style="margin:0 0 8px 0;font-size:13px">Packet Loss (last 1h)</h4>
+          <canvas id="packetChart" height="140"></canvas>
+        </div>
+      </div>
+
+      <footer class="card small">
+        This page runs with simulated data by default. To feed real data, replace the data feed in the script block with your telemetry source (HTTP polling or WebSocket).
+      </footer>
+    </main>
   </div>
+
+  <script>
+    /**************************************************************
+     * Mainframe Weather — interactive demo
+     * - Uses Chart.js to render charts
+     * - By default runs in "simulated" mode; toggle to "live" to plug in real data
+     * - Data model: time-series arrays for cpu/io/network
+     *
+     * How to wire real data:
+     *  - Replace `simulate` logic with fetch() or a WebSocket handler that pushes
+     *    new datapoints into the same arrays (pushPoint).
+     *  - Ensure timestamps are Date.now() (ms)
+     **************************************************************/
+
+    // state
+    let mode = 'simulated'; // 'simulated' or 'live'
+    const msInterval = 2000; // update interval for simulated mode
+    let timer = null;
+
+    // in-memory timeseries for the "visible window"
+    const WINDOW_SIZE = 60; // number of points shown (approx)
+    const now = () => Date.now();
+
+    const series = {
+      cpu: [],
+      io: [],
+      net: [],
+      packetLoss: [],
+      contention: []
+    };
+
+    // helpers
+    function pushPoint(arr, point){
+      arr.push(point);
+      if (arr.length > WINDOW_SIZE) arr.shift();
+    }
+
+    function formatTime(ts){
+      const d = new Date(ts);
+      return d.toLocaleTimeString();
+    }
+
+    // Generate a single simulated datapoint (replace with real telemetry ingestion)
+    function generateSimulatedPoint(baseTimestamp){
+      // baseTimestamp in ms
+      const t = baseTimestamp;
+      const cpu = Math.max(0, Math.min(100, 30 + Math.sin(t/60000*2*Math.PI)*12 + (Math.random()*12 - 6)));
+      const io = Math.max(0, Math.min(500, 120 + Math.sin(t/30000*2*Math.PI)*40 + (Math.random()*60 - 30)));
+      const net = Math.max(0, Math.min(200, 30 + Math.abs(Math.sin(t/20000))*40 + (Math.random()*30)));
+      const packetLoss = Math.max(0, Math.min(10, Math.random()*2 + (cpu>85?Math.random()*6:0)));
+      const contention = Math.max(0, Math.min(100, cpu * (io/400) * 1.2));
+
+      return { t, cpu: +cpu.toFixed(1), io: +io.toFixed(1), net: +net.toFixed(1), packetLoss:+packetLoss.toFixed(2), contention:+contention.toFixed(1) };
+    }
+
+    // initialize arrays with a short history
+    (function seed(){
+      const start = Date.now() - WINDOW_SIZE*msInterval;
+      for(let i=0;i<WINDOW_SIZE;i++){
+        const p = generateSimulatedPoint(start + i*msInterval);
+        pushPoint(series.cpu, {x:p.t, y:p.cpu});
+        pushPoint(series.io, {x:p.t, y:p.io});
+        pushPoint(series.net, {x:p.t, y:p.net});
+        pushPoint(series.packetLoss, {x:p.t, y:p.packetLoss});
+        pushPoint(series.contention, {x:p.t, y:p.contention});
+      }
+    })();
+
+    // Chart.js common options
+    const timeOptions = {
+      parsing: false,
+      normalized: true,
+    };
+
+    // create charts
+    const mainCtx = document.getElementById('mainChart').getContext('2d');
+    const mainChart = new Chart(mainCtx, {
+      type:'line',
+      data:{
+        datasets:[
+          {label:'CPU %', data: series.cpu, borderColor:'#66a0ff', backgroundColor: 'rgba(102,160,255,0.06)', yAxisID:'y1', tension:0.3, fill:true},
+          {label:'IO ms', data: series.io, borderColor:'#78e08f', backgroundColor: 'rgba(120,224,143,0.04)', yAxisID:'y2', tension:0.3},
+          {label:'Net ms', data: series.net, borderColor:'#ffb86b', backgroundColor:'rgba(255,184,107,0.02)', yAxisID:'y2', tension:0.3}
+        ]
+      },
+      options:{
+        animation:false,
+        maintainAspectRatio:false,
+        scales:{
+          x:{ type:'time', time:{unit:'minute', tooltipFormat:'HH:mm:ss'}, ticks:{color:'#9fd6e0'} },
+          y1:{ type:'linear', position:'left', min:0, max:100, ticks:{color:'#9fd6e0', callback: v => v+'%'}, title:{display:true,text:'CPU %', color:'#9fd6e0'} },
+          y2:{ type:'linear', position:'right', min:0, ticks:{color:'#9fd6e0'}, title:{display:true,text:'ms', color:'#9fd6e0'}, grid:{drawOnChartArea:false} }
+        },
+        plugins:{legend:{labels:{color:'#d7eef0'}}}
+      }
+    });
+
+    // mini charts
+    function makeMini(id, data, color){
+      const ctx = document.getElementById(id).getContext('2d');
+      return new Chart(ctx, {
+        type:'line',
+        data:{datasets:[{data:data, borderColor:color, tension:0.3, pointRadius:0, borderWidth:1.5}]},
+        options:{animation:false, maintainAspectRatio:false, scales:{x:{display:false}, y:{display:false}}, plugins:{legend:{display:false}}}
+      });
+    }
+    const miniCpu = makeMini('miniCpu', series.cpu, '#66a0ff');
+    const miniIo  = makeMini('miniIo', series.io, '#78e08f');
+    const miniNet = makeMini('miniNet', series.net, '#ffb86b');
+
+    const contentionCtx = document.getElementById('contentionChart').getContext('2d');
+    const contentionChart = new Chart(contentionCtx, {
+      type:'bar',
+      data:{labels: series.contention.map(d=>d.x), datasets:[{label:'Contention Score', data: series.contention, backgroundColor:'rgba(255,150,80,0.18)', borderColor:'rgba(255,150,80,0.8)', borderWidth:1}]},
+      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:100}}, plugins:{legend:{display:false}}}
+    });
+
+    const packetCtx = document.getElementById('packetChart').getContext('2d');
+    const packetChart = new Chart(packetCtx, {
+      type:'line',
+      data:{datasets:[{label:'Packet Loss %', data: series.packetLoss, borderColor:'#ff7b7b', tension:0.2, pointRadius:2}]},
+      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:15}}, plugins:{legend:{display:false}}}
+    });
+
+    // UI elements
+    const cpuNowEl = document.getElementById('cpuNow');
+    const ioNowEl = document.getElementById('ioNow');
+    const netNowEl = document.getElementById('netNow');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const healthBadge = document.getElementById('healthBadge');
+
+    function updateSummary(){
+      const lastCpu = series.cpu[series.cpu.length-1];
+      const lastIo  = series.io[series.io.length-1];
+      const lastNet = series.net[series.net.length-1];
+      if (lastCpu) cpuNowEl.textContent = `${lastCpu.y}%`;
+      if (lastIo)  ioNowEl.textContent = `${lastIo.y} ms`;
+      if (lastNet) netNowEl.textContent = `${lastNet.y} ms`;
+
+      const recentLoss = series.packetLoss.length ? series.packetLoss[series.packetLoss.length-1].y : 0;
+      if (recentLoss > 3 || (lastCpu && lastCpu.y > 90)) {
+        healthBadge.textContent = 'Health: Degraded';
+        healthBadge.style.background = 'linear-gradient(90deg,var(--danger),#ff9e9e20)';
+      } else {
+        healthBadge.textContent = 'Health: Good';
+        healthBadge.style.background = '';
+      }
+
+      lastUpdatedEl.textContent = 'last updated: ' + formatTime(Date.now());
+    }
+
+    // push a new datapoint into all series and update charts
+    function ingestPoint(point){
+      pushPoint(series.cpu, {x:point.t, y:point.cpu});
+      pushPoint(series.io,  {x:point.t, y:point.io});
+      pushPoint(series.net, {x:point.t, y:point.net});
+      pushPoint(series.packetLoss, {x:point.t, y:point.packetLoss});
+      pushPoint(series.contention, {x:point.t, y:point.contention});
+
+      // update Chart.js datasets directly
+      mainChart.data.datasets[0].data = series.cpu;
+      mainChart.data.datasets[1].data = series.io;
+      mainChart.data.datasets[2].data = series.net;
+      mainChart.update('none');
+
+      miniCpu.data.datasets[0].data = series.cpu;
+      miniIo.data.datasets[0].data = series.io;
+      miniNet.data.datasets[0].data = series.net;
+      miniCpu.update('none'); miniIo.update('none'); miniNet.update('none');
+
+      contentionChart.data.labels = series.contention.map(d=>d.x);
+      contentionChart.data.datasets[0].data = series.contention;
+      contentionChart.update('none');
+
+      packetChart.data.datasets[0].data = series.packetLoss;
+      packetChart.update('none');
+
+      updateSummary();
+    }
+
+    // Simulated run loop
+    function startSimulated(){
+      if (timer) clearInterval(timer);
+      timer = setInterval(()=> {
+        const p = generateSimulatedPoint(Date.now());
+        ingestPoint(p);
+      }, msInterval);
+    }
+
+    function stopSimulated(){
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    // Toggle mode
+    document.getElementById('modeToggle').addEventListener('click', (e)=>{
+      if (mode === 'simulated'){
+        mode = 'live';
+        e.currentTarget.textContent = 'Live';
+        stopSimulated();
+        // TODO: open WebSocket or start polling here. Below is a placeholder:
+        startLiveDemoPlaceholder();
+      } else {
+        mode = 'simulated';
+        e.currentTarget.textContent = 'Simulated';
+        // stop live feed if any
+        stopLiveDemoPlaceholder();
+        startSimulated();
+      }
+    });
+
+    // Placeholder live demo functions:
+    let liveTimer = null;
+    function startLiveDemoPlaceholder(){
+      // In a real integration, replace this with:
+      // const ws = new WebSocket('wss://your-telemetry.example/stream');
+      // ws.onmessage = (ev) => { const data = JSON.parse(ev.data); ingestPoint(data); }
+      // For demo, we'll still push simulated points but mark mode as "Live (demo)".
+      document.getElementById('modeToggle').textContent = 'Live (demo)';
+      liveTimer = setInterval(()=>{
+        // slightly different pattern to indicate it's from "live"
+        const p = generateSimulatedPoint(Date.now());
+        p.cpu += (Math.random()*6 - 3); // a touch more variance
+        p.cpu = Math.max(0, Math.min(100, +p.cpu.toFixed(1)));
+        ingestPoint(p);
+      }, msInterval);
+    }
+    function stopLiveDemoPlaceholder(){
+      if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+    }
+
+    // Export CSV of visible window
+    document.getElementById('exportCsv').addEventListener('click', ()=>{
+      // merge by timestamp (we use same timestamps)
+      const rows = [['timestamp,iso,epoch_ms,cpu_pct,io_ms,net_ms,packet_loss_pct,contention']];
+      for (let i=0;i<series.cpu.length;i++){
+        const t = series.cpu[i].x;
+        const cpu = series.cpu[i].y;
+        const io = series.io[i]?.y ?? '';
+        const net = series.net[i]?.y ?? '';
+        const pl = series.packetLoss[i]?.y ?? '';
+        const cont = series.contention[i]?.y ?? '';
+        rows.push([ `${new Date(t).toISOString()},${t},${cpu},${io},${net},${pl},${cont}` ]);
+      }
+      const csv = rows.map(r=>r.join('')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mainframeweather-${new Date().toISOString()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // time range buttons (they only change window size for this demo)
+    document.querySelectorAll('.seg button').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const range = e.currentTarget.dataset.range;
+        // map to number of points (simple heuristic)
+        if (range==='1h'){ setWindowSize(60); } // default
+        if (range==='6h'){ setWindowSize(180); }
+        if (range==='24h'){ setWindowSize(720); }
+      });
+    });
+
+    function setWindowSize(n){
+      // adopt new WINDOW_SIZE-like behavior by trimming/retaining arrays
+      // Note: the demo keeps the same msInterval; in real usage an index at timestamps would be used.
+      while(series.cpu.length > n) series.cpu.shift();
+      while(series.io.length > n) series.io.shift();
+      while(series.net.length > n) series.net.shift();
+      while(series.packetLoss.length > n) series.packetLoss.shift();
+      while(series.contention.length > n) series.contention.shift();
+
+      // if too short, seed with simulated history
+      const needed = n - series.cpu.length;
+      if (needed > 0){
+        const start = Date.now() - (n*msInterval);
+        for(let i=0;i<needed;i++){
+          const p = generateSimulatedPoint(start + i*msInterval);
+          pushPoint(series.cpu, {x:p.t, y:p.cpu});
+          pushPoint(series.io,  {x:p.t, y:p.io});
+          pushPoint(series.net, {x:p.t, y:p.net});
+          pushPoint(series.packetLoss, {x:p.t, y:p.packetLoss});
+          pushPoint(series.contention, {x:p.t, y:p.contention});
+        }
+      }
+
+      // refresh charts fully
+      mainChart.data.datasets[0].data = series.cpu;
+      mainChart.data.datasets[1].data = series.io;
+      mainChart.data.datasets[2].data = series.net;
+      mainChart.update();
+
+      miniCpu.update(); miniIo.update(); miniNet.update();
+      contentionChart.update(); packetChart.update();
+    }
+
+    // Zoom buttons: simple approach — change Y scaling for CPU
+    document.getElementById('zoomIn').addEventListener('click', ()=>{
+      const y1 = mainChart.options.scales.y1;
+      if (y1.max > 40) y1.max = Math.max(40, y1.max - 10);
+      mainChart.update();
+    });
+    document.getElementById('zoomOut').addEventListener('click', ()=>{
+      const y1 = mainChart.options.scales.y1;
+      y1.max = Math.min(200, (y1.max || 100) + 20);
+      mainChart.update();
+    });
+
+    // start the demo in simulated mode
+    startSimulated();
+    updateSummary();
+
+    // expose ingestion helper for integrations
+    window.MainframeWeather = {
+      ingestPoint,
+      setLiveMode: () => { mode='live'; stopSimulated(); startLiveDemoPlaceholder(); },
+      setSimulatedMode: () => { mode='simulated'; stopLiveDemoPlaceholder(); startSimulated(); }
+    };
+  </script>
 </body>
 </html>
