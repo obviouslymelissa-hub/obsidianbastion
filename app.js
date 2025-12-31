@@ -60,7 +60,7 @@
       .then(r => r.json())
       .then(data => {
         systemsData = data;
-        renderSystemsList();
+        render();
       })
       .catch(() => {
         // Fallback for file:// - embedded catalog
@@ -88,7 +88,7 @@
             }
           ]
         };
-        renderSystemsList();
+        render();
       });
   }
 
