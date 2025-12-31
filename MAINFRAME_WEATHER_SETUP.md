@@ -48,7 +48,7 @@ Edit `mainframeweather.html` and update the script tag around line 12-14:
 
 **Replace with this:**
 ```html
-<!-- Option 3: Local file -->
+<!-- Option 4: Local file -->
 <script src="lib/chart.umd.min.js"></script>
 ```
 
