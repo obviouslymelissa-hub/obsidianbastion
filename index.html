@@ -1,272 +1,249 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Obsidian Bastian — Family Ship</title>
-  <meta name="description" content="Obsidian Bastian — family homepage for events, ship info, and celebrations." />
+  <meta charset="UTF-8">
+  <title>Obsidian Bastian — Family Ship Control UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* Space-age theme using onboardcomputer color palette, carbon-fiber background */
-    :root{
-      --bg: #000000;               /* base black background */
-      --card: #0f1724;             /* card background (from onboardcomputer) */
-      --glass: rgba(255,255,255,0.03);
-      --accent: #56b6ff;           /* onboardcomputer accent */
-      --accent-2: #6be0a1;         /* complementary accent */
-      --muted: #9aa7b3;            /* onboardcomputer muted */
-      --text: #e6eef6;
-      --radius: 12px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
-      color-scheme: dark;
+    :root {
+      --bg-dark: #181c24;
+      --bg-panel: #23283a;
+      --accent: #4fd1c5;
+      --text-main: #e2e8f0;
+      --text-muted: #a0aec0;
+      --border: #2d3748;
+      --danger: #e53e3e;
+      --success: #38a169;
+      --warning: #ecc94b;
+      --font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     }
-
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      color:var(--text);
-      background-color:var(--bg);
-      min-height:100vh;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      line-height:1.45;
-      position:relative;
-      overflow-x:hidden;
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 0;
     }
-
-    /* carbon-fiber weave pattern (subtle) + faint star accents */
-    body::before{
-      content:"";
-      position:fixed;
-      inset:0;
-      /* carbon-fiber style using layered diagonal gradients */
-      background-image:
-        linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02) 100%),
-        linear-gradient(-45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02) 100%),
-        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.03), transparent 30%),
-        radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.02), transparent 30%);
-      background-size: 14px 14px, 14px 14px, 160px 160px, 200px 200px;
-      background-position: 0 0, 7px 7px, 0 0, 0 0;
-      mix-blend-mode: overlay;
-      pointer-events:none;
-      opacity:0.45;
-      z-index:0;
+    header {
+      background: var(--bg-panel);
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--accent);
+      text-align: center;
     }
-
-    .wrap{max-width:1100px;margin:28px auto;padding:28px;border-radius:var(--radius);backdrop-filter:blur(4px);position:relative;z-index:1}
-    header{
-      display:flex;align-items:center;justify-content:space-between;gap:16px;
-      padding:14px 18px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.012), transparent);
-      border:1px solid rgba(255,255,255,0.03);
+    header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+      color: var(--accent);
     }
-    .brand{display:flex;align-items:center;gap:14px}
-    .logo{
-      width:64px;height:64px;border-radius:12px;
-      background:linear-gradient(135deg,var(--accent-2),var(--accent));
-      display:flex;align-items:center;justify-content:center;font-weight:800;color:#02121a;font-size:18px;box-shadow:0 6px 18px rgba(2,6,23,0.7);
-      flex-shrink:0;
+    header h2 {
+      margin: 0.5rem 0 0 0;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      font-weight: 400;
     }
-    h1{margin:0;font-size:1.25rem}
-    .subtitle{color:var(--muted);font-size:0.95rem;margin-top:4px}
-    nav{display:flex;align-items:center;gap:12px}
-    nav a{color:var(--accent);text-decoration:none;font-weight:600;padding:8px 10px;border-radius:8px}
-    nav a.secondary{background:transparent;border:1px solid rgba(255,255,255,0.02);color:var(--text)}
-    .hero{
-      margin-top:18px;padding:24px;border-radius:var(--radius);background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-      border:1px solid rgba(255,255,255,0.03);display:flex;gap:20px;align-items:center;
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: auto;
     }
-    .hero-left{flex:1}
-    .hero-right{width:220px;text-align:right}
-    .tag{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);color:var(--muted);font-weight:600;font-size:0.85rem}
-    .lead{margin:12px 0;color:var(--muted)}
-    .btn{
-      display:inline-block;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--accent-2),var(--accent));
-      color:#02121a;text-decoration:none;font-weight:700;margin-right:8px;
-      box-shadow:0 8px 24px rgba(86,182,255,0.06);
+    .panel {
+      background: var(--bg-panel);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #0003;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--accent)}
-    .cards{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
-    .card{padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.03)}
-    h2{margin-top:0}
-    .muted{color:var(--muted)}
-    .events .event{margin-bottom:14px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02)}
-    .event h4{margin:0 0 6px 0}
-    .meta{font-size:0.92rem;color:var(--muted);margin-bottom:8px}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-    .photo{
-      height:160px;border-radius:10px;overflow:hidden;background:var(--card);border:1px dashed rgba(255,255,255,0.04);
-      display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative;
+    .panel h3 {
+      margin-top: 0;
+      color: var(--accent);
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      letter-spacing: 1px;
     }
-    .photo img{width:100%;height:100%;object-fit:cover;display:block;opacity:0}
-    .photo.loaded img{opacity:1;transition:opacity .35s ease}
-    .photo .placeholder{
-      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.95rem;padding:8px;text-align:center;color:var(--muted);
-      background: linear-gradient(180deg, rgba(0,0,0,0.15), transparent);
+    .status-list, .event-list, .gallery-list, .shortcut-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
-    .photo figcaption{margin-top:8px;font-size:0.9rem;color:var(--muted);text-align:center}
-
-    footer{margin-top:20px;color:var(--muted);font-size:0.9rem;text-align:center;padding-bottom:18px}
-
-    @media (max-width:980px){
-      .cards{grid-template-columns:1fr}
-      .hero{flex-direction:column;align-items:flex-start}
-      .hero-right{text-align:left;width:100%}
-      .photo-grid{grid-template-columns:repeat(2,1fr)}
+    .status-list li {
+      margin-bottom: 0.7rem;
+      font-size: 1rem;
     }
-    @media (max-width:560px){
-      .photo-grid{grid-template-columns:1fr}
-      .logo{width:52px;height:52px}
+    .status-success { color: var(--success); }
+    .status-warning { color: var(--warning); }
+    .status-danger { color: var(--danger); }
+    .quick-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .quick-actions button {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .quick-actions button:hover {
+      background: #38b2ac;
+    }
+    .event-list li {
+      margin-bottom: 1.2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .event-title {
+      font-weight: bold;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+    .event-date {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .event-status {
+      font-size: 0.95rem;
+      margin-left: 0.5rem;
+    }
+    .gallery-list {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .gallery-item {
+      background: #1a202c;
+      border-radius: 8px;
+      padding: 0.5rem;
+      width: 120px;
+      text-align: center;
+      color: var(--text-muted);
+      box-shadow: 0 1px 4px #0002;
+    }
+    .gallery-item img {
+      width: 100px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      background: #2d3748;
+    }
+    .shortcut-list li {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 1.5rem 0 0.5rem 0;
+      font-size: 0.95rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+    @media (max-width: 700px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="logo">OB</div>
-        <div>
-          <h1>Obsidian Bastian</h1>
-          <div class="subtitle">Family ship — welcome aboard</div>
+  <header>
+    <h1>Obsidian Bastian</h1>
+    <h2>Family Ship Control UI</h2>
+  </header>
+  <main class="dashboard">
+    <!-- Quick Actions Panel -->
+    <section class="panel">
+      <h3>Quick Actions</h3>
+      <div class="quick-actions">
+        <button>Join Next Event</button>
+        <button>Upload Ship Photo</button>
+        <button>View Event Logs</button>
+      </div>
+      <div style="font-size:0.95rem;color:var(--text-muted);">
+        Use these controls for instant access to ship features.
+      </div>
+    </section>
+    <!-- Ship Status Panel -->
+    <section class="panel">
+      <h3>Ship Status</h3>
+      <ul class="status-list">
+        <li>Crew: Captain Parent, Navigator, Engineer, Junior Crew</li>
+        <li>Mission: Celebrate milestones, coordinate events, log memories</li>
+        <li class="status-success">Systems: All nominal</li>
+        <li>Communications: <span class="status-warning">Standby</span></li>
+        <li>Error Log: <span class="status-success">No critical errors</span></li>
+      </ul>
+    </section>
+    <!-- Upcoming Events Panel -->
+    <section class="panel">
+      <h3>Upcoming Events</h3>
+      <ul class="event-list">
+        <li>
+          <span class="event-title">Bastian's Birthday (Virtual)</span><br>
+          <span class="event-date">2026-01-18 • 15:00–18:00</span>
+          <span class="event-status status-success">Scheduled</span><br>
+          <button style="margin-top:0.5rem;">Join via QR Code</button>
+        </li>
+        <li>
+          <span class="event-title">Family Movie Night — Starlight Screening</span><br>
+          <span class="event-date">2026-02-14 • 19:00</span>
+          <span class="event-status status-success">Scheduled</span><br>
+          <button style="margin-top:0.5rem;">Suggest Movie</button>
+        </li>
+      </ul>
+    </section>
+    <!-- Photo Gallery Panel -->
+    <section class="panel">
+      <h3>Photo Gallery</h3>
+      <div class="gallery-list">
+        <div class="gallery-item">
+          <img src="/images/ship-1.jpg" alt="Command Deck">
+          <div>Command Deck</div>
+          <button style="margin-top:0.5rem;">Upload/Replace</button>
         </div>
-      </div>
-
-      <nav>
-        <a href="onboardcomputer.html" class="secondary">Onboard Computer</a>
-        <a href="#about">About</a>
-        <a href="#events" class="secondary">Events</a>
-      </nav>
-    </header>
-
-    <section class="hero">
-      <div class="hero-left">
-        <div class="tag">Welcome Aboard</div>
-        <h2 style="margin:10px 0 6px 0">Obsidian Bastian — Family Home</h2>
-        <p class="lead">A spacecraft for celebrations, family announcements, and missions of fun. This site is the public hub where family members can find event details and view ship media.</p>
-
-        <p style="margin-top:12px">
-          <a class="btn" href="#events">View upcoming events</a>
-          <!-- Join button removed per request; QR code is on the invite -->
-        </p>
-      </div>
-
-      <div class="hero-right">
-        <div class="card" style="padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.03);">
-          <div style="font-weight:700;color:var(--accent)">Next Event</div>
-          <div class="meta">Bastian's Birthday</div>
-          <div class="muted">2026‑01‑18 • 15:00 — 18:00 (virtual)</div>
+        <div class="gallery-item">
+          <img src="/images/ship-2.jpg" alt="Observation Dome">
+          <div>Observation Dome</div>
+          <button style="margin-top:0.5rem;">Upload/Replace</button>
+        </div>
+        <div class="gallery-item">
+          <img src="/images/ship-3.jpg" alt="Exterior">
+          <div>Exterior</div>
+          <button style="margin-top:0.5rem;">Upload/Replace</button>
         </div>
       </div>
     </section>
-
-    <div class="cards">
-      <main class="card">
-        <section id="about">
-          <h2>About the Ship</h2>
-          <p class="muted">The Obsidian Bastian is our imaginative family spacecraft — a place for celebrations, shared stories, and events. Use this site to publish details about gatherings, post photos, and link to private logs in the Onboard Computer.</p>
-
-          <div style="margin-top:12px" class="grid-2">
-            <div>
-              <h4 style="margin-bottom:6px">Mission</h4>
-              <p class="muted">Celebrate family milestones, coordinate events, and keep warm logs of memories.</p>
-            </div>
-            <div>
-              <h4 style="margin-bottom:6px">Crew</h4>
-              <p class="muted">Captain Parent, Navigator, Engineer, and our Junior Crew (family and friends).</p>
-            </div>
-          </div>
-
-          <hr style="margin:16px 0;border:none;border-top:1px solid rgba(255,255,255,0.02)">
-
-          <section id="events" class="events">
-            <h3>Upcoming Events</h3>
-
-            <div class="event">
-              <h4>Bastian's Birthday (Virtual)</h4>
-              <div class="meta">Date: 2026‑01‑18 | Time: 15:00 — 18:00</div>
-              <p class="muted">This is a virtual Zoom celebration — no RSVP required. Guests should bring their "badges" to board the ship (costumes, printed badges, or just show up ready to have fun!). Use the QR code on the invite to join the meeting when it starts.</p>
-            </div>
-
-            <div class="event">
-              <h4>Family Movie Night — Starlight Screening</h4>
-              <div class="meta">Date: 2026‑02‑14 | Time: 19:00</div>
-              <p class="muted">Bring cozy snacks. We'll vote on the movie in family chat — feel free to suggest titles in advance.</p>
-            </div>
-
-            <p class="muted">Want a calendar feed (iCal) or a subscribe button? I can add an export so family members can add events directly to their calendars.</p>
-          </section>
-        </section>
-
-        <section style="margin-top:16px">
-          <h3 style="margin-bottom:8px">Photo Gallery</h3>
-          <p class="muted">Add your futuristic ship photos in the repository at /images/ship-1.jpg, /images/ship-2.jpg, /images/ship-3.jpg — they'll automatically appear here. You can use other filenames, just update the src attributes below.</p>
-
-          <div class="photo-grid" aria-hidden="false">
-            <figure>
-              <div class="photo">
-                <img src="images/ship-1.jpg" alt="Ship photo 1">
-                <div class="placeholder">Add images/ship-1.jpg to the repo to show a photo here</div>
-              </div>
-              <figcaption>Command Deck — replace with your image title</figcaption>
-            </figure>
-
-            <figure>
-              <div class="photo">
-                <img src="images/ship-2.jpg" alt="Ship photo 2">
-                <div class="placeholder">Add images/ship-2.jpg to the repo to show a photo here</div>
-              </div>
-              <figcaption>Observation Dome — replace with your caption</figcaption>
-            </figure>
-
-            <figure>
-              <div class="photo">
-                <img src="images/ship-3.jpg" alt="Ship photo 3">
-                <div class="placeholder">Add images/ship-3.jpg to the repo to show a photo here</div>
-              </div>
-              <figcaption>Exterior — replace with your caption</figcaption>
-            </figure>
-          </div>
-        </section>
-      </main>
-
-      <aside class="card">
-        <h3>Event Info</h3>
-        <p class="muted">This is a virtual event. When it's time to board, use the QR code from the invitation to join the meeting. There are no physical items to bring—just your badge and good vibes.</p>
-
-        <hr style="margin:16px 0;border:none;border-top:1px solid rgba(255,255,255,0.02)">
-
-        <h4>Quick Links</h4>
-        <ul style="padding-left:18px;margin:6px 0;color:var(--muted)">
-          <li><a href="onboardcomputer.html">Onboard Computer (internal)</a></li>
-          <li><a href="#events">Events & Info</a></li>
-          <li><a href="#about">About the Ship</a></li>
-        </ul>
-
-        <div style="margin-top:12px">
-          <h4 style="margin-bottom:6px">Need other changes?</h4>
-          <p class="muted">I can add a lightbox for the gallery, an editable events.json to manage events via the repo, or commit this change and open a PR for you.</p>
-        </div>
-      </aside>
-    </div>
-
-    <footer>
-      <div>© Family Fleet — Obsidian Bastian • <span class="muted">Public homepage — share with family</span></div>
-    </footer>
-  </div>
-
-  <!-- small helper script to show images when they load -->
-  <script>
-    document.querySelectorAll('.photo').forEach(container => {
-      const img = container.querySelector('img');
-      const ph = container.querySelector('.placeholder');
-      if(!img) return;
-      function markLoaded(){
-        container.classList.add('loaded');
-        if(ph) ph.style.display = 'none';
-      }
-      img.addEventListener('load', markLoaded);
-      if(img.complete && img.naturalWidth !== 0) markLoaded();
-    });
-  </script>
+    <!-- Keyboard Shortcuts Panel -->
+    <section class="panel">
+      <h3>Keyboard Shortcuts</h3>
+      <ul class="shortcut-list">
+        <li><strong>E</strong>: Events</li>
+        <li><strong>G</strong>: Gallery</li>
+        <li><strong>A</strong>: About</li>
+        <li><strong>Q</strong>: Quick Actions</li>
+      </ul>
+      <div style="font-size:0.95rem;color:var(--text-muted);margin-top:1rem;">
+        Use shortcuts for fast navigation.
+      </div>
+    </section>
+  </main>
+  <footer>
+    © Family Fleet — Obsidian Bastian • Public homepage
+  </footer>
 </body>
 </html>
