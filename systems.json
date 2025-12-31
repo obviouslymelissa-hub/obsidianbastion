@@ -1,0 +1,58 @@
+[
+  {
+    "id": "sol",
+    "name": "Sol",
+    "star": "G2V",
+    "description": "Our home star system",
+    "planets": [
+      {
+        "id": "earth",
+        "name": "Earth",
+        "type": "Terrestrial",
+        "orbit": "1.00 AU",
+        "radius": "1.00 R⊕",
+        "summary": "Home world with stable climate and breathable atmosphere",
+        "x": 300,
+        "y": 80
+      },
+      {
+        "id": "mars",
+        "name": "Mars",
+        "type": "Terrestrial",
+        "orbit": "1.52 AU",
+        "radius": "0.53 R⊕",
+        "summary": "Red planet with thin atmosphere and polar ice caps",
+        "x": 380,
+        "y": 80
+      },
+      {
+        "id": "venus",
+        "name": "Venus",
+        "type": "Terrestrial",
+        "orbit": "0.72 AU",
+        "radius": "0.95 R⊕",
+        "summary": "Hot world with crushing pressure and sulfuric acid clouds",
+        "x": 220,
+        "y": 80
+      }
+    ]
+  },
+  {
+    "id": "kepler-452",
+    "name": "Kepler-452",
+    "star": "G2V",
+    "description": "Earth-like exoplanet system 1,400 light-years away",
+    "planets": [
+      {
+        "id": "kepler-452b",
+        "name": "Kepler-452b",
+        "type": "Super-Earth",
+        "orbit": "1.05 AU",
+        "radius": "1.60 R⊕",
+        "summary": "Potentially habitable super-Earth in the habitable zone",
+        "x": 300,
+        "y": 80
+      }
+    ]
+  }
+]
