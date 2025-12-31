@@ -6,12 +6,13 @@
   <title>Mainframe Weather — Obsidian Bastian</title>
 
   <!-- Inter is optional; if you prefer a local font, remove the link -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
 
   <!-- Chart.js - Choose ONE of the following options based on your environment -->
   
   <!-- Option 1: jsDelivr CDN (recommended) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   
   <!-- Option 2: cdnjs (alternative if jsDelivr is blocked)
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -213,6 +214,9 @@
 
     <div class="controls">
       <div class="seg" role="tablist" aria-label="Time range">
+        <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
+        <button data-range="6h" role="tab" aria-selected="false">6h</button>
+        <button data-range="24h" role="tab" aria-selected="false">24h</button>
         <button data-range="1h" class="active" aria-pressed="true">1h</button>
         <button data-range="6h">6h</button>
         <button data-range="24h">24h</button>
@@ -447,6 +451,9 @@
     const contentionCtx = document.getElementById('contentionChart').getContext('2d');
     const contentionChart = new Chart(contentionCtx, {
       type:'bar',
+      data:{datasets:[{label:'Contention Score', data: series.contention, backgroundColor:'rgba(255,150,80,0.18)', borderColor:'rgba(255,150,80,0.8)', borderWidth:1}]},
+      data:{labels: series.contention.map(d=>d.x), datasets:[{label:'Contention Score', data: series.contention, backgroundColor:'rgba(255,150,80,0.18)', borderColor:'rgba(255,150,80,0.8)', borderWidth:1}]},
+      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:100}}, plugins:{legend:{display:false}}}
       data:{
         labels: series.contention.map(d=>d.x),
         datasets:[
@@ -566,6 +573,8 @@
       liveTimer = setInterval(()=>{
         // slightly different pattern to indicate it's from "live"
         const p = generateSimulatedPoint(Date.now());
+        p.cpu = Math.max(0, Math.min(100, p.cpu + (Math.random()*6 - 3)));
+        p.cpu = +p.cpu.toFixed(1);
         p.cpu += (Math.random()*6 - 3); // a touch more variance
         p.cpu = Math.max(0, Math.min(100, +p.cpu.toFixed(1)));
         ingestPoint(p);
@@ -578,6 +587,7 @@
     // Export CSV of visible window
     document.getElementById('exportCsv').addEventListener('click', ()=>{
       // merge by timestamp (we use same timestamps)
+      const rows = [['timestamp', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
       const rows = [['timestamp_iso', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
       for (let i=0;i<series.cpu.length;i++){
         const t = series.cpu[i].x;
@@ -601,6 +611,12 @@
     // time range buttons (they only change window size for this demo)
     document.querySelectorAll('.seg button').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
+        document.querySelectorAll('.seg button').forEach(b=>{
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        e.currentTarget.classList.add('active');
+        e.currentTarget.setAttribute('aria-selected', 'true');
         document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
         e.currentTarget.classList.add('active');
         const range = e.currentTarget.dataset.range;
