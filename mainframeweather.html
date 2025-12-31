@@ -183,7 +183,21 @@
       .layout{grid-template-columns: 1fr; }
       .left{order:0; margin-bottom:16px}
       .main{order:1}
+    /* responsive
+       Change: ensure the left column stays above the main content on small screens
+       and add canvas sizing/min-heights below to reduce layout shift when Chart.js paints.
+    */
+    @media (max-width:900px){
+      .layout{grid-template-columns: 1fr; }
+      .left{ order: 0; margin-bottom: 16px; } /* left first on small screens */
+      main { order: 1; }
     }
+
+    /* Reserve canvas heights / prevent reflow when Chart.js renders */
+    .mini canvas { display:block; width:100%; height:60px; }
+    .mini.card { min-height:96px; }
+    .chart-wrap { min-height:160px; }
+    #mainChart, #contentionChart, #packetChart { width:100%; height:220px; }
 
     .note{font-size:13px;color:var(--muted)}
     .small{font-size:12px;color:var(--muted)}
