@@ -1,26 +1,214 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
   <title>Diagnostics — Obsidian Bastian</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body{background:#041018;color:#d8eef0;font-family:Inter,system-ui,Arial;padding:24px}
-    .card{background:rgba(255,255,255,0.02);padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-    a{color:#7bd389}
+    :root {
+      --bg-dark: #181c24;
+      --bg-panel: #23283a;
+      --accent: #4fd1c5;
+      --text-main: #e2e8f0;
+      --text-muted: #a0aec0;
+      --border: #2d3748;
+      --danger: #e53e3e;
+      --success: #38a169;
+      --warning: #ecc94b;
+      --font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: var(--bg-panel);
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--accent);
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+    main {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: var(--bg-panel);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #0003;
+      padding: 2rem;
+      border: 1px solid var(--border);
+    }
+    .diagnostics-select {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .diagnostics-select button {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .diagnostics-select button.selected,
+    .diagnostics-select button:hover {
+      background: #38b2ac;
+    }
+    .diagnostics-area {
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-align: center;
+    }
+    .diagnostics-error {
+      background: #1a202c;
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-size: 1.05rem;
+      border: 1px solid var(--danger);
+      min-height: 2.5em;
+      transition: background 0.2s;
+    }
+    .diagnostics-status {
+      text-align: center;
+      font-size: 1.05rem;
+      margin-bottom: 1rem;
+      color: var(--success);
+      min-height: 2em;
+    }
+    .diagnostics-fix-btn {
+      display: block;
+      margin: 1rem auto 0 auto;
+      background: var(--success);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .diagnostics-fix-btn:hover {
+      background: #2f855a;
+    }
+    .return-link {
+      display: block;
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
-  <h1>Diagnostics</h1>
-  <div class="card">
-    <p>This diagnostics page is a placeholder for detailed subsystem diagnostics, logs, and tools.</p>
-    <ul>
-      <li>Subsystem health summaries (coming soon)</li>
-      <li>Detailed logs and trace tools (coming soon)</li>
-      <li>Repair and maintenance actions (coming soon)</li>
-    </ul>
-    <p>If you reached this page via keyboard shortcut, press <strong>Back</strong> in your browser or click below to return.</p>
-    <p><a href="index.html">← Return to Mission UI</a></p>
-  </div>
+  <header>
+    <h1>Diagnostics — Obsidian Bastian</h1>
+  </header>
+  <main>
+    <div class="diagnostics-select">
+      <button data-area="Life Support">Life Support</button>
+      <button data-area="Power">Power</button>
+      <button data-area="Shields">Shields</button>
+      <button data-area="Navigation">Navigation</button>
+      <button data-area="Communications">Communications</button>
+    </div>
+    <div class="diagnostics-area" id="diagnosticsArea">Select a subsystem to diagnose.</div>
+    <div class="diagnostics-error" id="diagnosticsError"></div>
+    <div class="diagnostics-status" id="diagnosticsStatus"></div>
+    <button class="diagnostics-fix-btn" id="fixBtn" style="display:none;">Attempt Fix</button>
+    <a href="index.html" class="return-link">← Return to Mission UI</a>
+  </main>
+  <script>
+    // Vague error messages for each subsystem
+    const errors = {
+      "Life Support": [
+        "O2 sensor readings inconsistent.",
+        "Pressure anomaly detected in habitat module.",
+        "CO2 scrubber cycling irregularly.",
+        "Life support nominal (no issues detected)."
+      ],
+      "Power": [
+        "Power relay fluctuating.",
+        "Battery charge below expected threshold.",
+        "Auxiliary generator offline.",
+        "Power system nominal (no issues detected)."
+      ],
+      "Shields": [
+        "Shield integrity at 92%.",
+        "Minor field distortion detected.",
+        "Shield generator cooling required.",
+        "Shields nominal (no issues detected)."
+      ],
+      "Navigation": [
+        "Gyro calibration drift.",
+        "Star tracker intermittent.",
+        "Navigation computer lag detected.",
+        "Navigation nominal (no issues detected)."
+      ],
+      "Communications": [
+        "Signal attenuation detected.",
+        "Antenna alignment off by 0.3°.",
+        "Message queue backlog.",
+        "Communications nominal (no issues detected)."
+      ]
+    };
+
+    const areaButtons = document.querySelectorAll('.diagnostics-select button');
+    const diagnosticsArea = document.getElementById('diagnosticsArea');
+    const diagnosticsError = document.getElementById('diagnosticsError');
+    const diagnosticsStatus = document.getElementById('diagnosticsStatus');
+    const fixBtn = document.getElementById('fixBtn');
+
+    let selectedArea = null;
+    let currentError = null;
+    let issueResolved = false;
+
+    areaButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        areaButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedArea = btn.getAttribute('data-area');
+        diagnosticsArea.textContent = `Diagnosing: ${selectedArea}`;
+        // Randomly select an error (sometimes "nominal")
+        const errorList = errors[selectedArea];
+        const idx = Math.floor(Math.random() * errorList.length);
+        currentError = errorList[idx];
+        diagnosticsError.textContent = currentError;
+        diagnosticsStatus.textContent = '';
+        issueResolved = false;
+        fixBtn.style.display = (currentError.includes('nominal')) ? 'none' : 'block';
+      });
+    });
+
+    fixBtn.addEventListener('click', () => {
+      // Randomly resolve or persist the issue
+      if (Math.random() < 0.5) {
+        diagnosticsStatus.textContent = "Issue persists. Further diagnostics required.";
+        diagnosticsStatus.style.color = "var(--danger)";
+      } else {
+        diagnosticsStatus.textContent = "Issue resolved. Subsystem nominal.";
+        diagnosticsStatus.style.color = "var(--success)";
+        fixBtn.style.display = 'none';
+        diagnosticsError.textContent = '';
+      }
+    });
+  </script>
 </body>
 </html>
