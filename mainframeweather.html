@@ -8,11 +8,22 @@
   <!-- Inter is optional; if you prefer a local font, remove the link -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
-  <!-- Chart.js CDN (lightweight and easy to use) -->
+  <!-- Chart.js - Choose ONE of the following options based on your environment -->
+  
+  <!-- Option 1: jsDelivr CDN (recommended) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- Add a time adapter for Chart.js time scale (recommended) -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@2/dist/chartjs-adapter-luxon.min.js"></script>
+  
+  <!-- Option 2: cdnjs (alternative if jsDelivr is blocked)
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  -->
+  
+  <!-- Option 3: unpkg CDN (another alternative)
+  <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.js"></script>
+  -->
+  
+  <!-- Option 4: Local file (best for restricted environments - see MAINFRAME_WEATHER_SETUP.md)
+  <script src="lib/chart.umd.min.js"></script>
+  -->
 
   <style>
     :root{
@@ -271,9 +282,12 @@
   <script>
     /**************************************************************
      * Mainframe Weather — interactive demo
-     * - Uses Chart.js to render charts
+     * - Uses Chart.js v4 to render charts (NO time adapter needed)
+     * - Works with linear scales + custom time formatting
      * - By default runs in "simulated" mode; toggle to "live" to plug in real data
      * - Data model: time-series arrays for cpu/io/network
+     *
+     * IMPORTANT: If charts don't load, see MAINFRAME_WEATHER_SETUP.md for CDN alternatives
      *
      * How to wire real data:
      *  - Replace `simulate` logic with fetch() or a WebSocket handler that pushes
@@ -356,11 +370,30 @@
         animation:false,
         maintainAspectRatio:false,
         scales:{
-          x:{ type:'time', time:{unit:'minute', tooltipFormat:'HH:mm:ss'}, ticks:{color:'#9fd6e0'} },
+          x:{ 
+            type:'linear', 
+            ticks:{
+              color:'#9fd6e0',
+              callback: function(value) {
+                const d = new Date(value);
+                return d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+              }
+            }
+          },
           y1:{ type:'linear', position:'left', min:0, max:100, ticks:{color:'#9fd6e0', callback: v => v+'%'}, title:{display:true,text:'CPU %', color:'#9fd6e0'} },
           y2:{ type:'linear', position:'right', min:0, ticks:{color:'#9fd6e0'}, title:{display:true,text:'ms', color:'#9fd6e0'}, grid:{drawOnChartArea:false} }
         },
-        plugins:{legend:{labels:{color:'#d7eef0'}}}
+        plugins:{
+          legend:{labels:{color:'#d7eef0'}},
+          tooltip:{
+            callbacks:{
+              title: function(context) {
+                const d = new Date(context[0].parsed.x);
+                return d.toLocaleString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+              }
+            }
+          }
+        }
       }
     });
 
@@ -392,14 +425,14 @@
           }
         ]
       },
-      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:100}}, plugins:{legend:{display:false}}}
+      options:{animation:false, parsing:false, scales:{x:{type:'linear', ticks:{display:false}}, y:{beginAtZero:true, max:100}}, plugins:{legend:{display:false}}}
     });
 
     const packetCtx = document.getElementById('packetChart').getContext('2d');
     const packetChart = new Chart(packetCtx, {
       type:'line',
       data:{datasets:[{label:'Packet Loss %', data: series.packetLoss, borderColor:'#ff7b7b', tension:0.2, pointRadius:2}]},
-      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:15}}, plugins:{legend:{display:false}}}
+      options:{animation:false, parsing:false, scales:{x:{type:'linear', ticks:{display:false}}, y:{beginAtZero:true, max:15}}, plugins:{legend:{display:false}}}
     });
 
     // UI elements
