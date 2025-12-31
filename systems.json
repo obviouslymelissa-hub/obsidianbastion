@@ -1,0 +1,60 @@
+{
+  "systems": [
+    {
+      "id": "Sol",
+      "name": "Sol",
+      "coords": [100, 80],
+      "star": { "name": "Sun (G2V)", "class": "G", "luminosityFactor": 1 },
+      "planets": [
+        {
+          "id": "Sol-01b",
+          "name": "Mercury",
+          "index": 1,
+          "orbitalAU": 0.39,
+          "radiusEarth": 0.383,
+          "massEarth": 0.055,
+          "type": "Terrestrial",
+          "summary": "Small, cratered rocky world."
+        },
+        {
+          "id": "Sol-03b",
+          "name": "Earth",
+          "index": 3,
+          "orbitalAU": 1.00,
+          "radiusEarth": 1.00,
+          "massEarth": 1.00,
+          "type": "Terrestrial",
+          "summary": "Blue planet with abundant life."
+        },
+        {
+          "id": "Sol-04b",
+          "name": "Mars",
+          "index": 4,
+          "orbitalAU": 1.52,
+          "radiusEarth": 0.53,
+          "massEarth": 0.107,
+          "type": "Terrestrial",
+          "summary": "Red dusty world with polar caps."
+        }
+      ]
+    },
+    {
+      "id": "Kepler-452",
+      "name": "Kepler-452",
+      "coords": [420, 80],
+      "star": { "name": "Kepler-452", "class": "G", "luminosityFactor": 1.15 },
+      "planets": [
+        {
+          "id": "Kepler-452-01b",
+          "name": "Kepler-452b",
+          "index": 1,
+          "orbitalAU": 1.05,
+          "radiusEarth": 1.6,
+          "massEarth": 5.0,
+          "type": "Super-Earth",
+          "summary": "Potentially habitable super-Earth."
+        }
+      ]
+    }
+  ]
+}
