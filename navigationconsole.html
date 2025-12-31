@@ -1,1 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Navigation Console</title>
+  <style>
+    :root{ --bg:#071025; --card:#0f1724; --muted:#9aa6c0; --accent:#6ee7b7; color:#e6eef8; font-family:Inter,system-ui,Arial; }
+    body{margin:0;background:linear-gradient(180deg,#020617,#071025);color:var(--muted)}
+    .wrap{max-width:1100px;margin:24px auto;padding:18px}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    h1{margin:0;color:#e6eef8;font-size:18px}
+    .grid{display:grid;grid-template-columns:320px 1fr 420px;gap:14px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    input,select,button{font:inherit}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .small{font-size:13px;color:var(--muted)}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .preview{height:320px;border:0;width:100%;border-radius:8px;background:#041427}
+    .btn{background:var(--accent);color:#042023;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    pre.json{white-space:pre-wrap;background:#041427;padding:8px;border-radius:6px;color:#bfe6ff;max-height:280px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Navigation Console</h1>
+      <div class="small">Pick a destination (or enter a custom name) and preview atmospheric conditions. Uses shared generator.</div>
+    </div>
 
+    <div class="grid">
+      <div class="card">
+        <div class="label small">Destinations</div>
+        <div class="list" id="destList" style="margin-top:8px">
+          <!-- Filled by script -->
+        </div>
+
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+        <div class="small">Or enter a custom seed/name</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="customName" placeholder="e.g. Kepler-452a" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8">
+          <button id="goBtn" class="btn">Go</button>
+        </div>
+        <div style="margin-top:10px" class="muted">Click "Open in Weather Page" to preview the full weather UI in another tab or in the embedded preview.</div>
+      </div>
+
+      <div class="card" id="displayCard">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Selected</div>
+            <div id="selectedName" style="font-weight:700;color:#e6eef8">—</div>
+            <div id="selectedSummary" class="small" style="margin-top:6px">—</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button id="embedBtn" class="btn">Embed Preview</button>
+            <button id="openBtn" class="btn">Open in Weather Page</button>
+          </div>
+        </div>
+
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div id="infoArea">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+            <div>
+              <div class="small">Orbital</div><div id="orbital" class="small">—</div>
+            </div>
+            <div>
+              <div class="small">Gravity</div><div id="gravity" class="small">—</div>
+            </div>
+            <div>
+              <div class="small">Temperature</div><div id="temperature" class="small">—</div>
+            </div>
+            <div>
+              <div class="small">Pressure</div><div id="pressure" class="small">—</div>
+            </div>
+            <div>
+              <div class="small">Wind</div><div id="wind" class="small">—</div>
+            </div>
+            <div>
+              <div class="small">Clouds</div><div id="clouds" class="small">—</div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="small">Phenomena</div>
+            <div id="phenomena" class="small" style="margin-top:6px">—</div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="small">Composition</div>
+            <pre id="composition" class="json" style="margin-top:6px">—</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="small">Preview (embedded)</div>
+        <iframe id="previewFrame" class="preview" src=""></iframe>
+
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="refreshPreview" class="btn">Refresh Preview</button>
+          <button id="copySeed" class="btn">Copy Seed</button>
+        </div>
+
+        <div style="margin-top:10px">
+          <div class="small">Raw JSON</div>
+          <pre id="rawJson" class="json">—</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { generateDataset } from './atmos.js';
+
+const presets = [
+  'Kepler-452', 'TRAPPIST-1', 'Gliese-667', 'HD-219134', 'A1B-207', 'ZQ-3', 'OB-X-12'
+];
+
+const destList = document.getElementById('destList');
+const custom = document.getElementById('customName');
+const selectedName = document.getElementById('selectedName');
+const selectedSummary = document.getElementById('selectedSummary');
+const goBtn = document.getElementById('goBtn');
+const orb = document.getElementById('orbital');
+const grav = document.getElementById('gravity');
+const temp = document.getElementById('temperature');
+const pres = document.getElementById('pressure');
+const wind = document.getElementById('wind');
+const clouds = document.getElementById('clouds');
+const phenomena = document.getElementById('phenomena');
+const composition = document.getElementById('composition');
+const rawJson = document.getElementById('rawJson');
+const previewFrame = document.getElementById('previewFrame');
+const embedBtn = document.getElementById('embedBtn');
+const openBtn = document.getElementById('openBtn');
+const refreshPreview = document.getElementById('refreshPreview');
+const copySeed = document.getElementById('copySeed');
+
+let currentSeed = null;
+let currentDataset = null;
+let embedded = true;
+
+function makeList(){
+  presets.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.textContent = p;
+    btn.className = 'btn';
+    btn.style.width='100%';
+    btn.addEventListener('click', ()=> selectDestination(p));
+    destList.appendChild(btn);
+  });
+}
+
+function selectDestination(name){
+  currentSeed = name;
+  currentDataset = generateDataset({ seed: name });
+  updateDisplay(name, currentDataset);
+}
+
+function updateDisplay(name, ds){
+  selectedName.textContent = name;
+  selectedSummary.textContent = `${ds.planet.type} • ${ds.planet.radiusEarth} R⊕ • ${ds.planet.massEarth} M⊕`;
+  orb.textContent = `${ds.planet.orbitalAU} AU`;
+  grav.textContent = `${ds.planet.gravity} g`;
+  temp.textContent = `${ds.planet.tempC} °C`;
+  pres.textContent = `${ds.planet.pressureBar} bar`;
+  wind.textContent = `${ds.planet.windKph} km/h`;
+  clouds.textContent = `${ds.planet.cloudsPercent} %`;
+  phenomena.textContent = ds.planet.phenomena.join('; ');
+  composition.textContent = ds.planet.composition.map(c=>`${c.gas}: ${c.pct}%`).join('\n');
+  rawJson.textContent = JSON.stringify(ds, null, 2);
+}
+
+goBtn.addEventListener('click', ()=>{
+  const name = (custom.value || '').trim();
+  if(!name) return alert('Enter a name or pick a preset');
+  selectDestination(name);
+});
+
+embedBtn.addEventListener('click', ()=>{
+  embedded = !embedded;
+  embedBtn.textContent = embedded ? 'Embed Preview' : 'Hide Embed';
+  if(embedded && currentSeed) previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`;
+  if(!embedded) previewFrame.src = '';
+});
+
+openBtn.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  window.open(`./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`, '_blank');
+});
+
+refreshPreview.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}&t=${Date.now()}`;
+});
+
+copySeed.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  navigator.clipboard?.writeText(currentSeed).then(()=> alert('Seed copied')).catch(()=> alert('Unable to copy'));
+});
+
+// init
+makeList();
+// pick a default
+selectDestination(presets[0]);
+previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`;
+
+</script>
+</body>
+</html>
