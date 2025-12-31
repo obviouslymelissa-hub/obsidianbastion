@@ -290,7 +290,11 @@
     const minimalMode = (currentLocation && currentLocation.type === 'custom') || 
                         (selectedDestination && selectedDestination.type === 'custom');
 
-    elements.mapSvgLarge.innerHTML = '';
+    // Clear existing content
+    while (elements.mapSvgLarge.firstChild) {
+      elements.mapSvgLarge.removeChild(elements.mapSvgLarge.firstChild);
+    }
+    
     const svg = elements.mapSvgLarge;
     const width = svg.clientWidth || 800;
     const height = svg.clientHeight || 320;
@@ -457,6 +461,10 @@
     if (!coords) return;
 
     const [x, y] = coords;
+
+    // Remove existing ship if present
+    const existingShip = svg.querySelector('#shipGroup');
+    if (existingShip) existingShip.remove();
 
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.classList.add('ship');
