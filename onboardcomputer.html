@@ -232,7 +232,7 @@ const commStatus = document.getElementById('comm-status');
 
 btnHelp.addEventListener('click', ()=>{ alert('Keyboard shortcuts:\nH: Toggle help\nG: Toggle gauges\nL: Toggle Life Support\nC: Toggle Communications\nD: Open Diagnostics\nM: Open Mainframe Weather'); });
 btnDiag.addEventListener('click', ()=>{ window.location.href='diagnostics.html'; });
-btnWeather.addEventListener('click', ()=>{ window.location.href='mainframeweather.html'; });
+btnWeather.addEventListener('click', ()=>{ window.location.href='mainframe-health.html'; });
 btnToggleG.addEventListener('click', ()=>{ toggleGauges(); });
 
 document.getElementById('btn-evac').addEventListener('click', ()=>{ pushVagueError(); alert('Evac trigger simulated — this is a placeholder.'); });
@@ -251,7 +251,7 @@ document.addEventListener('keydown', (e)=>{
   else if (k==='l'){ toggleLife(); }
   else if (k==='c'){ toggleComm(); }
   else if (k==='d'){ window.location.href='diagnostics.html'; }
-  else if (k==='m'){ window.location.href='mainframeweather.html'; }
+  else if (k==='m'){ window.location.href='mainframe-health.html'; }
 });
 
 // initial draw

@@ -3,28 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mainframe Weather — Obsidian Bastian</title>
+  <title>Mainframe Health — Obsidian Bastian</title>
 
   <!-- Inter is optional; if you prefer a local font, remove the link -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
 
   <!-- Chart.js - Choose ONE of the following options based on your environment -->
-  
-  <!-- Option 1: jsDelivr CDN (recommended) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  
-  <!-- Option 2: cdnjs (alternative if jsDelivr is blocked)
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  -->
-  
-  <!-- Option 3: unpkg CDN (another alternative)
-  <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.js"></script>
-  -->
-  
-  <!-- Option 4: Local file (best for restricted environments - see MAINFRAME_WEATHER_SETUP.md)
-  <script src="lib/chart.umd.min.js"></script>
-  -->
 
   <style>
     :root{
@@ -107,16 +93,6 @@
     .stat .label{color:var(--muted);font-size:13px}
     .stat .value{font-weight:600;font-size:18px}
 
-    .mini-charts{
-      display:flex;
-      gap:8px;
-      margin-top:6px;
-    }
-    .mini{
-      flex:1;
-      min-width:0;
-    }
-
     /* main area */
     .main{
       display:flex;
@@ -161,44 +137,14 @@
 
     footer{margin-top:16px;color:var(--muted);font-size:13px}
 
-    /* Canvas sizing: reserve space to reduce layout shift when Chart.js initializes */
-    .mini canvas {
-      display: block;
-      width: 100%;
-      height: 60px;
-    }
-    .mini.card {
-      min-height: 96px; /* 60px canvas + padding + label space */
-    }
-    #mainChart {
-      width: 100%;
-      height: 220px;
-    }
-    #contentionChart, #packetChart {
-      width: 100%;
-      height: 140px;
-    }
+    #mainChart { width:100%; height:220px; }
+    #contentionChart, #packetChart { width:100%; height:140px; }
 
-    /* Responsive: keep left column (Quick Trends) above main content on narrow viewports */
     @media (max-width:900px){
       .layout{grid-template-columns: 1fr; }
       .left{order:0; margin-bottom:16px}
       .main{order:1}
-    /* responsive
-       Change: ensure the left column stays above the main content on small screens
-       and add canvas sizing/min-heights below to reduce layout shift when Chart.js paints.
-    */
-    @media (max-width:900px){
-      .layout{grid-template-columns: 1fr; }
-      .left{ order: 0; margin-bottom: 16px; } /* left first on small screens */
-      main { order: 1; }
     }
-
-    /* Reserve canvas heights / prevent reflow when Chart.js renders */
-    .mini canvas { display:block; width:100%; height:60px; }
-    .mini.card { min-height:96px; }
-    .chart-wrap { min-height:160px; }
-    #mainChart, #contentionChart, #packetChart { width:100%; height:220px; }
 
     .note{font-size:13px;color:var(--muted)}
     .small{font-size:12px;color:var(--muted)}
@@ -208,8 +154,8 @@
 <body>
   <header>
     <div class="title">
-      <h1>Mainframe Weather</h1>
-      <div class="muted">observability dashboard — load, latency & contention</div>
+      <h1>Mainframe Health</h1>
+      <div class="muted">system observability dashboard — CPU, I/O, latency & contention</div>
     </div>
 
     <div class="controls">
@@ -222,7 +168,8 @@
         <button data-range="24h">24h</button>
       </div>
 
-      <button id="modeToggle" title="Switch between simulated / live data">Simulated</button>
+      <!-- mode toggle removed as requested -->
+
       <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
     </div>
   </header>
@@ -259,23 +206,7 @@
         <div style="margin-top:10px" class="note">Top contributors, recent incidents, and quick links live here.</div>
       </div>
 
-      <div class="card" style="overflow:hidden">
-        <h3 style="margin:0 0 8px 0;font-size:13px">Quick Trends</h3>
-        <div class="mini-charts">
-          <div class="mini card">
-            <canvas id="miniCpu" height="60" style="width:100%"></canvas>
-            <div class="small" style="padding:6px">CPU</div>
-          </div>
-          <div class="mini card">
-            <canvas id="miniIo" height="60" style="width:100%"></canvas>
-            <div class="small" style="padding:6px">IO Wait</div>
-          </div>
-          <div class="mini card">
-            <canvas id="miniNet" height="60" style="width:100%"></canvas>
-            <div class="small" style="padding:6px">Net Latency</div>
-          </div>
-        </div>
-      </div>
+      <!-- Quick Trends removed as requested -->
 
       <div class="card">
         <h3 style="margin:0 0 8px 0;font-size:13px">Notes</h3>
@@ -312,35 +243,22 @@
       </div>
 
       <footer class="card small">
-        This page runs with simulated data by default. To feed real data, replace the data feed in the script block with your telemetry source (HTTP polling or WebSocket).
+        System message: "All hands calm — core systems are humming. If they weren't, you'd be seeing red." (This page displays system telemetry — use the Export CSV button to download the visible window.)
       </footer>
     </main>
   </div>
 
   <script>
-    /**************************************************************
-     * Mainframe Weather — interactive demo
-     * - Uses Chart.js v4 to render charts (NO time adapter needed)
-     * - Works with linear scales + custom time formatting
-     * - By default runs in "simulated" mode; toggle to "live" to plug in real data
-     * - Data model: time-series arrays for cpu/io/network
-     *
-     * IMPORTANT: If charts don't load, see MAINFRAME_WEATHER_SETUP.md for CDN alternatives
-     *
-     * How to wire real data:
-     *  - Replace `simulate` logic with fetch() or a WebSocket handler that pushes
-     *    new datapoints into the same arrays (pushPoint).
-     *  - Ensure timestamps are Date.now() (ms)
-     **************************************************************/
+    /******************************************
+    * Mainframe Health — interactive demo (trimmed)
+    ******************************************/
 
     // state
-    let mode = 'simulated'; // 'simulated' or 'live'
     const msInterval = 2000; // update interval for simulated mode
     let timer = null;
 
     // in-memory timeseries for the "visible window"
     const WINDOW_SIZE = 60; // number of points shown (approx)
-    const now = () => Date.now();
 
     const series = {
       cpu: [],
@@ -363,7 +281,6 @@
 
     // Generate a single simulated datapoint (replace with real telemetry ingestion)
     function generateSimulatedPoint(baseTimestamp){
-      // baseTimestamp in ms
       const t = baseTimestamp;
       const cpu = Math.max(0, Math.min(100, 30 + Math.sin(t/60000*2*Math.PI)*12 + (Math.random()*12 - 6)));
       const io = Math.max(0, Math.min(500, 120 + Math.sin(t/30000*2*Math.PI)*40 + (Math.random()*60 - 30)));
@@ -374,7 +291,6 @@
       return { t, cpu: +cpu.toFixed(1), io: +io.toFixed(1), net: +net.toFixed(1), packetLoss:+packetLoss.toFixed(2), contention:+contention.toFixed(1) };
     }
 
-    // initialize arrays with a short history
     (function seed(){
       const start = Date.now() - WINDOW_SIZE*msInterval;
       for(let i=0;i<WINDOW_SIZE;i++){
@@ -386,12 +302,6 @@
         pushPoint(series.contention, {x:p.t, y:p.contention});
       }
     })();
-
-    // Chart.js common options
-    const timeOptions = {
-      parsing: false,
-      normalized: true,
-    };
 
     // create charts
     const mainCtx = document.getElementById('mainChart').getContext('2d');
@@ -435,25 +345,9 @@
       }
     });
 
-    // mini charts
-    function makeMini(id, data, color){
-      const ctx = document.getElementById(id).getContext('2d');
-      return new Chart(ctx, {
-        type:'line',
-        data:{datasets:[{data:data, borderColor:color, tension:0.3, pointRadius:0, borderWidth:1.5}]},
-        options:{animation:false, maintainAspectRatio:false, scales:{x:{display:false}, y:{display:false}}, plugins:{legend:{display:false}}}
-      });
-    }
-    const miniCpu = makeMini('miniCpu', series.cpu, '#66a0ff');
-    const miniIo  = makeMini('miniIo', series.io, '#78e08f');
-    const miniNet = makeMini('miniNet', series.net, '#ffb86b');
-
     const contentionCtx = document.getElementById('contentionChart').getContext('2d');
     const contentionChart = new Chart(contentionCtx, {
       type:'bar',
-      data:{datasets:[{label:'Contention Score', data: series.contention, backgroundColor:'rgba(255,150,80,0.18)', borderColor:'rgba(255,150,80,0.8)', borderWidth:1}]},
-      data:{labels: series.contention.map(d=>d.x), datasets:[{label:'Contention Score', data: series.contention, backgroundColor:'rgba(255,150,80,0.18)', borderColor:'rgba(255,150,80,0.8)', borderWidth:1}]},
-      options:{animation:false, parsing:false, scales:{x:{type:'time', ticks:{display:false}}, y:{beginAtZero:true, max:100}}, plugins:{legend:{display:false}}}
       data:{
         labels: series.contention.map(d=>d.x),
         datasets:[
@@ -517,11 +411,6 @@
       mainChart.data.datasets[2].data = series.net;
       mainChart.update('none');
 
-      miniCpu.data.datasets[0].data = series.cpu;
-      miniIo.data.datasets[0].data = series.io;
-      miniNet.data.datasets[0].data = series.net;
-      miniCpu.update('none'); miniIo.update('none'); miniNet.update('none');
-
       contentionChart.data.labels = series.contention.map(d=>d.x);
       contentionChart.data.datasets[0].data = series.contention;
       contentionChart.update('none');
@@ -545,49 +434,8 @@
       if (timer) { clearInterval(timer); timer = null; }
     }
 
-    // Toggle mode
-    document.getElementById('modeToggle').addEventListener('click', (e)=>{
-      if (mode === 'simulated'){
-        mode = 'live';
-        e.currentTarget.textContent = 'Live';
-        stopSimulated();
-        // TODO: open WebSocket or start polling here. Below is a placeholder:
-        startLiveDemoPlaceholder();
-      } else {
-        mode = 'simulated';
-        e.currentTarget.textContent = 'Simulated';
-        // stop live feed if any
-        stopLiveDemoPlaceholder();
-        startSimulated();
-      }
-    });
-
-    // Placeholder live demo functions:
-    let liveTimer = null;
-    function startLiveDemoPlaceholder(){
-      // In a real integration, replace this with:
-      // const ws = new WebSocket('wss://your-telemetry.example/stream');
-      // ws.onmessage = (ev) => { const data = JSON.parse(ev.data); ingestPoint(data); }
-      // For demo, we'll still push simulated points but mark mode as "Live (demo)".
-      document.getElementById('modeToggle').textContent = 'Live (demo)';
-      liveTimer = setInterval(()=>{
-        // slightly different pattern to indicate it's from "live"
-        const p = generateSimulatedPoint(Date.now());
-        p.cpu = Math.max(0, Math.min(100, p.cpu + (Math.random()*6 - 3)));
-        p.cpu = +p.cpu.toFixed(1);
-        p.cpu += (Math.random()*6 - 3); // a touch more variance
-        p.cpu = Math.max(0, Math.min(100, +p.cpu.toFixed(1)));
-        ingestPoint(p);
-      }, msInterval);
-    }
-    function stopLiveDemoPlaceholder(){
-      if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
-    }
-
-    // Export CSV of visible window
+    // Export CSV of visible window (this button is functional)
     document.getElementById('exportCsv').addEventListener('click', ()=>{
-      // merge by timestamp (we use same timestamps)
-      const rows = [['timestamp', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
       const rows = [['timestamp_iso', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
       for (let i=0;i<series.cpu.length;i++){
         const t = series.cpu[i].x;
@@ -603,7 +451,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mainframeweather-${new Date().toISOString()}.csv`;
+      a.download = `mainframe-health-${new Date().toISOString()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -620,23 +468,19 @@
         document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
         e.currentTarget.classList.add('active');
         const range = e.currentTarget.dataset.range;
-        // map to number of points (simple heuristic)
-        if (range==='1h'){ setWindowSize(60); } // default
+        if (range==='1h'){ setWindowSize(60); }
         if (range==='6h'){ setWindowSize(180); }
         if (range==='24h'){ setWindowSize(720); }
       });
     });
 
     function setWindowSize(n){
-      // adopt new WINDOW_SIZE-like behavior by trimming/retaining arrays
-      // Note: the demo keeps the same msInterval; in real usage an index at timestamps would be used.
       while(series.cpu.length > n) series.cpu.shift();
       while(series.io.length > n) series.io.shift();
       while(series.net.length > n) series.net.shift();
       while(series.packetLoss.length > n) series.packetLoss.shift();
       while(series.contention.length > n) series.contention.shift();
 
-      // if too short, seed with simulated history
       const needed = n - series.cpu.length;
       if (needed > 0){
         const start = Date.now() - (n*msInterval);
@@ -650,13 +494,11 @@
         }
       }
 
-      // refresh charts fully
       mainChart.data.datasets[0].data = series.cpu;
       mainChart.data.datasets[1].data = series.io;
       mainChart.data.datasets[2].data = series.net;
       mainChart.update();
 
-      miniCpu.update(); miniIo.update(); miniNet.update();
       contentionChart.update(); packetChart.update();
     }
 
@@ -678,9 +520,7 @@
 
     // expose ingestion helper for integrations
     window.MainframeWeather = {
-      ingestPoint,
-      setLiveMode: () => { mode='live'; stopSimulated(); startLiveDemoPlaceholder(); },
-      setSimulatedMode: () => { mode='simulated'; stopLiveDemoPlaceholder(); startSimulated(); }
+      ingestPoint
     };
   </script>
 </body>
