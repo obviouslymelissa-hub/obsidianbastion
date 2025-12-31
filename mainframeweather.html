@@ -479,8 +479,8 @@
       liveTimer = setInterval(()=>{
         // slightly different pattern to indicate it's from "live"
         const p = generateSimulatedPoint(Date.now());
-        p.cpu += (Math.random()*6 - 3); // a touch more variance
-        p.cpu = Math.max(0, Math.min(100, +p.cpu.toFixed(1)));
+        p.cpu = Math.max(0, Math.min(100, p.cpu + (Math.random()*6 - 3)));
+        p.cpu = +p.cpu.toFixed(1);
         ingestPoint(p);
       }, msInterval);
     }
