@@ -163,9 +163,6 @@
         <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
         <button data-range="6h" role="tab" aria-selected="false">6h</button>
         <button data-range="24h" role="tab" aria-selected="false">24h</button>
-        <button data-range="1h" class="active" aria-pressed="true">1h</button>
-        <button data-range="6h">6h</button>
-        <button data-range="24h">24h</button>
       </div>
 
       <!-- mode toggle removed as requested -->
@@ -469,8 +466,6 @@
         });
         e.currentTarget.classList.add('active');
         e.currentTarget.setAttribute('aria-selected', 'true');
-        document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
         const range = e.currentTarget.dataset.range;
         if (range==='1h'){ setWindowSize(60); }
         if (range==='6h'){ setWindowSize(180); }
