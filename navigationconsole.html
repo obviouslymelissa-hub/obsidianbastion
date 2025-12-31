@@ -10,7 +10,7 @@
     .wrap{max-width:1100px;margin:24px auto;padding:18px}
     .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
     h1{margin:0;color:#e6eef8;font-size:18px}
-    .grid{display:grid;grid-template-columns:320px 1fr 420px;gap:14px}
+    .grid{display:grid;grid-template-columns:300px 1fr 420px;gap:14px}
     .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
     input,select,button{font:inherit}
     .list{display:flex;flex-direction:column;gap:8px}
@@ -20,6 +20,18 @@
     .btn{background:var(--accent);color:#042023;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
     .muted{color:var(--muted);font-size:13px}
     pre.json{white-space:pre-wrap;background:#041427;padding:8px;border-radius:6px;color:#bfe6ff;max-height:280px;overflow:auto}
+    .row{display:flex;gap:8px;align-items:center}
+    .icon-btn{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:6px;border-radius:6px}
+    .icon-btn:hover{color:#e6eef8;background:rgba(255,255,255,0.02)}
+    .favorite{color:#ffd66b}
+    .preset-btn{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:6px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+    .preset-left{display:flex;gap:8px;align-items:center}
+    .seed-tag{font-weight:700;color:#e6eef8}
+    /* Print-friendly (used by print popup) - repeated inside popup as well for safety */
+    @media print {
+      body{background:white;color:#000}
+      .no-print{display:none}
+    }
   </style>
 </head>
 <body>
@@ -31,6 +43,15 @@
 
     <div class="grid">
       <div class="card">
+        <div class="small row" style="justify-content:space-between;align-items:center">
+          <div>Favorites</div>
+          <div class="small muted" id="favCount">0</div>
+        </div>
+
+        <div id="favList" class="list" style="margin-top:8px"></div>
+
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
         <div class="label small">Destinations</div>
         <div class="list" id="destList" style="margin-top:8px">
           <!-- Filled by script -->
@@ -40,9 +61,9 @@
         <div class="small">Or enter a custom seed/name</div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <input id="customName" placeholder="e.g. Kepler-452a" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8">
-          <button id="goBtn" class="btn">Go</button>
+          <button id="goBtn" class="btn" title="Select custom seed">Go</button>
         </div>
-        <div style="margin-top:10px" class="muted">Click "Open in Weather Page" to preview the full weather UI in another tab or in the embedded preview.</div>
+        <div style="margin-top:10px" class="muted">Use the star icon to favorite a seed. Favorites persist in the browser.</div>
       </div>
 
       <div class="card" id="displayCard">
@@ -52,9 +73,26 @@
             <div id="selectedName" style="font-weight:700;color:#e6eef8">—</div>
             <div id="selectedSummary" class="small" style="margin-top:6px">—</div>
           </div>
-          <div style="display:flex;gap:8px">
-            <button id="embedBtn" class="btn">Embed Preview</button>
-            <button id="openBtn" class="btn">Open in Weather Page</button>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button id="favToggle" class="icon-btn" title="Favorite / Unfavorite">
+              <!-- star icon -->
+              <svg id="favIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 17.3 6.2 20l1.1-6.3L2 9.4l6.4-.9L12 3l3.6 5.5 6.4.9-5.3 4.3L17.8 20z" /></svg>
+            </button>
+
+            <button id="copyLinkBtn" class="icon-btn" title="Copy Weather page link">
+              <!-- link icon -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 14a5 5 0 0 0 7.1 0l1.4-1.4" /><path d="M14 10a5 5 0 0 0-7.1 0L5.5 11.4" /></svg>
+            </button>
+
+            <button id="copyConsoleLinkBtn" class="icon-btn" title="Copy Console link">
+              <!-- globe icon -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 0 0 20"/></svg>
+            </button>
+
+            <button id="printBtn" class="icon-btn" title="Print / Save as PDF">
+              <!-- print icon -->
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><rect x="6" y="13" width="12" height="8" rx="2"/></svg>
+            </button>
           </div>
         </div>
 
@@ -95,12 +133,20 @@
       </div>
 
       <div class="card">
-        <div class="small">Preview (embedded)</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="small">Preview (embedded)</div>
+          <div class="row no-print">
+            <button id="embedBtn" class="btn" title="Toggle embedded preview">Toggle Embed</button>
+            <button id="openBtn" class="btn" title="Open in weather page">Open</button>
+          </div>
+        </div>
+
         <iframe id="previewFrame" class="preview" src=""></iframe>
 
         <div style="margin-top:8px;display:flex;gap:8px">
           <button id="refreshPreview" class="btn">Refresh Preview</button>
           <button id="copySeed" class="btn">Copy Seed</button>
+          <button id="clearFavs" class="btn" title="Clear favorites">Clear Favorites</button>
         </div>
 
         <div style="margin-top:10px">
@@ -114,18 +160,20 @@
 <script type="module">
 import { generateDataset } from './atmos.js';
 
-const presets = [
+const PRESETS = [
   'Kepler-452', 'TRAPPIST-1', 'Gliese-667', 'HD-219134', 'A1B-207', 'ZQ-3', 'OB-X-12'
 ];
 
 const destList = document.getElementById('destList');
+const favList = document.getElementById('favList');
+const favCount = document.getElementById('favCount');
 const custom = document.getElementById('customName');
 const selectedName = document.getElementById('selectedName');
 const selectedSummary = document.getElementById('selectedSummary');
 const goBtn = document.getElementById('goBtn');
 const orb = document.getElementById('orbital');
 const grav = document.getElementById('gravity');
-const temp = document.getElementById('temperature');
+const tempEl = document.getElementById('temperature');
 const pres = document.getElementById('pressure');
 const wind = document.getElementById('wind');
 const clouds = document.getElementById('clouds');
@@ -137,26 +185,105 @@ const embedBtn = document.getElementById('embedBtn');
 const openBtn = document.getElementById('openBtn');
 const refreshPreview = document.getElementById('refreshPreview');
 const copySeed = document.getElementById('copySeed');
+const favToggle = document.getElementById('favToggle');
+const favIcon = document.getElementById('favIcon');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+const copyConsoleLinkBtn = document.getElementById('copyConsoleLinkBtn');
+const printBtn = document.getElementById('printBtn');
+const clearFavs = document.getElementById('clearFavs');
 
 let currentSeed = null;
 let currentDataset = null;
 let embedded = true;
 
-function makeList(){
-  presets.forEach(p=>{
+const STORAGE_KEYS = {
+  FAVS: 'nav_favorites_v1',
+  LAST: 'nav_lastseed_v1'
+};
+
+function getFavorites(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEYS.FAVS);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function setFavorites(arr){
+  localStorage.setItem(STORAGE_KEYS.FAVS, JSON.stringify(arr));
+}
+function addFavorite(seed){
+  const favs = getFavorites();
+  if(!favs.includes(seed)) {
+    favs.unshift(seed);
+    setFavorites(favs.slice(0,30));
+    renderFavorites();
+  }
+}
+function removeFavorite(seed){
+  let favs = getFavorites();
+  favs = favs.filter(s=>s!==seed);
+  setFavorites(favs);
+  renderFavorites();
+}
+
+function renderFavorites(){
+  favList.innerHTML = '';
+  const favs = getFavorites();
+  favCount.textContent = favs.length;
+  if(favs.length === 0){
+    favList.innerHTML = '<div class="muted">No favorites yet — star a destination to save it here.</div>';
+    return;
+  }
+  favs.forEach(s=>{
     const btn = document.createElement('button');
-    btn.textContent = p;
-    btn.className = 'btn';
-    btn.style.width='100%';
-    btn.addEventListener('click', ()=> selectDestination(p));
-    destList.appendChild(btn);
+    btn.className = 'preset-btn';
+    btn.innerHTML = `<div class="preset-left"><span class="seed-tag">${s}</span></div>
+                     <div style="display:flex;gap:6px;align-items:center">
+                       <button title="Select" class="icon-btn" data-seed="${s}">▶</button>
+                       <button title="Remove favorite" class="icon-btn" data-remove="${s}">✕</button>
+                     </div>`;
+    favList.appendChild(btn);
+    btn.querySelector('[data-seed]')?.addEventListener('click', ()=> selectDestination(s));
+    btn.querySelector('[data-remove]')?.addEventListener('click', (e)=> { removeFavorite(s); e.stopPropagation(); });
   });
+}
+
+function makeList(){
+  destList.innerHTML = '';
+  PRESETS.forEach(p=>{
+    const wrapper = document.createElement('div');
+    wrapper.className = 'preset-btn';
+    wrapper.innerHTML = `<div class="preset-left"><span class="seed-tag">${p}</span><div class="small muted" style="margin-left:8px">preset</div></div>
+                         <div style="display:flex;gap:6px;align-items:center">
+                           <button title="Select" class="icon-btn select" data-seed="${p}">▶</button>
+                           <button title="Favorite" class="icon-btn star" data-fav="${p}">☆</button>
+                         </div>`;
+    destList.appendChild(wrapper);
+    wrapper.querySelector('.select')?.addEventListener('click', ()=> selectDestination(p));
+    wrapper.querySelector('.star')?.addEventListener('click', (e)=> { toggleFavorite(p); e.stopPropagation(); });
+  });
+}
+
+function toggleFavorite(seed){
+  const favs = getFavorites();
+  if(favs.includes(seed)) removeFavorite(seed);
+  else addFavorite(seed);
+  updateFavIcon(seed);
+}
+
+function updateFavIcon(seed){
+  const favs = getFavorites();
+  const starred = favs.includes(seed);
+  favIcon.style.color = starred ? '#ffd66b' : 'currentColor';
 }
 
 function selectDestination(name){
   currentSeed = name;
   currentDataset = generateDataset({ seed: name });
   updateDisplay(name, currentDataset);
+  persistLastSeed(name);
+  if(embedded) previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`;
+  rawJson.textContent = JSON.stringify(currentDataset, null, 2);
+  updateFavIcon(name);
 }
 
 function updateDisplay(name, ds){
@@ -164,13 +291,12 @@ function updateDisplay(name, ds){
   selectedSummary.textContent = `${ds.planet.type} • ${ds.planet.radiusEarth} R⊕ • ${ds.planet.massEarth} M⊕`;
   orb.textContent = `${ds.planet.orbitalAU} AU`;
   grav.textContent = `${ds.planet.gravity} g`;
-  temp.textContent = `${ds.planet.tempC} °C`;
+  tempEl.textContent = `${ds.planet.tempC} °C`;
   pres.textContent = `${ds.planet.pressureBar} bar`;
   wind.textContent = `${ds.planet.windKph} km/h`;
   clouds.textContent = `${ds.planet.cloudsPercent} %`;
   phenomena.textContent = ds.planet.phenomena.join('; ');
   composition.textContent = ds.planet.composition.map(c=>`${c.gas}: ${c.pct}%`).join('\n');
-  rawJson.textContent = JSON.stringify(ds, null, 2);
 }
 
 goBtn.addEventListener('click', ()=>{
@@ -181,7 +307,7 @@ goBtn.addEventListener('click', ()=>{
 
 embedBtn.addEventListener('click', ()=>{
   embedded = !embedded;
-  embedBtn.textContent = embedded ? 'Embed Preview' : 'Hide Embed';
+  embedBtn.textContent = embedded ? 'Hide Embed' : 'Show Embed';
   if(embedded && currentSeed) previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`;
   if(!embedded) previewFrame.src = '';
 });
@@ -201,10 +327,113 @@ copySeed.addEventListener('click', ()=>{
   navigator.clipboard?.writeText(currentSeed).then(()=> alert('Seed copied')).catch(()=> alert('Unable to copy'));
 });
 
-// init
+favToggle.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  toggleFavorite(currentSeed);
+});
+
+copyLinkBtn.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  const url = `${location.origin}${location.pathname.replace(/navigationconsole\\.html$/,'mainframeweather.html')}?seed=${encodeURIComponent(currentSeed)}`;
+  navigator.clipboard?.writeText(url).then(()=> alert('Weather page link copied')).catch(()=> alert('Unable to copy'));
+});
+
+copyConsoleLinkBtn.addEventListener('click', ()=>{
+  if(!currentSeed) return alert('Pick a destination first');
+  const url = `${location.origin}${location.pathname}?seed=${encodeURIComponent(currentSeed)}`;
+  navigator.clipboard?.writeText(url).then(()=> alert('Console link copied')).catch(()=> alert('Unable to copy'));
+});
+
+printBtn.addEventListener('click', ()=>{
+  if(!currentDataset) return alert('Pick a destination first');
+  openPrintWindow(currentDataset);
+});
+
+clearFavs.addEventListener('click', ()=>{
+  if(!confirm('Clear all favorites?')) return;
+  setFavorites([]);
+  renderFavorites();
+});
+
+function persistLastSeed(seed){
+  try{ localStorage.setItem(STORAGE_KEYS.LAST, seed); }catch(e){}
+}
+
+function loadLastSeed(){
+  try{ return localStorage.getItem(STORAGE_KEYS.LAST); }catch(e){return null;}
+}
+
+function openPrintWindow(ds){
+  // Build a minimal, print-friendly HTML and open in new window then call print()
+  const w = window.open('', '_blank', 'noopener,width=800,height=900');
+  if(!w) return alert('Unable to open print window (blocked).');
+  const html = `<!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Print — ${escapeHtml(ds.planet.planetCode)}</title>
+    <style>
+      body{font-family:Helvetica,Arial,sans-serif;margin:20px;color:#111}
+      h1{margin:0 0 10px}
+      .meta{color:#444;margin-bottom:14px}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+      .box{border:1px solid #ddd;padding:10px;border-radius:6px}
+      pre{white-space:pre-wrap;word-wrap:break-word;background:#f6f8fa;padding:8px;border-radius:4px}
+      @media print{ .no-print{display:none} }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(ds.planet.planetCode)}</h1>
+    <div class="meta">${escapeHtml(ds.planet.type)} • ${escapeHtml(String(ds.planet.radiusEarth))} R⊕ • ${escapeHtml(String(ds.planet.massEarth))} M⊕</div>
+    <div class="grid">
+      <div class="box"><strong>Orbital</strong><div>${escapeHtml(String(ds.planet.orbitalAU))} AU</div></div>
+      <div class="box"><strong>Gravity</strong><div>${escapeHtml(String(ds.planet.gravity))} g</div></div>
+      <div class="box"><strong>Temperature</strong><div>${escapeHtml(String(ds.planet.tempC))} °C</div></div>
+      <div class="box"><strong>Pressure</strong><div>${escapeHtml(String(ds.planet.pressureBar))} bar</div></div>
+      <div class="box"><strong>Wind</strong><div>${escapeHtml(String(ds.planet.windKph))} km/h</div></div>
+      <div class="box"><strong>Clouds</strong><div>${escapeHtml(String(ds.planet.cloudsPercent))} %</div></div>
+    </div>
+
+    <h3 style="margin-top:16px">Phenomena</h3>
+    <div class="box"><div>${escapeHtml(ds.planet.phenomena.join('; '))}</div></div>
+
+    <h3 style="margin-top:12px">Atmospheric Composition</h3>
+    <div class="box"><pre>${escapeHtml(ds.planet.composition.map(c=>`${c.gas}: ${c.pct}%`).join('\\n'))}</pre></div>
+
+    <div style="margin-top:18px" class="no-print">
+      <button onclick="window.print()">Print / Save as PDF</button>
+      <button onclick="window.close()">Close</button>
+    </div>
+  </body>
+  </html>`;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  // Give a moment for rendering, then call print
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 300);
+}
+
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// If the page was loaded with ?seed=..., select it on load
+function getUrlSeed(){
+  try{
+    const params = new URLSearchParams(location.search);
+    return params.get('seed');
+  }catch(e){return null;}
+}
+
+// load UI
+renderFavorites();
 makeList();
-// pick a default
-selectDestination(presets[0]);
+
+// Restore last seed or URL seed or pick default
+const urlSeed = getUrlSeed();
+const lastSeed = loadLastSeed();
+const initial = urlSeed || lastSeed || PRESETS[0];
+selectDestination(initial);
 previewFrame.src = `./mainframeweather.html?seed=${encodeURIComponent(currentSeed)}`;
 
 </script>
