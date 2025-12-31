@@ -10,6 +10,7 @@
 
   <!-- Chart.js CDN (lightweight and easy to use) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
   <style>
     :root{
@@ -165,9 +166,9 @@
 
     <div class="controls">
       <div class="seg" role="tablist" aria-label="Time range">
-        <button data-range="1h" class="active" aria-pressed="true">1h</button>
-        <button data-range="6h">6h</button>
-        <button data-range="24h">24h</button>
+        <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
+        <button data-range="6h" role="tab" aria-selected="false">6h</button>
+        <button data-range="24h" role="tab" aria-selected="false">24h</button>
       </div>
 
       <button id="modeToggle" title="Switch between simulated / live data">Simulated</button>
@@ -331,12 +332,6 @@
         pushPoint(series.contention, {x:p.t, y:p.contention});
       }
     })();
-
-    // Chart.js common options
-    const timeOptions = {
-      parsing: false,
-      normalized: true,
-    };
 
     // create charts
     const mainCtx = document.getElementById('mainChart').getContext('2d');
@@ -519,8 +514,12 @@
     // time range buttons (they only change window size for this demo)
     document.querySelectorAll('.seg button').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.seg button').forEach(b=>{
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
         e.currentTarget.classList.add('active');
+        e.currentTarget.setAttribute('aria-selected', 'true');
         const range = e.currentTarget.dataset.range;
         // map to number of points (simple heuristic)
         if (range==='1h'){ setWindowSize(60); } // default
