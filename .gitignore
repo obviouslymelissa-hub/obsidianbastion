@@ -1,0 +1,10 @@
+# Test files
+test-chart.html
+
+# Library directory (users should download locally if needed)
+lib/
+
+# Temporary files
+*.log
+*.tmp
+nohup.out
