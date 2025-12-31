@@ -1,1 +1,446 @@
 
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ship Parts Inventory & Orders</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    body { padding: 1.5rem; background: #0f172a; color: #e6eef8; }
+    .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+    .sidebar { max-height: calc(100vh - 4rem); overflow-y: auto; }
+    .toast-container { position: fixed; right: 1rem; bottom: 1rem; z-index: 1200; }
+    .chart-wrap { min-height: 240px; }
+    .log-entry { font-size: .95rem; }
+    .muted { color: rgba(230,238,248,0.6); }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 mb-0">Ship Inventory & Parts Ordering</h1>
+      <small class="muted">Simulated ordering + delivery demo</small>
+    </div>
+
+    <div class="row g-3">
+      <!-- Left: Charts -->
+      <div class="col-lg-8">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5 class="card-title">Parts Inventory</h5>
+              <div class="chart-wrap">
+                <canvas id="partsChart"></canvas>
+              </div>
+              <p class="mt-2 mb-0 muted">Engines, Motors and Bolts show current stock.</p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5 class="card-title">Supplies</h5>
+              <div class="chart-wrap">
+                <canvas id="suppliesChart"></canvas>
+              </div>
+              <p class="mt-2 mb-0 muted">Food & Water levels (simulated).</p>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card p-3">
+              <h5 class="card-title">Crew Needs</h5>
+              <div class="chart-wrap">
+                <canvas id="crewChart"></canvas>
+              </div>
+              <p class="mt-2 mb-0 muted">Morale, Oxygen, Rest (sample metrics).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Order form + Log -->
+      <div class="col-lg-4">
+        <div class="card p-3 mb-3">
+          <h5 class="card-title">Order Part / Supply</h5>
+          <form id="orderForm" class="row g-2">
+            <div class="col-12">
+              <label for="itemInput" class="form-label small">Item</label>
+              <input list="suggestions" id="itemInput" class="form-control form-control-sm" placeholder="e.g. engine, motor, bolts, food rations" required>
+              <datalist id="suggestions">
+                <option value="engine">
+                <option value="motor">
+                <option value="bolts">
+                <option value="bolts (M8)">
+                <option value="food rations">
+                <option value="water pack">
+                <option value="oxygen filter">
+              </datalist>
+            </div>
+
+            <div class="col-6">
+              <label for="qtyInput" class="form-label small">Quantity</label>
+              <input type="number" id="qtyInput" class="form-control form-control-sm" value="1" min="1" required>
+            </div>
+
+            <div class="col-6 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary btn-sm w-100">Order</button>
+            </div>
+          </form>
+
+          <hr class="my-3">
+
+          <div>
+            <p class="mb-1 small muted">Quick Controls</p>
+            <div class="d-flex gap-2">
+              <button id="clearLogBtn" class="btn btn-outline-danger btn-sm">Clear Log</button>
+              <button id="resetInventoryBtn" class="btn btn-outline-warning btn-sm">Reset Inventory</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 sidebar">
+          <h6 class="card-title">Order Log</h6>
+          <ul id="orderLog" class="list-group list-group-flush mt-2">
+            <!-- dynamic entries -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Order confirmation -->
+  <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Order Placed</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="orderModalText" class="mb-0"></p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Bootstrap 5 JS (bundle includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // --- Data & Persistence ---
+    const defaultInventory = {
+      engine: 2,
+      motor: 5,
+      bolts: 100,
+      'food rations': 200,
+      'water pack': 150
+    };
+
+    const STORAGE_KEYS = {
+      INVENTORY: 'ship.inventory.v1',
+      ORDERS: 'ship.orders.v1'
+    };
+
+    function loadInventory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+        return raw ? JSON.parse(raw) : { ...defaultInventory };
+      } catch (e) {
+        return { ...defaultInventory };
+      }
+    }
+    function saveInventory(inv) {
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inv));
+    }
+
+    function loadOrders() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    function saveOrders(orders) {
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    }
+
+    // --- Application state ---
+    let inventory = loadInventory();
+    let orders = loadOrders();
+
+    // --- Charts setup ---
+    const partsCtx = document.getElementById('partsChart');
+    const suppliesCtx = document.getElementById('suppliesChart');
+    const crewCtx = document.getElementById('crewChart');
+
+    const partsChart = new Chart(partsCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Engine', 'Motor', 'Bolts'],
+        datasets: [{
+          data: [
+            inventory.engine || 0,
+            inventory.motor || 0,
+            inventory.bolts || 0
+          ],
+          backgroundColor: ['#ff6b6b','#ffd166','#8ecae6'],
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { labels: { color: '#e6eef8' } } }
+      }
+    });
+
+    const suppliesChart = new Chart(suppliesCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Food Rations', 'Water Packs'],
+        datasets: [{
+          data: [
+            inventory['food rations'] || 0,
+            inventory['water pack'] || 0
+          ],
+          backgroundColor: ['#06d6a0', '#4cc9f0'],
+          hoverOffset: 6
+        }]
+      },
+      options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
+    });
+
+    const crewChart = new Chart(crewCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Morale', 'Oxygen', 'Rest'],
+        datasets: [{
+          label: 'Level',
+          data: [75, 92, 60],
+          backgroundColor: ['#a8dadc','#90e0ef','#f4a261']
+        }]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { color: '#e6eef8' } },
+          x: { ticks: { color: '#e6eef8' } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    function refreshCharts() {
+      partsChart.data.datasets[0].data = [
+        inventory.engine || 0,
+        inventory.motor || 0,
+        inventory.bolts || 0
+      ];
+      partsChart.update();
+
+      suppliesChart.data.datasets[0].data = [
+        inventory['food rations'] || 0,
+        inventory['water pack'] || 0
+      ];
+      suppliesChart.update();
+    }
+
+    // --- UI: Log rendering ---
+    const orderLogEl = document.getElementById('orderLog');
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString();
+    }
+
+    function renderLog() {
+      orderLogEl.innerHTML = '';
+      if (!orders.length) {
+        orderLogEl.innerHTML = '<li class="list-group-item bg-transparent muted">No orders yet.</li>';
+        return;
+      }
+      orders.slice().reverse().forEach(o => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-start log-entry';
+        li.innerHTML = `
+          <div>
+            <div class="fw-semibold">${escapeHtml(o.item)} <small class="text-muted">×${o.qty}</small></div>
+            <div class="muted small">${formatTime(o.orderedAt)}</div>
+          </div>
+          <div class="text-end">
+            <span class="badge ${o.status === 'Delivered' ? 'bg-success' : 'bg-warning'}">${o.status}</span>
+            <div class="muted small mt-1">${o.status === 'Delivered' ? formatTime(o.deliveredAt) : ''}</div>
+          </div>
+        `;
+        orderLogEl.appendChild(li);
+      });
+    }
+
+    // --- Utilities ---
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+
+    // --- Toast notifications (Bootstrap) ---
+    const toastContainer = document.getElementById('toastContainer');
+
+    function showToast(title, body, options = {}) {
+      const id = 't' + Date.now();
+      const el = document.createElement('div');
+      el.className = 'toast align-items-center text-bg-dark border';
+      el.role = 'alert';
+      el.ariaLive = 'polite';
+      el.ariaAtomic = 'true';
+      el.id = id;
+
+      el.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <strong>${escapeHtml(title)}</strong> — <span class="muted">${escapeHtml(body)}</span>
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+
+      toastContainer.appendChild(el);
+      const toast = new bootstrap.Toast(el, { delay: options.delay || 4000 });
+      toast.show();
+      el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
+    // --- Ordering flow ---
+    const orderForm = document.getElementById('orderForm');
+    const itemInput = document.getElementById('itemInput');
+    const qtyInput = document.getElementById('qtyInput');
+    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    const orderModalText = document.getElementById('orderModalText');
+
+    function placeOrder(itemRaw, qtyRaw) {
+      const item = String(itemRaw).trim().toLowerCase();
+      const qty = Math.max(1, parseInt(qtyRaw, 10) || 1);
+      const orderedAt = Date.now();
+
+      const order = {
+        id: 'o' + orderedAt + Math.floor(Math.random() * 999),
+        item,
+        qty,
+        status: 'Ordered',
+        orderedAt,
+        deliveredAt: null
+      };
+
+      orders.push(order);
+      saveOrders(orders);
+      renderLog();
+
+      // Show modal + toast
+      orderModalText.textContent = `Ordered ${qty} × ${item}.`;
+      orderModal.show();
+      showToast('Order placed', `${qty} × ${item}`, { delay: 2500 });
+
+      // Simulate delivery delay (random 3–9 seconds)
+      const delayMs = 3000 + Math.floor(Math.random() * 7000);
+      setTimeout(() => deliverOrder(order.id), delayMs);
+    }
+
+    function deliverOrder(orderId) {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return;
+      const o = orders[idx];
+      if (o.status === 'Delivered') return;
+      o.status = 'Delivered';
+      o.deliveredAt = Date.now();
+
+      // Update inventory for known items (if unknown, add it)
+      // We try to match common items; if it's a supply (food/water) update those keys,
+      // otherwise increment an inventory entry named after the item.
+      const key = normalizeKey(o.item);
+      if (inventory[key] == null) inventory[key] = 0;
+      inventory[key] += o.qty;
+      saveInventory(inventory);
+
+      saveOrders(orders);
+      refreshCharts();
+      renderLog();
+
+      showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
+    }
+
+    function normalizeKey(item) {
+      const k = item.toLowerCase().trim();
+      if (k.includes('food') || k.includes('ration')) return 'food rations';
+      if (k.includes('water')) return 'water pack';
+      if (k.includes('engine')) return 'engine';
+      if (k.includes('motor')) return 'motor';
+      if (k.includes('bolt')) return 'bolts';
+      return k; // general fallback
+    }
+
+    // --- Form handling ---
+    orderForm.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const item = itemInput.value.trim();
+      const qty = qtyInput.value;
+      if (!item) {
+        itemInput.classList.add('is-invalid');
+        setTimeout(() => itemInput.classList.remove('is-invalid'), 1200);
+        return;
+      }
+      placeOrder(item, qty);
+      // clear the input but keep suggestions
+      itemInput.value = '';
+      qtyInput.value = 1;
+    });
+
+    // --- Buttons: clear log, reset inventory ---
+    document.getElementById('clearLogBtn').addEventListener('click', () => {
+      if (!confirm('Clear order log? This cannot be undone.')) return;
+      orders = [];
+      saveOrders(orders);
+      renderLog();
+      showToast('Order log cleared', '', { delay: 2000 });
+    });
+
+    document.getElementById('resetInventoryBtn').addEventListener('click', () => {
+      if (!confirm('Reset inventory to defaults?')) return;
+      inventory = { ...defaultInventory };
+      saveInventory(inventory);
+      refreshCharts();
+      renderLog();
+      showToast('Inventory reset', '', { delay: 2000 });
+    });
+
+    // Initial render
+    renderLog();
+    refreshCharts();
+
+    // Optional: keep charts "alive" by slowly decaying supplies (simple simulation)
+    setInterval(() => {
+      // simulate consumption of food & water a bit
+      if ((inventory['food rations'] || 0) > 0) inventory['food rations'] = Math.max(0, inventory['food rations'] - Math.floor(Math.random() * 2));
+      if ((inventory['water pack'] || 0) > 0) inventory['water pack'] = Math.max(0, inventory['water pack'] - Math.floor(Math.random() * 2));
+      saveInventory(inventory);
+      refreshCharts();
+    }, 10000);
+
+    // Expose small helper to console for testing
+    window.shipInventory = {
+      inventory, orders, placeOrder, deliverOrder, refreshCharts
+    };
+  </script>
+</body>
+</html>
