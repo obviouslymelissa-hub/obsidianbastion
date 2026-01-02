@@ -177,11 +177,15 @@
         <input id="to" type="text" placeholder="Destination (e.g. New Planet / Relay-7)" />
         <input id="msg" type="text" placeholder='Compose: "hello new planet can anybody hear me?"' />
         <button id="btnSend">Send</button>
-        <button id="btnInject" title="Simulate inbound message" class="small">Inject Inbound</button>
+        <button id="btnReceiveGreeting" title="Simulate an incoming transmission" class="small">Receive Transmission</button>
+      </div>
+
+      <div id="composeStatus" class="muted-note" style="margin-top:8px">
+        <!-- Populated by script: power-off messaging / incoming blocked -->
       </div>
 
       <div class="muted-note" style="margin-top:8px">
-        Tip: Use "Inject Inbound" to simulate an incoming reply. When power is off you cannot send, messages will be queued.
+        Tip: Use "Receive Transmission" to simulate an incoming reply. When power is off messages will be queued.
       </div>
     </main>
   </div>
@@ -204,12 +208,13 @@
       const encryption = document.getElementById('encryption');
       const logEl = document.getElementById('log');
       const btnSend = document.getElementById('btnSend');
-      const btnInject = document.getElementById('btnInject');
+      const btnReceiveGreeting = document.getElementById('btnReceiveGreeting');
       const inputMsg = document.getElementById('msg');
       const inputTo = document.getElementById('to');
       const btnClear = document.getElementById('btnClear');
       const btnExport = document.getElementById('btnExport');
       const shipId = document.getElementById('shipId');
+      const composeStatus = document.getElementById('composeStatus');
 
       // State
       let power = false;
@@ -230,9 +235,7 @@
         powerStateEl.textContent = power ? 'ONLINE' : 'OFF';
         btnPower.textContent = power ? 'Power OFF' : 'Power ON';
         btnPower.classList.toggle('small', true);
-        // enable/disable send depending on power
-        btnSend.disabled = !power;
-        inputMsg.disabled = !power;
+        // Allow composing even when power is OFF; show composer status instead
         if (power) {
           // attempt to flush queue if we have any queued messages
           flushQueue();
@@ -245,6 +248,13 @@
         channelDisplay.textContent = channelInput.value ? channelInput.value : '—';
         queuedCount.textContent = queued.length;
         lastContact.textContent = (messages.length ? fmtTime(messages[messages.length-1].ts) : 'never');
+
+        // composer status messaging for power state
+        if (!power) {
+          composeStatus.textContent = 'Power OFF — outgoing messages will be queued. Incoming messages are blocked until power is ON.';
+        } else {
+          composeStatus.textContent = 'Power ONLINE — outgoing messages will be sent when signal permits. Incoming messages accepted.';
+        }
       }
 
       function pushMessage(entry){
@@ -299,6 +309,11 @@
       }
 
       function receiveMessage(text, from){
+        // Block inbound messages while power is off
+        if (!power) {
+          alert('Power is OFF — cannot receive incoming messages. Turn power ON to accept inbound transmissions.');
+          return;
+        }
         const entry = {
           id: newId(),
           ts: Date.now(),
@@ -331,6 +346,79 @@
         saveQueued();
         saveMessages();
         renderAll();
+      }
+
+      // Simulated greeting responses with more names and templates.
+      // Produces 1-3 inbound messages (small delay between them) and may reference last outbound text.
+      const responderPool = [
+        'Relay-7',
+        'Deep Echo',
+        'New Planet Authority',
+        'Voyager Relay',
+        'AI-Node 42',
+        'Sirius Station',
+        'Haven Outpost',
+        'Orchid Relay',
+        'Atlas Beacon'
+      ];
+
+      const templates = [
+        "Hello {ship}, this is {responder}. We read you loud and clear.",
+        "Greetings from {responder}. Acknowledged: we received your transmission.",
+        "Hi {ship}! {responder} here. Good to hear from you — please repeat if transmission is broken.",
+        "{responder} reporting. Signal stable. Welcome, {ship}.",
+        "Message received by {responder}. Stand by for further instructions.",
+        "👋 Hello {ship} — {responder} here. Nice to connect.",
+        "This is {responder}. We copy your last message. Over.",
+        "{responder} here: we received: \"{snippet}\" — confirm intent.",
+        "Attention {ship}: your transmission was faint but readable. Respond when able. — {responder}",
+        "This is {responder}. Friendly reminder: transmissions may be delayed in this sector.",
+        "Incoming to {ship}: all systems nominal on our end. — {responder}",
+        "{responder} to {ship}: we will relay your message to nearby units.",
+        "Unknown origin acknowledged. Hello {ship} — {responder} signing on."
+      ];
+
+      function pickResponder(lastOutbound) {
+        // Prefer last outbound's destination if it looks like a named station (not 'Unknown')
+        if (lastOutbound && lastOutbound.to && lastOutbound.to !== 'Unknown') {
+          return lastOutbound.to;
+        }
+        // otherwise pick random from pool
+        return responderPool[Math.floor(Math.random() * responderPool.length)];
+      }
+
+      function snippetFrom(text, maxLen = 60) {
+        if (!text) return '';
+        const s = String(text).trim().replace(/\s+/g, ' ');
+        if (s.length <= maxLen) return s;
+        return s.slice(0, maxLen - 1) + '…';
+      }
+
+      function simulateGreeting(){
+        // Block simulation if power off
+        if (!power) {
+          alert('Power is OFF — cannot receive incoming messages. Turn power ON to accept inbound transmissions.');
+          return;
+        }
+
+        const lastOutbound = [...messages].reverse().find(m => m.direction === 'outbound');
+        const responder = pickResponder(lastOutbound);
+        const shipName = shipId.textContent || 'your ship';
+        const outboundSnippet = lastOutbound ? snippetFrom(lastOutbound.text, 80) : '';
+
+        // generate 1-3 messages (random) to feel a bit more natural
+        const count = 1 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < count; i++) {
+          // choose template and fill placeholders
+          const template = templates[Math.floor(Math.random() * templates.length)];
+          const text = template
+            .replace(/\{ship\}/g, shipName)
+            .replace(/\{responder\}/g, responder)
+            .replace(/\{snippet\}/g, outboundSnippet);
+
+          // stagger arrival slightly
+          setTimeout(() => receiveMessage(text, responder), 200 * i);
+        }
       }
 
       // UI hooks
@@ -368,10 +456,9 @@
         inputMsg.value = '';
       });
 
-      btnInject.addEventListener('click', () => {
-        const txt = inputMsg.value.trim() || 'Hello, this is an inbound test.';
-        const from = inputTo.value.trim() || 'Relay-7';
-        receiveMessage(txt, from);
+      // Receive Transmission button hook (keeps internal name)
+      btnReceiveGreeting.addEventListener('click', () => {
+        simulateGreeting();
       });
 
       btnClear.addEventListener('click', () => {
@@ -410,10 +497,15 @@
       // Expose small API on window for convenience/testing
       window.shipComms = {
         send: (text, to) => sendMessage(text, to),
-        receive: (text, from) => receiveMessage(text, from),
+        receive: (text, from) => {
+          if (!power) return false;
+          receiveMessage(text, from);
+          return true;
+        },
         setPower: (p) => setPower(p),
         messages: () => messages.slice(),
-        queued: () => queued.slice()
+        queued: () => queued.slice(),
+        simulateGreeting: simulateGreeting
       };
     })();
   </script>
