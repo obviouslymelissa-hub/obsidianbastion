@@ -149,6 +149,7 @@
     .systems-dock .tile:nth-child(5) { animation-delay: 0.26s; }
     .systems-dock .tile:nth-child(6) { animation-delay: 0.32s; }
     .systems-dock .tile:nth-child(7) { animation-delay: 0.38s; }
+    .systems-dock .tile:nth-child(8) { animation-delay: 0.44s; }
 
     /* Right column stack */
     .side-stack { display:flex; flex-direction:column; gap:12px }
@@ -226,7 +227,7 @@
           </div>
         </div>
 
-        <!-- New order: Mainframe, Atmospherics, Navigation, Communications, Inventory, Diagnostics -->
+        <!-- New order: Mainframe, Atmospherics, Navigation, Communications, Inventory, Power Management, Diagnostics -->
         <div class="tile" role="listitem">
           <div class="tile-head">
             <div class="tile-icon" aria-hidden="true">🖥️</div>
@@ -289,6 +290,20 @@
           </div>
           <div style="display:flex;justify-content:flex-end;margin-top:8px">
             <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/partsinventory.html">Open</a>
+          </div>
+        </div>
+
+        <!-- NEW: Power Management tile inserted between Inventory and Diagnostics -->
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">⚡</div>
+            <div>
+              <div class="tile-title">Power Management</div>
+              <div class="tile-desc">Ship power systems, reactors and fuel telemetry.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/powermanagement.html">Open</a>
           </div>
         </div>
 
