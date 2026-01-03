@@ -15,7 +15,7 @@
     main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
     .left{display:grid;grid-template-rows:auto 1fr;gap:14px}
     .gauges{display:flex;gap:12px;align-items:stretch}
-    .gauge-card{flex:1;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center}
+    .gauge-card{flex:1;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;}
     .gauge-title{font-size:13px;color:var(--muted);margin-bottom:6px}
     svg.gauge{width:160px;height:120px;overflow:visible}
     .needle{stroke:#fff;stroke-width:2;stroke-linecap:round}
@@ -33,6 +33,57 @@
     .kbd{display:inline-block;background:#08121a;border:1px solid rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;color:var(--muted);font-family:monospace}
     a.link{color:var(--accent);text-decoration:none}
     @media (max-width:900px){main{grid-template-columns:1fr;}.sidebar{order:2}}
+
+    /* Systems dock / tile styles (adapted from index.html) */
+    .systems-panel { margin-top: 8px; }
+    .systems-dock {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .tile {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border:1px solid rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:96px;
+      transform-origin:center;
+      transition: transform .16s ease, box-shadow .16s ease;
+      will-change: transform;
+      color:inherit;
+    }
+    .tile.main {
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 16px;
+      padding: 18px;
+      min-height:120px;
+    }
+    .tile-head { display:flex; gap:12px; align-items:center }
+    .tile-icon {
+      width:48px;height:48px;border-radius:10px;background:rgba(127,240,223,0.04);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent)
+    }
+    .tile-title { font-weight:700; font-size:1rem }
+    .tile-desc { color:var(--muted); font-size:0.9rem; margin-top:4px }
+
+    .tile-actions { display:flex; gap:8px; align-items:center; }
+    .btn {
+      background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer;
+    }
+    .btn.ghost { background:transparent;color:var(--muted); border:1px solid rgba(255,255,255,0.03); padding:7px 10px; font-weight:600 }
+
+    .tile:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+
+    @media (max-width:700px){
+      .tile.main { grid-column: auto; }
+      .systems-dock { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -96,6 +147,105 @@
         <div style="margin-top:8px;font-size:13px;color:var(--muted)">Status: <span id="comm-status">Standby</span></div>
       </div>
     </section>
+
+    <!-- Systems Dock moved here from index -->
+    <section class="panel systems-panel" aria-labelledby="systems-title">
+      <h3 id="systems-title" style="color:var(--muted);margin:0 0 8px 0">Systems Dock</h3>
+
+      <div class="systems-dock" role="list">
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">🖥️</div>
+            <div>
+              <div class="tile-title">Mainframe</div>
+              <div class="tile-desc">Health metrics and charts.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/mainframe-health.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">☁️</div>
+            <div>
+              <div class="tile-title">Atmospherics</div>
+              <div class="tile-desc">Planetary weather and composition.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/mainframeweather.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">🧭</div>
+            <div>
+              <div class="tile-title">Navigation</div>
+              <div class="tile-desc">Maps, routes and travel controls.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/navigationconsole.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">📡</div>
+            <div>
+              <div class="tile-title">Communications</div>
+              <div class="tile-desc">Message streams and channel controls.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/communications.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">📦</div>
+            <div>
+              <div class="tile-title">Inventory</div>
+              <div class="tile-desc">Parts, supplies and orders.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/partsinventory.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">⚡</div>
+            <div>
+              <div class="tile-title">Power Management</div>
+              <div class="tile-desc">Ship power systems, reactors and fuel telemetry.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/powermanagement.html">Open</a>
+          </div>
+        </div>
+
+        <div class="tile" role="listitem">
+          <div class="tile-head">
+            <div class="tile-icon" aria-hidden="true">🛠</div>
+            <div>
+              <div class="tile-title">Diagnostics</div>
+              <div class="tile-desc">Deep checks, logs and repairs.</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/diagnostics.html">Open</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <aside class="sidebar">
