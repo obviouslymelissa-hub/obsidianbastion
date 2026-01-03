@@ -1,1 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ship — Power Management</title>
 
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* Simple, dark sci-fi styling; adjust colors to match your site theme */
+    :root{
+      --bg: #0b0f14;
+      --panel: #0f1720;
+      --muted: #93a3b9;
+      --accent: #2dd4bf;
+      --danger: #ff6b6b;
+      --glass: rgba(255,255,255,0.03);
+      --radius: 10px;
+    }
+
+    html,body{height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+    body{
+      background: linear-gradient(180deg,#071019 0%, #071217 60%), var(--bg);
+      color:#e6f0f3;
+      padding:24px;
+      box-sizing:border-box;
+    }
+
+    /* Header area */
+    header{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .top-row{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .logo {
+      width:56px;
+      height:56px;
+      background:linear-gradient(135deg,var(--accent), #60a5fa);
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#021014;
+      box-shadow:0 6px 18px rgba(45,212,191,0.08), inset 0 -4px 8px rgba(255,255,255,0.03);
+      font-size:18px;
+    }
+
+    .title-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    h1{font-size:20px; margin:0;}
+    p.subtitle{margin:0; color:var(--muted); font-size:13px;}
+
+    .return-link{
+      margin-left:auto;
+      font-size:14px;
+      color:var(--muted);
+      text-decoration:none;
+      border:1px solid rgba(255,255,255,0.03);
+      padding:8px 12px;
+      border-radius:8px;
+      background:var(--glass);
+    }
+    .return-link:hover{ color:var(--accent); border-color: rgba(45,212,191,0.12); }
+
+    /* Nav row - under header */
+    nav{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .nav-btn{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      color:var(--muted);
+      padding:8px 12px;
+      font-size:13px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .nav-btn.active{ color: var(--accent); border-color: rgba(45,212,191,0.15); box-shadow:0 6px 18px rgba(45,212,191,0.04); }
+
+    main{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:18px;
+      align-items:start;
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius: var(--radius);
+      padding:14px;
+      border: 1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      /* Prevent children (charts) from drawing outside rounded corners */
+      overflow: hidden;
+    }
+
+    /* Layout */
+    .left{
+      grid-column: span 8;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .right{
+      grid-column: span 4;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .card{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .chart-wrap{
+      width:100%;
+      height:220px;
+      position: relative;
+      /* Make sure the chart drawing is clipped to the container and follows panel radius */
+      overflow: hidden;
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+    }
+
+    /* Ensure canvas fills the wrap and doesn't force overflow */
+    .chart-wrap canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .status-row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .stat{
+      flex:1 1 140px;
+      padding:12px;
+      background: rgba(255,255,255,0.018);
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+    .stat h3{margin:0 0 6px 0; font-size:12px; color:var(--muted);}
+    .stat p{margin:0; font-size:18px; font-weight:600;}
+
+    .controls{
+      display:flex;
+      gap:8px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      padding:8px 10px;
+      color:var(--muted);
+      border-radius:8px;
+      cursor:pointer;
+      font-size:13px;
+    }
+    .btn.primary{
+      border-color: rgba(45,212,191,0.18);
+      color:var(--accent);
+      box-shadow:0 8px 18px rgba(45,212,191,0.04);
+    }
+
+    footer{grid-column:1 / -1; margin-top:8px; color:var(--muted); font-size:13px; text-align:center;}
+    @media (max-width:900px){
+      main{grid-template-columns: repeat(6, 1fr);}
+      .left{grid-column: span 6;}
+      .right{grid-column: span 6;}
+      .chart-wrap{height:180px;}
+      .top-row { gap:10px; }
+      .logo { width:44px; height:44px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-row">
+      <div class="brand">
+        <div class="logo">OB</div>
+        <div class="title-wrap">
+          <h1>Obsidian Bastian — Power Management Console</h1>
+          <p class="subtitle">Ship power, fuel and reactor telemetry</p>
+        </div>
+      </div>
+
+      <a class="return-link" href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" target="_blank" rel="noopener">← Return to Command Hub</a>
+    </div>
+
+    <nav>
+      <button class="nav-btn">Status</button>
+      <button class="nav-btn">Systems</button>
+      <button class="nav-btn active">Power</button>
+      <button class="nav-btn">Logs</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel left">
+      <div class="card">
+        <div style="flex:1">
+          <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Overall Power Levels</h3>
+          <div class="chart-wrap">
+            <canvas id="powerChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="flex:1">
+          <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Reactor Output</h3>
+          <div class="chart-wrap">
+            <canvas id="reactorChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel right">
+      <div style="margin-bottom:8px;">
+        <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Fuel Storage</h3>
+        <div class="chart-wrap" style="height:150px;">
+          <canvas id="fuelChart"></canvas>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <div class="stat">
+          <h3>Battery</h3>
+          <p id="batteryValue">--%</p>
+        </div>
+        <div class="stat">
+          <h3>Grid Load</h3>
+          <p id="loadValue">-- kW</p>
+        </div>
+        <div class="stat">
+          <h3>Reactor Temp</h3>
+          <p id="tempValue">-- °C</p>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <h3 style="color:var(--muted); font-size:13px; margin:0 0 8px 0;">Controls</h3>
+        <div class="controls">
+          <button id="boostBtn" class="btn primary">Simulate Boost</button>
+          <button id="drainBtn" class="btn">Simulate Load Spike</button>
+          <button id="addFuelBtn" class="btn">Add Fuel</button>
+          <button id="resetBtn" class="btn">Reset</button>
+        </div>
+      </div>
+    </aside>
+
+    <footer class="panel">
+      <small>Live telemetry — simulated data for UI demonstration. Colors, spacing, and fonts can be tuned to match your other pages.</small>
+    </footer>
+  </main>
+
+  <script>
+    // Helper for smoothed random walk
+    function nextValue(prev, target, jitter=1) {
+      const diff = target - prev;
+      return prev + diff*0.06 + (Math.random()*2-1)*jitter*0.6;
+    }
+
+    // Build initial arrays (60 data points)
+    function makeHistory(len, start) {
+      const arr = [];
+      let v = start;
+      for(let i=0;i<len;i++){
+        v = v + (Math.random()*2 -1)*1.5;
+        arr.push(Math.max(0, Math.round(v*100)/100));
+      }
+      return arr;
+    }
+
+    // Timestamps labels
+    const POINTS = 60;
+    function makeLabels(n) {
+      const labels = [];
+      for (let i = n-1; i >= 0; i--) {
+        labels.push((i*-1).toString() + 's');
+      }
+      return labels;
+    }
+
+    const labels = makeLabels(POINTS);
+
+    // Initial baselines
+    let batteryLevel = 78; // percent
+    let gridLoad = 420; // kW
+    let reactorOutput = 480; // kW-ish
+    let reactorTemp = 385; // °C
+    let fuelPercent = 62; // percent
+
+    // Histories
+    const powerHistory = makeHistory(POINTS, batteryLevel);
+    const reactorHistory = makeHistory(POINTS, reactorOutput);
+    const fuelHistory = makeHistory(POINTS, fuelPercent);
+
+    // Chart common config
+    const commonOptions = {
+      animation: { duration: 400, easing: 'linear' },
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        // small padding avoids strokes drawn flush against the edge
+        padding: { top: 6, bottom: 6, left: 6, right: 6 }
+      },
+      scales: {
+        x: { display: false },
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: { enabled: true, mode: 'index', intersect: false },
+      }
+    };
+
+    // Power Chart (line)
+    const ctxPower = document.getElementById('powerChart').getContext('2d');
+    const powerChart = new Chart(ctxPower, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Battery %',
+          data: powerHistory,
+          borderColor: 'rgba(45,212,191,0.95)',
+          backgroundColor: (function(){
+            const g = ctxPower.createLinearGradient(0,0,0,220);
+            g.addColorStop(0, 'rgba(45,212,191,0.14)');
+            g.addColorStop(1, 'rgba(45,212,191,0.02)');
+            return g;
+          })(),
+          tension: 0.25,
+          pointRadius: 0,
+          borderWidth: 2,
+          spanGaps: false
+        }]
+      },
+      options: Object.assign({}, commonOptions, {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks:{ color: '#bcd6dd' }
+          }
+        }
+      })
+    });
+
+    // Reactor Chart (line)
+    const ctxReact = document.getElementById('reactorChart').getContext('2d');
+    const reactorChart = new Chart(ctxReact, {
+      type: 'line',
+      data: {
+        labels,
+        datasets:[{
+          label:'Reactor Output (kW)',
+          data: reactorHistory,
+          borderColor: 'rgba(96,165,250,0.9)',
+          backgroundColor: (function(){
+            const g = ctxReact.createLinearGradient(0,0,0,220);
+            g.addColorStop(0, 'rgba(96,165,250,0.12)');
+            g.addColorStop(1, 'rgba(96,165,250,0.02)');
+            return g;
+          })(),
+          tension: 0.25,
+          pointRadius: 0,
+          borderWidth: 2,
+          spanGaps: false
+        }]
+      },
+      options: Object.assign({}, commonOptions, {
+        scales:{
+          y:{ beginAtZero:true, ticks:{ color:'#bcd6dd' } }
+        }
+      })
+    });
+
+    // Fuel Chart (doughnut to show storage)
+    const ctxFuel = document.getElementById('fuelChart').getContext('2d');
+    const fuelChart = new Chart(ctxFuel, {
+      type: 'doughnut',
+      data:{
+        labels: ['Fuel', 'Empty'],
+        datasets:[{
+          data: [fuelPercent, 100 - fuelPercent],
+          backgroundColor: ['rgba(255,193,7,0.95)', 'rgba(255,255,255,0.04)'],
+          hoverOffset:4,
+          borderWidth:0
+        }]
+      },
+      options: {
+        cutout: '70%',
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          tooltip:{ enabled:false },
+          legend:{ display:false }
+        }
+      }
+    });
+
+    // UI elements
+    const batteryEl = document.getElementById('batteryValue');
+    const loadEl = document.getElementById('loadValue');
+    const tempEl = document.getElementById('tempValue');
+    const boostBtn = document.getElementById('boostBtn');
+    const drainBtn = document.getElementById('drainBtn');
+    const addFuelBtn = document.getElementById('addFuelBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    function updateReads(){
+      batteryEl.textContent = Math.max(0, Math.min(100, batteryLevel)).toFixed(0) + '%';
+      loadEl.textContent = Math.max(0, gridLoad).toFixed(0) + ' kW';
+      tempEl.textContent = reactorTemp.toFixed(0) + ' °C';
+    }
+
+    // Simulation variables
+    let boostActive = false;
+    let drainActive = false;
+    let tick = 0;
+
+    boostBtn.onclick = () => {
+      boostActive = true;
+      boostBtn.classList.add('primary');
+      setTimeout(()=>{ boostActive=false; boostBtn.classList.remove('primary') }, 6000);
+    };
+    drainBtn.onclick = () => {
+      drainActive = true;
+      drainBtn.classList.add('primary');
+      setTimeout(()=>{ drainActive=false; drainBtn.classList.remove('primary') }, 8000);
+    };
+
+    // Add Fuel button - increases fuel storage (and gives a small battery/top-up visual)
+    addFuelBtn.onclick = () => {
+      // increase fuel by a noticeable chunk (with a bit of randomness), clamp to 100
+      const added = 10 + Math.round(Math.random()*8);
+      fuelPercent = Math.min(100, fuelPercent + added);
+
+      // give a small bump to battery to reflect refueling/support systems
+      batteryLevel = Math.min(100, batteryLevel + Math.max(1, Math.round(added*0.2)));
+
+      // update doughnut dataset and UI
+      fuelChart.data.datasets[0].data[0] = fuelPercent;
+      fuelChart.data.datasets[0].data[1] = Math.max(0, 100 - fuelPercent);
+      fuelChart.update();
+
+      // update power history with the battery bump so the line reflects it immediately
+      powerChart.data.datasets[0].data[powerChart.data.datasets[0].data.length - 1] = batteryLevel;
+      powerChart.update();
+
+      updateReads();
+    };
+
+    resetBtn.onclick = () => {
+      batteryLevel = 78;
+      gridLoad = 420;
+      reactorOutput = 480;
+      reactorTemp = 385;
+      fuelPercent = 62;
+      // fill arrays with baseline
+      for(let i=0;i<POINTS;i++){
+        powerChart.data.datasets[0].data[i] = batteryLevel + (Math.random()*2-1)*1.2;
+        reactorChart.data.datasets[0].data[i] = reactorOutput + (Math.random()*2-1)*2.5;
+      }
+      fuelChart.data.datasets[0].data = [fuelPercent, 100-fuelPercent];
+      powerChart.update();
+      reactorChart.update();
+      fuelChart.update();
+      updateReads();
+    };
+
+    // Main update loop (1s)
+    setInterval(()=>{
+      tick++;
+
+      // Natural small drift
+      const batteryTarget = 75 - (gridLoad - 400)*0.02; // battery drains when load increases
+      batteryLevel = nextValue(batteryLevel, batteryTarget, 0.6);
+
+      // Reactor output follows load + small regulation (kW)
+      let reactorTarget = gridLoad + (Math.random()*10 -5);
+      if (boostActive) reactorTarget += 160; // temporary boost
+      if (drainActive) reactorTarget += 260 * Math.random(); // spike
+      reactorOutput = nextValue(reactorOutput, reactorTarget, 3.2);
+
+      // Reactor temperature trends with output
+      reactorTemp = nextValue(reactorTemp, 300 + reactorOutput*0.02, 0.6);
+
+      // Fuel slowly decreases with reactor output (scaled)
+      fuelPercent -= (reactorOutput / 100000) + (Math.random()*0.02);
+      if (fuelPercent < 6) fuelPercent = 6 + Math.random()*2; // emergency reserves flatline
+
+      // Occasional random load change to make charts interesting
+      if (Math.random() < 0.08) {
+        gridLoad += (Math.random()*200 - 100);
+      }
+      // Smooth gridLoad bounds
+      gridLoad = Math.max(60, Math.min(900, gridLoad + (Math.random()*6-3)));
+
+      // Push new readings into history arrays
+      powerChart.data.datasets[0].data.shift();
+      powerChart.data.datasets[0].data.push(Math.max(0, Math.min(100, batteryLevel)));
+
+      reactorChart.data.datasets[0].data.shift();
+      reactorChart.data.datasets[0].data.push(Math.max(0, reactorOutput));
+
+      // Fuel chart update
+      fuelChart.data.datasets[0].data[0] = Math.max(0, Math.min(100, fuelPercent));
+      fuelChart.data.datasets[0].data[1] = Math.max(0, 100 - fuelChart.data.datasets[0].data[0]);
+
+      // Update numeric displays
+      updateReads();
+
+      // Animate charts
+      powerChart.update();
+      reactorChart.update();
+      fuelChart.update();
+
+      // every ~15s, small stabilization event
+      if (tick % 15 === 0){
+        gridLoad += (Math.random()*40 - 20);
+      }
+    }, 1000);
+
+    // Initialize UI
+    updateReads();
+  </script>
+</body>
+</html>
