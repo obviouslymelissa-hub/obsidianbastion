@@ -189,7 +189,7 @@
     }
     .panel h3 { margin:0 0 10px 0;color:var(--accent);font-size:1.15rem }
 
-    /* Rest of original CSS preserved (tiles, gallery, lightbox, responsiveness) */
+    /* Systems-dock / tile styling retained only for Onboard Computer link (simplified) */
     .systems-dock {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -217,6 +217,7 @@
       gap: 16px;
       padding: 18px;
       min-height:140px;
+      opacity: 1;
     }
     .tile-head { display:flex; gap:12px; align-items:center }
     .tile-icon {
@@ -236,13 +237,6 @@
     @keyframes floatUp { from { opacity: 0; transform: translateY(10px) scale(.996); } to { opacity:1; transform: none; } }
     .systems-dock .tile { animation: floatUp .36s ease both; }
     .systems-dock .tile:nth-child(1) { animation-delay: 0.02s; }
-    .systems-dock .tile:nth-child(2) { animation-delay: 0.08s; }
-    .systems-dock .tile:nth-child(3) { animation-delay: 0.14s; }
-    .systems-dock .tile:nth-child(4) { animation-delay: 0.20s; }
-    .systems-dock .tile:nth-child(5) { animation-delay: 0.26s; }
-    .systems-dock .tile:nth-child(6) { animation-delay: 0.32s; }
-    .systems-dock .tile:nth-child(7) { animation-delay: 0.38s; }
-    .systems-dock .tile:nth-child(8) { animation-delay: 0.44s; }
 
     .side-stack { display:flex; flex-direction:column; gap:12px }
     .small-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px }
@@ -439,12 +433,12 @@
       </div>
     </section>
 
-    <!-- LEFT: Systems Dock (larger column) -->
+    <!-- LEFT: Systems Dock (now simplified — only the Onboard Computer tile remains) -->
     <section class="panel" aria-labelledby="systems-title">
       <h3 id="systems-title">Systems Dock</h3>
 
       <div class="systems-dock" role="list">
-        <!-- Onboard Computer (prominent main tile spanning left column width) -->
+        <!-- Keep only the Onboard Computer link here so index remains light -->
         <div class="tile main" role="listitem" aria-label="Onboard Computer">
           <div style="display:flex;gap:14px;align-items:center;">
             <div class="tile-icon" aria-hidden="true">💻</div>
@@ -456,99 +450,6 @@
           <div class="tile-actions">
             <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/onboardcomputer.html" aria-label="Open Onboard Computer">Open</a>
             <a class="btn ghost" href="https://obviouslymelissa-hub.github.io/obsidianbastian/diagnostics.html" aria-label="Run Diagnostics">Diagnostics</a>
-          </div>
-        </div>
-
-        <!-- New order: Mainframe, Atmospherics, Navigation, Communications, Inventory, Power Management, Diagnostics -->
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">🖥️</div>
-            <div>
-              <div class="tile-title">Mainframe</div>
-              <div class="tile-desc">Health metrics and charts.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/mainframe-health.html">Open</a>
-          </div>
-        </div>
-
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">☁️</div>
-            <div>
-              <div class="tile-title">Atmospherics</div>
-              <div class="tile-desc">Planetary weather and composition.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/mainframeweather.html">Open</a>
-          </div>
-        </div>
-
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">🧭</div>
-            <div>
-              <div class="tile-title">Navigation</div>
-              <div class="tile-desc">Maps, routes and travel controls.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/navigationconsole.html">Open</a>
-          </div>
-        </div>
-
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">📡</div>
-            <div>
-              <div class="tile-title">Communications</div>
-              <div class="tile-desc">Message streams and channel controls.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/communications.html">Open</a>
-          </div>
-        </div>
-
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">📦</div>
-            <div>
-              <div class="tile-title">Inventory</div>
-              <div class="tile-desc">Parts, supplies and orders.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/partsinventory.html">Open</a>
-          </div>
-        </div>
-
-        <!-- NEW: Power Management tile inserted between Inventory and Diagnostics -->
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">⚡</div>
-            <div>
-              <div class="tile-title">Power Management</div>
-              <div class="tile-desc">Ship power systems, reactors and fuel telemetry.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/powermanagement.html">Open</a>
-          </div>
-        </div>
-
-        <div class="tile" role="listitem">
-          <div class="tile-head">
-            <div class="tile-icon" aria-hidden="true">🛠</div>
-            <div>
-              <div class="tile-title">Diagnostics</div>
-              <div class="tile-desc">Deep checks, logs and repairs.</div>
-            </div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/diagnostics.html">Open</a>
           </div>
         </div>
       </div>
@@ -607,7 +508,7 @@
     </aside>
   </main>
 
-  <!-- Lightbox / slideshow markup -->
+  <!-- Lightbox / slideshow markup (unchanged) -->
   <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Image viewer">
     <button class="lb-close" id="lbClose" aria-label="Close viewer">&times;</button>
     <button class="lb-prev" id="lbPrev" aria-label="Previous image">‹</button>
@@ -624,22 +525,16 @@
     © Family Fleet — Obsidian Bastian • Public homepage
   </footer>
 
-  <!-- Header interactivity: parallax + sheen (lightweight, respects reduced motion) -->
-  <script>
-    (function () {
+  <!-- Header interactivity + lightbox scripts preserved (unchanged) -->
+  <script>/* header parallax / sheen script (unchanged) */ (function () {
       const shipWrap = document.getElementById('shipWrap');
       const shipImg = document.getElementById('shipImg');
       const siteTitle = document.getElementById('siteTitle');
-
-      // Respect user preference for reduced motion and touch devices
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-
       if (!reduce && !isTouch && shipWrap && shipImg) {
-        // Parallax strength
-        const maxRotate = 6; // degrees
-        const maxTranslate = 6; // px
-
+        const maxRotate = 6;
+        const maxTranslate = 6;
         function onMove(e) {
           const rect = shipWrap.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
@@ -648,40 +543,26 @@
           const clientY = e.clientY || (e.touches && e.touches[0].clientY);
           const dx = (clientX - cx) / rect.width;
           const dy = (clientY - cy) / rect.height;
-
           const rotY = dx * maxRotate;
           const rotX = -dy * maxRotate;
           const tx = dx * maxTranslate;
           const ty = dy * maxTranslate;
-
           shipWrap.style.transform = `translate3d(${tx}px, ${ty}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
           shipImg.style.transform = `scale(1.02) translate3d(${tx * -0.35}px, ${ty * -0.35}px, 0)`;
         }
-
-        function onLeave() {
-          shipWrap.style.transform = '';
-          shipImg.style.transform = '';
-        }
-
+        function onLeave() { shipWrap.style.transform = ''; shipImg.style.transform = ''; }
         const headerInner = document.querySelector('.header-inner');
         headerInner.addEventListener('mousemove', onMove);
         headerInner.addEventListener('mouseleave', onLeave);
         headerInner.addEventListener('touchmove', onMove, { passive: true });
         headerInner.addEventListener('touchend', onLeave);
       }
-
-      // Sheen animation periodically triggered on title (subtle)
       if (!reduce && siteTitle) {
-        const triggerSheen = () => {
-          siteTitle.classList.add('sheen');
-          setTimeout(() => siteTitle.classList.remove('sheen'), 900);
-        };
-        // initial small delay and occasional repeats
+        const triggerSheen = () => { siteTitle.classList.add('sheen'); setTimeout(() => siteTitle.classList.remove('sheen'), 900); };
         setTimeout(triggerSheen, 700);
         setInterval(triggerSheen, 8000);
       }
-    })();
-  </script>
+    })();</script>
 
   <script>
     (function(){
@@ -710,9 +591,7 @@
         lbCaption.textContent = item.caption || '';
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
-        // move focus to close for accessibility
         lbClose.focus();
-        // prevent page scrolling
         document.body.style.overflow = 'hidden';
       }
 
@@ -722,7 +601,6 @@
         lbImage.src = '';
         lbCaption.textContent = '';
         document.body.style.overflow = '';
-        // return focus to the thumbnail that opened it
         const thumb = thumbs[current];
         if (thumb) thumb.focus();
       }
@@ -737,19 +615,16 @@
       }
       function updateLightbox() {
         const item = images[current];
-        // swap image source; browsers will cache so this is usually fast
         lbImage.src = item.src;
         lbImage.alt = item.caption || '';
         lbCaption.textContent = item.caption || '';
       }
 
-      // Attach handlers to thumbnails
       thumbs.forEach(t => {
         t.addEventListener('click', (e) => {
           const idx = Number(t.getAttribute('data-index'));
           openLightbox(idx);
         });
-        // Allow Enter/Space to open when focused
         t.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -759,17 +634,14 @@
         });
       });
 
-      // Controls
       lbClose.addEventListener('click', closeLightbox);
       lbPrev.addEventListener('click', showPrev);
       lbNext.addEventListener('click', showNext);
 
-      // Close when clicking outside the image
       lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox) closeLightbox();
       });
 
-      // Keyboard navigation
       document.addEventListener('keydown', (e) => {
         if (!lightbox.classList.contains('open')) return;
         if (e.key === 'Escape') closeLightbox();
@@ -777,7 +649,6 @@
         else if (e.key === 'ArrowRight') showNext();
       });
 
-      // Preload images for smoother navigation
       images.forEach(i => {
         const img = new Image();
         img.src = i.src;
