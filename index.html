@@ -15,24 +15,25 @@
       --border: #22272f;
       --tile-radius: 10px;
       --font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-      --header-height: 120px;
+      --header-height: 110px;
+      --sidebar-width: 360px;
+      --content-max: 1200px;
     }
 
     /* Page basics */
     html,body{height:100%;margin:0;font-family:var(--font-family);background:var(--bg-dark);color:var(--text-main)}
-    /* Header with ship image placeholder */
+    a { color: inherit; text-decoration: none; }
+    /* Header hero */
     header {
-      /* layered background for depth */
       background:
         radial-gradient(600px 120px at 10% 30%, rgba(127,240,223,0.06), transparent 8%),
         radial-gradient(500px 100px at 90% 60%, rgba(79,209,197,0.04), transparent 6%),
         linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
       border-bottom: 2px solid rgba(79,209,197,0.12);
-      padding: 18px;
+      padding: 12px 18px;
       position:relative;
       overflow:visible;
     }
-    /* soft animated glow behind header */
     header::before{
       content:"";
       position:absolute;
@@ -48,37 +49,38 @@
     }
 
     .header-inner {
-      max-width:1200px;
+      max-width:var(--content-max);
       margin:0 auto;
       display:flex;
       align-items:center;
       gap:18px;
-      justify-content:center;
-      padding:6px 12px;
+      justify-content:space-between;
+      padding:8px 6px;
       position:relative;
       z-index:1;
       height: var(--header-height);
     }
 
-    /* Emblem + ship frame */
+    .hero-left { display:flex; align-items:center; gap:14px; min-width:0; }
+
     .emblem {
-      width:76px;
-      height:76px;
-      flex:0 0 76px;
+      width:72px;
+      height:72px;
+      flex:0 0 72px;
       display:flex;
       align-items:center;
       justify-content:center;
-      border-radius:14px;
+      border-radius:12px;
       background: linear-gradient(135deg, rgba(127,240,223,0.06), rgba(79,209,197,0.02));
       border:1px solid rgba(127,240,223,0.08);
       box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 30px rgba(79,209,197,0.02) inset;
     }
-    .emblem svg { width:56px;height:56px;display:block; }
+    .emblem svg { width:52px;height:52px;display:block; }
 
     .ship-img-wrap {
       width:96px;
       height:96px;
-      border-radius:16px;
+      border-radius:12px;
       background: linear-gradient(180deg, rgba(79,209,197,0.04), rgba(255,255,255,0.01));
       border: 1px solid rgba(255,255,255,0.04);
       box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 18px rgba(79,209,197,0.04) inset;
@@ -92,33 +94,29 @@
       transition: transform .18s linear;
       position:relative;
     }
-    .ship-img {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      transform-origin:center;
-      transition: transform .28s cubic-bezier(.2,.9,.2,1);
-    }
+    .ship-img { width:100%; height:100%; object-fit:cover; display:block; transform-origin:center; transition: transform .28s cubic-bezier(.2,.9,.2,1); }
 
-    /* subtle floating motion */
+    /* subtle sliding/floating motion for the header image */
     @keyframes headerFloat {
-      0% { transform: translateY(-3px); }
-      50% { transform: translateY(3px); }
-      100% { transform: translateY(-3px); }
+      0% { transform: translateY(-4px); }
+      50% { transform: translateY(4px); }
+      100% { transform: translateY(-4px); }
     }
     .ship-img-wrap.floating { animation: headerFloat 6s ease-in-out infinite; }
 
-    .header-text { text-align:left; }
+    .header-text { text-align:left; min-width:0; }
     .header-text h1 {
       margin:0;
-      font-size:1.6rem;
+      font-size:1.4rem;
       color:var(--text-main);
-      letter-spacing:1.6px;
+      letter-spacing:1.2px;
       font-weight:800;
-      display:inline-block;
+      display:block;
       position:relative;
-      line-height:1;
+      line-height:1.05;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     /* sheen effect on title */
     .header-text h1::before{
@@ -134,27 +132,26 @@
     .header-text h1.sheen::before{
       transform: translateX(110%);
     }
-    .header-text p { margin:6px 0 0 0; color:var(--text-muted); font-size:0.95rem; max-width:520px }
+    .header-text p { margin:6px 0 0 0; color:var(--text-muted); font-size:0.95rem; max-width:560px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 
-    /* CTA styling tweaks */
-    .about-actions a.btn { font-weight:800; letter-spacing:0.6px; }
-    .about-actions a.btn.ghost {
-      border:1px solid rgba(255,255,255,0.04);
-      color:var(--text-main);
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-    }
+    .btn { background:var(--accent); color:var(--bg-panel); padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+    .btn.ghost { background:transparent;color:var(--text-main); border:1px solid rgba(255,255,255,0.04); padding:7px 10px; font-weight:600 }
 
-    /* Panels (unchanged) */
+    /* Main layout: content + right sidebar */
     .container {
-      max-width:1200px;
+      max-width:var(--content-max);
       margin:20px auto;
       padding:0 18px 48px;
       display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr var(--sidebar-width);
+      gap: 24px;
+      align-items:start;
     }
+
+    /* content column */
+    .content-column { grid-column: 1 / 2; display:flex; flex-direction:column; gap:20px; min-width:0; }
+
     .about {
-      grid-column: 1 / -1;
       background: linear-gradient(180deg, rgba(79,209,197,0.03), rgba(255,255,255,0.01));
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -162,23 +159,22 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.45);
       display:flex;
       gap:18px;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
+      flex-wrap:wrap;
     }
-    .about .about-text { max-width: 72%; }
+    .about .about-text { flex:1 1 480px; min-width:0; }
     .about h3 { margin:0 0 6px 0;color:var(--accent);font-size:1.15rem }
     .about p { margin:0;color:var(--text-muted);line-height:1.45 }
 
-    /* New formatting styles for the about content */
     .about-dl { margin:8px 0 12px 0; display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
     .about-dl dt { font-weight:700; color:var(--text-main); font-size:0.92rem; text-transform:uppercase; letter-spacing:0.9px; }
     .about-dl dd { margin:0; color:var(--text-muted); font-size:0.95rem; }
     .core-list { list-style: none; padding:0; margin:12px 0 0 0; display:block; }
     .core-list li { margin:10px 0; }
-    .core-list strong { color:var(--accent); display:inline-block; min-width:140px; }
+    .core-list strong { color:var(--accent); display:inline-block; min-width:120px; }
 
-    .about .about-actions { display:flex; gap:10px; align-items:center }
-    .about a.btn { text-decoration:none; }
+    .about .about-actions { display:flex; gap:10px; align-items:center; margin-top:12px; }
 
     .panel {
       background: var(--bg-panel);
@@ -189,10 +185,10 @@
     }
     .panel h3 { margin:0 0 10px 0;color:var(--accent);font-size:1.15rem }
 
-    /* Systems-dock / tile styling retained only for Onboard Computer link (simplified) */
+    /* Systems-dock / tile styling */
     .systems-dock {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
       gap: 12px;
     }
     .tile {
@@ -207,17 +203,14 @@
       transform-origin:center;
       transition: transform .16s ease, box-shadow .16s ease;
       will-change: transform;
-      opacity: 0;
     }
     .tile.main {
-      grid-column: 1 / -1;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 16px;
-      padding: 18px;
-      min-height:140px;
-      opacity: 1;
+      padding: 16px;
+      min-height:120px;
     }
     .tile-head { display:flex; gap:12px; align-items:center }
     .tile-icon {
@@ -227,33 +220,20 @@
     .tile-desc { color:var(--text-muted); font-size:0.9rem; margin-top:4px }
 
     .tile-actions { display:flex; gap:8px; align-items:center }
-    .btn {
-      background:var(--accent); color:var(--bg-panel); padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer;
-    }
-    .btn.ghost { background:transparent;color:var(--text-main); border:1px solid var(--border); padding:7px 10px; font-weight:600 }
 
-    .tile:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+    .tile:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
 
-    @keyframes floatUp { from { opacity: 0; transform: translateY(10px) scale(.996); } to { opacity:1; transform: none; } }
-    .systems-dock .tile { animation: floatUp .36s ease both; }
-    .systems-dock .tile:nth-child(1) { animation-delay: 0.02s; }
-
-    .side-stack { display:flex; flex-direction:column; gap:12px }
-    .small-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px }
-    .small-item { display:flex; gap:10px; align-items:flex-start }
-
-    .thumb { width:56px;height:36px;border-radius:6px;background:rgba(255,255,255,0.02); object-fit:cover; }
-
+    /* Gallery */
     .gallery-grid {
       display:flex;
       gap:12px;
       flex-wrap:wrap;
       align-items:center;
+      margin-top:2px;
     }
-
     .gallery-grid .thumb {
-      width:200px;
-      height:130px;
+      width:220px;
+      height:140px;
       object-fit:cover;
       border-radius:8px;
       border: 1px solid rgba(0,0,0,0.06);
@@ -264,9 +244,19 @@
     .gallery-grid .thumb:focus,
     .gallery-grid .thumb:hover { transform: translateY(-6px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); outline: none; }
 
-    @media (min-width: 900px) {
+    @media (min-width: 1100px) {
       .gallery-grid .thumb { width:240px; height:156px; }
     }
+
+    /* Sidebar */
+    aside { grid-column: 2 / 3; display:flex; flex-direction:column; gap:16px; min-width:0; }
+
+    .side-stack { display:flex; flex-direction:column; gap:12px }
+
+    .small-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px }
+    .small-item { display:flex; gap:10px; align-items:flex-start }
+
+    .thumb { width:56px;height:36px;border-radius:6px;background:rgba(255,255,255,0.02); object-fit:cover; }
 
     .lightbox {
       position:fixed;
@@ -324,12 +314,11 @@
     /* Responsiveness */
     @media (max-width:1000px){
       .container { grid-template-columns: 1fr; padding-bottom:28px }
-      .systems-dock { grid-template-columns: repeat(2, 1fr) }
-      .tile.main { grid-column: 1 / -1; flex-direction:column; align-items:flex-start }
-      .about { flex-direction:column; align-items:flex-start; gap:12px }
-      .about .about-text { max-width:100% }
-      .header-inner { justify-content:flex-start; }
-      .header-text { text-align:left }
+      .content-column { grid-column: 1 / -1; }
+      aside { grid-column: 1 / -1; }
+      .header-inner { justify-content:flex-start; gap:12px; }
+      .header-text h1 { font-size:1.25rem; white-space:normal; }
+      .header-text p { display:none; }
       .gallery-grid .thumb { width:160px; height:104px; }
       header::before { display:none; }
     }
@@ -337,15 +326,16 @@
       .systems-dock { grid-template-columns: 1fr }
       .ship-img { width:72px; height:72px; flex:0 0 72px; }
       .header-inner { gap:12px; padding:6px; }
-      .header-text h1 { font-size:1.25rem; }
       .gallery-grid { justify-content:center; }
       .gallery-grid .thumb { width:140px; height:90px; }
       .emblem { display:none; }
       .ship-img-wrap { width:72px; height:72px; border-radius:12px; flex:0 0 72px; }
       .header-inner { height:84px; }
+      .about { flex-direction:column; align-items:flex-start; }
+      .about .about-actions { margin-left:0; width:100%; justify-content:flex-start; }
     }
 
-    /* Respect reduced motion preference */
+    /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
       .ship-img-wrap.floating { animation: none; }
       .header-text h1::before { transition:none; transform:none; display:none; }
@@ -356,109 +346,98 @@
 <body>
   <header>
     <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
-      <!-- Inline emblem for stronger brand presence -->
-      <div class="emblem" aria-hidden="true" title="Obsidian Bastian emblem">
-        <!-- Simple ship emblem (SVG) -->
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <defs>
-            <linearGradient id="g1" x1="0" x2="1">
-              <stop offset="0" stop-color="#7ef0df" stop-opacity="0.9"/>
-              <stop offset="1" stop-color="#4fd1c5" stop-opacity="0.9"/>
-            </linearGradient>
-          </defs>
-          <rect width="64" height="64" rx="10" fill="url(#g1)" opacity="0.08"/>
-          <path d="M32 6L38 24L56 28L38 32L32 50L26 32L8 28L26 24L32 6Z" fill="#7ef0df" opacity="0.9"/>
-          <circle cx="32" cy="32" r="6" fill="#0f1318" />
-        </svg>
-      </div>
+      <div class="hero-left" style="min-width:0">
+        <div class="emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#7ef0df" stop-opacity="0.9"/>
+                <stop offset="1" stop-color="#4fd1c5" stop-opacity="0.9"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="10" fill="url(#g1)" opacity="0.08"/>
+            <path d="M32 6L38 24L56 28L38 32L32 50L26 32L8 28L26 24L32 6Z" fill="#7ef0df" opacity="0.9"/>
+            <circle cx="32" cy="32" r="6" fill="#0f1318" />
+          </svg>
+        </div>
 
-      <!-- Replace the placeholder image at /images/ship-header.jpg with your ship photo -->
-      <div class="ship-img-wrap floating" id="shipWrap" aria-hidden="false">
-        <img class="ship-img" id="shipImg" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-header.jpg" alt="Obsidian Bastian ship image placeholder">
-      </div>
+        <div class="ship-img-wrap floating" id="shipWrap" aria-hidden="false">
+          <img class="ship-img" id="shipImg" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-header.jpg" alt="Obsidian Bastian ship image placeholder">
+        </div>
 
-      <div class="header-text">
-        <h1 id="siteTitle">Obsidian Bastian Command Hub</h1>
-        <p id="siteTag">Centralized access for all crew operations and ship systems — hover tiles to reveal actions.</p>
+        <div class="header-text" style="min-width:0">
+          <h1 id="siteTitle">Obsidian Bastian Command Hub</h1>
+          <p id="siteTag">Centralized access for all crew operations and ship systems — hover tiles to reveal actions.</p>
+        </div>
       </div>
+      <!-- header CTAs removed per request (Meet our crew button moved into About section) -->
     </div>
   </header>
 
   <main class="container" aria-live="polite">
-    <!-- ABOUT: full-width, top -->
-    <section class="about" role="region" aria-labelledby="about-title">
-      <div class="about-text">
-        <h3 id="about-title">About the Obsidian Bastian</h3>
+    <div class="content-column">
+      <!-- ABOUT -->
+      <section class="about" role="region" aria-labelledby="about-title">
+        <div class="about-text">
+          <h3 id="about-title">About the Obsidian Bastian</h3>
 
-        <dl class="about-dl" aria-hidden="false">
-          <div>
-            <dt>Designation</dt>
-            <dd>Exploration Cruiser</dd>
-          </div>
-          <div>
-            <dt>Registry</dt>
-            <dd>Active Service Vessel</dd>
-          </div>
-          <div>
-            <dt>Status</dt>
-            <dd>Ready for exploration, research, and defense operations</dd>
-          </div>
-          <div>
-            <dt>Authority</dt>
-            <dd>Command-certified · Mission-capable · Fleet-aligned</dd>
-          </div>
-        </dl>
-
-        <p>
-          The Obsidian Bastian is a long-range cruiser engineered for sustained deployment, operational resilience, and defensive readiness.
-          Its systems are optimized for extended missions, combining strategic command facilities with reinforced crew accommodations.
-        </p>
-
-        <h4 style="margin:12px 0 6px 0;color:var(--text-main)">Core assets include:</h4>
-        <ul class="core-list" aria-label="Core assets">
-          <li><strong>Mission Control:</strong> Navigation, tactical oversight, and command relay.</li>
-          <li><strong>Mainframe:</strong> Telemetry, communications, and data integrity.</li>
-          <li><strong>Engineering Bay:</strong> Compact, modular repair hub for rapid response.</li>
-          <li><strong>Onboard Computer:</strong> Continuous monitoring and system regulation.</li>
-          <li><strong>Defense Systems:</strong> Integrated laser arrays and shielding protocols, ensuring combat readiness alongside exploration duties.</li>
-        </ul>
-
-        <p style="margin-top:12px;">
-          Oversight is managed by the onboard computer, maintaining efficiency and readiness at all times.
-        </p>
-      </div>
-      <div class="about-actions">
-        <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/crew.html" aria-label="About and Crew">About &amp; Crew</a>
-        <a class="btn ghost" href="https://obviouslymelissa-hub.github.io/obsidianbastian/onboardcomputer.html" aria-label="Open Onboard Computer">Open Console</a>
-      </div>
-    </section>
-
-    <!-- LEFT: Systems Dock (now simplified — only the Onboard Computer tile remains) -->
-    <section class="panel" aria-labelledby="systems-title">
-      <h3 id="systems-title">Systems Dock</h3>
-
-      <div class="systems-dock" role="list">
-        <!-- Keep only the Onboard Computer link here so index remains light -->
-        <div class="tile main" role="listitem" aria-label="Onboard Computer">
-          <div style="display:flex;gap:14px;align-items:center;">
-            <div class="tile-icon" aria-hidden="true">💻</div>
+          <dl class="about-dl" aria-hidden="false">
             <div>
-              <div class="tile-title">Onboard Computer</div>
-              <div class="tile-desc">Primary control interface — main console, diagnostics, and mission controls.</div>
+              <dt>Designation</dt>
+              <dd>Exploration Cruiser</dd>
             </div>
-          </div>
-          <div class="tile-actions">
-            <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/onboardcomputer.html" aria-label="Open Onboard Computer">Open</a>
-            <a class="btn ghost" href="https://obviouslymelissa-hub.github.io/obsidianbastian/diagnostics.html" aria-label="Run Diagnostics">Diagnostics</a>
-          </div>
-        </div>
-      </div>
-    </section>
+            <div>
+              <dt>Registry</dt>
+              <dd>Active Service Vessel</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>Ready for exploration, research, and defense operations</dd>
+            </div>
+            <div>
+              <dt>Authority</dt>
+              <dd>Command-certified · Mission-capable · Fleet-aligned</dd>
+            </div>
+          </dl>
 
-    <!-- RIGHT: Side column with Notifications + Events and compact panels -->
-    <aside>
+          <p>
+            The Obsidian Bastian is a long-range cruiser engineered for sustained deployment, operational resilience, and defensive readiness.
+            Its systems are optimized for extended missions, combining strategic command facilities with reinforced crew accommodations.
+          </p>
+
+          <h4 style="margin:12px 0 6px 0;color:var(--text-main)">Core assets include:</h4>
+          <ul class="core-list" aria-label="Core assets">
+            <li><strong>Mission Control:</strong> Navigation, tactical oversight, and command relay.</li>
+            <li><strong>Mainframe:</strong> Telemetry, communications, and data integrity.</li>
+            <li><strong>Engineering Bay:</strong> Compact, modular repair hub for rapid response.</li>
+            <li><strong>Onboard Computer:</strong> Continuous monitoring and system regulation.</li>
+            <li><strong>Defense Systems:</strong> Integrated laser arrays and shielding protocols, ensuring combat readiness alongside exploration duties.</li>
+          </ul>
+
+          <p style="margin-top:12px;">
+            Oversight is managed by the onboard computer, maintaining efficiency and readiness at all times.
+          </p>
+        </div>
+
+        <div class="about-actions" aria-hidden="false">
+          <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/crew.html" aria-label="Meet our crew">Meet our crew</a>
+        </div>
+      </section>
+
+      <!-- Gallery placed immediately after the about content for natural flow -->
+      <section class="panel" aria-labelledby="gallery-title">
+        <h3 id="gallery-title">Photo Gallery</h3>
+        <div class="gallery-grid" id="gallery">
+          <img class="thumb" data-index="0" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-1.jpg" alt="Command Deck — view 1" tabindex="0" />
+          <img class="thumb" data-index="1" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-2.jpg" alt="Observation Dome — view 2" tabindex="0" />
+          <img class="thumb" data-index="2" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-3.jpg" alt="Exterior — view 3" tabindex="0" />
+        </div>
+      </section>
+    </div>
+
+    <!-- Sidebar: Notifications first, then Systems -->
+    <aside aria-labelledby="alerts-title">
       <div class="side-stack">
-        <!-- Notifications + Events (combined) -->
         <div class="panel" aria-labelledby="alerts-title">
           <h3 id="alerts-title">Notifications &amp; Events</h3>
 
@@ -495,20 +474,29 @@
           </ul>
         </div>
 
-        <!-- Photo gallery with larger thumbnails and a lightbox slideshow -->
-        <div class="panel" aria-labelledby="gallery-title">
-          <h3 id="gallery-title">Photo Gallery</h3>
-          <div class="gallery-grid" id="gallery">
-            <img class="thumb" data-index="0" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-1.jpg" alt="Command Deck — view 1" tabindex="0" />
-            <img class="thumb" data-index="1" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-2.jpg" alt="Observation Dome — view 2" tabindex="0" />
-            <img class="thumb" data-index="2" src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/ship-3.jpg" alt="Exterior — view 3" tabindex="0" />
+        <div class="panel" aria-labelledby="systems-title">
+          <h3 id="systems-title">Systems Dock</h3>
+          <div class="systems-dock" role="list">
+            <div class="tile main" role="listitem" aria-label="Onboard Computer">
+              <div style="display:flex;gap:14px;align-items:center;">
+                <div class="tile-icon" aria-hidden="true">💻</div>
+                <div>
+                  <div class="tile-title">Onboard Computer</div>
+                  <div class="tile-desc">Primary control interface — main console, diagnostics, and mission controls.</div>
+                </div>
+              </div>
+              <div class="tile-actions">
+                <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastian/onboardcomputer.html" aria-label="Open Onboard Computer">Open</a>
+                <!-- Diagnostics button removed per request -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </aside>
   </main>
 
-  <!-- Lightbox / slideshow markup (unchanged) -->
+  <!-- Lightbox / slideshow markup -->
   <div id="lightbox" class="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Image viewer">
     <button class="lb-close" id="lbClose" aria-label="Close viewer">&times;</button>
     <button class="lb-prev" id="lbPrev" aria-label="Previous image">‹</button>
@@ -525,7 +513,7 @@
     © Family Fleet — Obsidian Bastian • Public homepage
   </footer>
 
-  <!-- Header interactivity + lightbox scripts preserved (unchanged) -->
+  <!-- Header interactivity + lightbox scripts (parallax + sheen preserved) -->
   <script>/* header parallax / sheen script (unchanged) */ (function () {
       const shipWrap = document.getElementById('shipWrap');
       const shipImg = document.getElementById('shipImg');
