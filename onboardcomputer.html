@@ -18,10 +18,11 @@
 
     header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);backdrop-filter: blur(4px);border-bottom:1px solid rgba(255,255,255,0.03)}
     header h1{margin:0;font-size:18px;letter-spacing:0.6px}
-    header .controls{display:flex;gap:8px}
+    header .controls{display:flex;gap:8px;align-items:center}
     button{background:var(--panel);border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:6px;cursor:pointer}
     button.primary{background:linear-gradient(90deg,#114b3b,#427f62);color:white;border:none}
     button.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:7px 10px;border-radius:8px;font-weight:600}
+    a.link{color:var(--accent);text-decoration:none}
 
     main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
     @media (max-width:900px){ main{grid-template-columns:1fr;} .sidebar{order:2} }
@@ -38,7 +39,7 @@
     .panel h3{margin:0 0 12px 0;font-size:13px;color:var(--muted);position:relative;z-index:1}
     .panel .section-body { margin-top:8px; }
 
-    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-sizing:border-box}
+    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-sizing:border-box;padding:12px}
 
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
@@ -47,8 +48,6 @@
 
     .kbd-list{display:flex;flex-direction:column;gap:6px;font-size:13px}
     .kbd{display:inline-block;background:#08121a;border:1px solid rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;color:var(--muted);font-family:monospace}
-
-    a.link{color:var(--accent);text-decoration:none}
 
     /* Systems dock / tile styles */
     .systems-panel { margin-top: 8px; }
@@ -91,6 +90,86 @@
       .systems-dock { grid-template-columns: 1fr; }
       .ls-controls { width:100%; }
     }
+
+    /* Alert overlay and visual pulse effects */
+    #alert-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+      background: rgba(0,0,0,0);
+      mix-blend-mode: screen;
+      transition: opacity .25s ease, background-color .25s ease;
+      opacity: 0;
+    }
+
+    /* Red alert: gentle red wash with slow pulse */
+    body.red-alert #alert-overlay {
+      background: rgba(255,40,40,0.06);
+      opacity: 1;
+      animation: pulse-alert 1.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* Evacuate: stronger red and faster pulse and block interactions (optional) */
+    body.evac #alert-overlay {
+      background: rgba(255,10,10,0.18);
+      opacity: 1;
+      animation: pulse-alert 0.6s linear infinite;
+      pointer-events: auto; /* blocks clicks while evac is engaged to avoid accidental actions */
+    }
+
+    @keyframes pulse-alert {
+      0% { filter: drop-shadow(0 0 6px rgba(255,0,0,0.06)); transform: scale(1); }
+      50% { filter: drop-shadow(0 0 28px rgba(255,0,0,0.18)); }
+      100% { filter: drop-shadow(0 0 6px rgba(255,0,0,0.06)); transform: scale(1); }
+    }
+
+    /* Modal for confirmations */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      background: rgba(0,0,0,0.45);
+    }
+    .modal-box {
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.04);
+      width: 360px;
+      max-width: calc(100% - 40px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+    .modal h4{ margin:0 0 8px 0; font-size:16px }
+    .modal p{ margin:0 0 12px 0; color:var(--muted); font-size:13px }
+    .modal .row { display:flex; gap:8px; align-items:center; margin-top:8px }
+    .hidden { display:none; }
+
+    /* Danger button */
+    .btn-danger {
+      background: linear-gradient(90deg,#ff5a5a,#c91a1a);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    /* Small controls in header for sound/mute */
+    .mute-toggle { display:flex;align-items:center;gap:8px }
+    .mute-toggle button{padding:6px 8px;font-size:13px}
+    .pod { display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02);font-size:13px }
+    .pod .status { font-weight:700; font-size:13px }
+    .pod.enroute .status{ color:#ffd27a }
+    .pod.docked .status{ color:#9ff0c9 }
+    .pod.failed .status{ color:#ff9a9a }
+    .pod.aborted { opacity:0.7 }
+    .pod.aborted .status{ color:#b0b0b0 }
   </style>
 </head>
 <body>
@@ -102,6 +181,9 @@
     <button id="btn-diagnostics">Diagnostics (D)</button>
     <button id="btn-weather">Mainframe Weather (M)</button>
     <button id="btn-toggle-gauges" class="primary">Toggle Gauges (G)</button>
+    <div class="mute-toggle" title="Alarm sound controls" aria-label="Alarm sound controls">
+      <button id="btn-mute" class="ghost" aria-pressed="false">🔈 Mute</button>
+    </div>
   </div>
 </header>
 
@@ -147,11 +229,6 @@
         <h3>Life Support</h3>
 
         <div class="section-body">
-          <!-- Redesigned life support area:
-               - CO2/Temp/Humidity moved to the top
-               - removed Cabin box and overview text
-               - scrubber bar spans full width
-               - buttons placed below the bar -->
           <div class="ls-compact" style="align-items:flex-start;flex-direction:column">
             <div style="width:100%;display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">
               <div class="small">CO2: <strong id="co2-val">-- ppm</strong></div>
@@ -187,8 +264,34 @@
 
       <div class="panel">
         <h3>Communications</h3>
-        <div class="placeholder" id="comm-placeholder">Communications console is separate — open it from the Systems Dock tile if needed.</div>
-        <div style="margin-top:8px;font-size:13px;color:var(--muted)">Status: <span id="comm-status">Standby</span></div>
+
+        <!-- Compact Communications cockpit + Red Alert / Evacuate controls -->
+        <div id="comms-cockpit" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="status-badge status-ok" id="comms-badge">STANDBY</span>
+              <div style="font-size:13px;color:var(--muted)">Channel: <strong id="comms-channel">Alpha</strong></div>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <button id="btn-red-alert" class="ghost" title="Toggle Red Alert">Red Alert</button>
+              <button id="btn-evacuate" class="btn-danger" title="Initiate Evacuate">Evacuate Now</button>
+              <button id="btn-cancel-dispatch" class="ghost" title="Cancel ongoing dispatch" disabled>Cancel Dispatch</button>
+              <button id="btn-clear-alert" class="btn" title="Clear current alert">Clear Alert</button>
+            </div>
+          </div>
+
+          <div id="comm-msg" class="placeholder" style="min-height:48px;padding:10px">No active comms events</div>
+
+          <!-- Pod dispatches live list -->
+          <div style="margin-top:6px">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Evacuation Dispatch</div>
+            <div id="evac-pods" style="display:flex;flex-direction:column;gap:6px;min-height:36px"></div>
+          </div>
+
+          <div style="margin-top:8px;font-size:13px;color:var(--muted)">Status: <span id="comm-status">Standby</span></div>
+        </div>
+
       </div>
     </section>
 
@@ -313,6 +416,8 @@
         <div><span class="kbd">C</span> Toggle Communications placeholder</div>
         <div><span class="kbd">D</span> Open Diagnostics</div>
         <div><span class="kbd">M</span> Open Mainframe Weather</div>
+        <div><span class="kbd">Shift+E</span> Open Evac Confirmation</div>
+        <div><span class="kbd">Shift+X</span> Cancel ongoing dispatch (when active)</div>
       </div>
     </div>
   </aside>
@@ -321,6 +426,27 @@
 <footer>
   Last simulated update: <span id="last-updated">--</span>
 </footer>
+
+<!-- Visual overlay element for alerts -->
+<div id="alert-overlay" aria-hidden="true"></div>
+
+<!-- Evac confirmation modal -->
+<div id="evac-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="evac-title">
+  <div class="modal-box" role="document">
+    <h4 id="evac-title">Confirm Emergency Evacuation</h4>
+    <p>This will initiate EVAC mode, trigger alarms, and dispatch escape pods (lifeboats). Choose number of pods to deploy and confirm. You can cancel the dispatch while pods are en route.</p>
+
+    <div class="row" style="margin-top:8px">
+      <label for="evac-count" style="color:var(--muted);font-size:13px">Pods to dispatch</label>
+      <input id="evac-count" type="number" min="1" max="20" value="6" style="margin-left:auto;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:inherit;width:80px">
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button id="evac-cancel" class="ghost">Cancel</button>
+      <button id="evac-confirm" class="btn-danger">Dispatch Pods</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* Utility arc drawing */
@@ -530,7 +656,8 @@ L: Toggle Life Support placeholder
 C: Toggle Communications placeholder
 D: Open Diagnostics
 M: Open Mainframe Weather
-`
+Shift+E: Open Evac Confirmation
+Shift+X: Cancel ongoing dispatch`
   );
 });
 if (btnDiag) btnDiag.addEventListener('click', ()=>{ window.location.href='/diagnostics.html'; });
@@ -563,6 +690,322 @@ setInterval(simulateStep, 1100);
 
 /* small startup noise */
 for (let i=0;i<2;i++) setTimeout(pushVagueError, 300*i+600);
+
+/* --- ALERT / SOUND MANAGER --- */
+/* SoundManager uses Web Audio API to synthesize alert tones so there are no external assets. */
+const SoundManager = (function(){
+  let ctx = null;
+  let redInterval = null;
+  let evacOsc = null;
+  let evacGain = null;
+  let mute = false;
+
+  function ensureCtx(){
+    if (!ctx) {
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e){ console.warn('WebAudio unavailable', e); ctx = null; }
+    }
+  }
+
+  function beep(duration=150, freq=880, type='sine', when=0, gain=0.18){
+    ensureCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime + when/1000;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(gain * (mute ? 0 : 1), now);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now);
+    o.stop(now + duration/1000);
+  }
+
+  function startRedAlert(){
+    stopAll();
+    // periodic short beeps
+    redInterval = setInterval(()=> {
+      // a short double-beep pattern
+      beep(120, 880); // first
+      setTimeout(()=> beep(120, 660), 160); // second lower
+    }, 900);
+  }
+
+  function startEvac(){
+    stopAll();
+    ensureCtx();
+    if (!ctx) return;
+    // continuous siren: oscillator frequency modulated
+    evacOsc = ctx.createOscillator();
+    evacGain = ctx.createGain();
+    evacOsc.type = 'sine';
+    evacGain.gain.value = mute ? 0 : 0.22;
+    evacOsc.connect(evacGain);
+    evacGain.connect(ctx.destination);
+    // LFO for sweep
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.6; // speed of sweep
+    lfoGain.gain.value = 220; // sweep amplitude
+    lfo.connect(lfoGain);
+    lfoGain.connect(evacOsc.frequency);
+    evacOsc.frequency.value = 440; // base freq
+    evacOsc.start();
+    lfo.start();
+    evacOsc._lfo = lfo; // keep ref to stop later
+  }
+
+  function stopAll(){
+    if (redInterval) { clearInterval(redInterval); redInterval = null; }
+    if (evacOsc) {
+      try {
+        if (evacOsc._lfo) evacOsc._lfo.stop();
+      } catch(e){}
+      try { evacOsc.stop(); } catch(e){}
+      try { evacOsc.disconnect(); } catch(e){}
+      evacOsc = null;
+      evacGain = null;
+    }
+  }
+
+  function setMute(val){
+    mute = !!val;
+    // adjust gain if evac running
+    if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
+  }
+
+  return {
+    startRed(){ startRedAlert(); },
+    startEvac(){ startEvac(); },
+    stop(){ stopAll(); },
+    setMute,
+    isMuted(){ return mute; }
+  };
+})();
+
+/* Evac modal + dispatch + cancel logic */
+(function(){
+  const btnRed = document.getElementById('btn-red-alert');
+  const btnEvac = document.getElementById('btn-evacuate');
+  const btnCancel = document.getElementById('btn-cancel-dispatch');
+  const btnClear = document.getElementById('btn-clear-alert');
+  const commStatusEl = document.getElementById('comm-status');
+  const commBadge = document.getElementById('comms-badge');
+  const commMsg = document.getElementById('comm-msg');
+  const btnMute = document.getElementById('btn-mute');
+  const overlay = document.getElementById('alert-overlay');
+
+  const evacModal = document.getElementById('evac-modal');
+  const evacCountInput = document.getElementById('evac-count');
+  const evacCancel = document.getElementById('evac-cancel');
+  const evacConfirm = document.getElementById('evac-confirm');
+  const evacPodsEl = document.getElementById('evac-pods');
+
+  let currentAlert = 'none'; // 'none' | 'red' | 'evac'
+  let activePods = []; // {name, el, timeoutId}
+
+  function nowStamp() { return new Date().toISOString().slice(11,19); }
+
+  function pushLogLine(text){
+    if (typeof pushTelemetryLine === 'function') pushTelemetryLine(text);
+    if (errorLogEl) {
+      const d = document.createElement('div');
+      d.textContent = `${nowStamp()} — ${text}`;
+      errorLogEl.prepend(d);
+      while (errorLogEl.children.length > 20) errorLogEl.removeChild(errorLogEl.lastChild);
+    }
+  }
+
+  function updateCancelButtonState(){
+    // enable cancel if any pod is enroute
+    const anyEnroute = activePods.some(p => p.timeoutId);
+    if (btnCancel) btnCancel.disabled = !anyEnroute;
+  }
+
+  function setAlert(level) {
+    currentAlert = level;
+    document.body.classList.remove('red-alert','evac');
+
+    if (level === 'red') {
+      document.body.classList.add('red-alert');
+      if (commStatusEl) commStatusEl.textContent = 'RED ALERT';
+      if (commBadge) { commBadge.className = 'status-badge status-critical'; commBadge.textContent = 'RED'; }
+      if (commMsg) commMsg.textContent = 'Elevated threat detected — restrict non-essential operations.';
+      pushLogLine('Red alert engaged — elevated threat level');
+      SoundManager.startRed();
+    } else if (level === 'evac') {
+      document.body.classList.add('evac');
+      if (commStatusEl) commStatusEl.textContent = 'EVACUATE';
+      if (commBadge) { commBadge.className = 'status-badge status-critical'; commBadge.textContent = 'EVAC'; }
+      if (commMsg) commMsg.textContent = 'Evacuation initiated — proceed to assembly points immediately.';
+      pushLogLine('Evacuation initiated — follow emergency protocols');
+      SoundManager.startEvac();
+    } else {
+      if (commStatusEl) commStatusEl.textContent = 'Standby';
+      if (commBadge) { commBadge.className = 'status-badge status-ok'; commBadge.textContent = 'OK'; }
+      if (commMsg) commMsg.textContent = 'No active comms events';
+      pushLogLine('Alerts cleared — system normal');
+      SoundManager.stop();
+    }
+    // overlay pointer behavior: block interactions during evac to encourage follow-through
+    overlay.style.pointerEvents = (level === 'evac') ? 'auto' : 'none';
+
+    // update button states
+    if (btnEvac) btnEvac.disabled = (level === 'evac'); // prevent re-dispatch while active
+    if (btnCancel) updateCancelButtonState();
+  }
+
+  // Evac modal controls
+  function showEvacModal(){
+    evacModal.classList.remove('hidden');
+    evacCountInput.focus();
+  }
+  function hideEvacModal(){
+    evacModal.classList.add('hidden');
+  }
+
+  // Create pod names: Pod 01, Pod 02, ...
+  function makePodName(i){
+    return 'Pod ' + String(i).padStart(2,'0');
+  }
+
+  // Dispatch pods: create UI entries and simulate transit -> dock/complete
+  function dispatchPods(count){
+    activePods = [];
+    evacPodsEl.innerHTML = '';
+    const dispatchedNames = [];
+    for (let i=1;i<=count;i++){
+      const name = makePodName(i);
+      dispatchedNames.push(name);
+      const podDiv = document.createElement('div');
+      podDiv.className = 'pod enroute';
+      podDiv.id = 'pod-'+i;
+      podDiv.innerHTML = `<div>${name}</div><div class="status">EN ROUTE</div>`;
+      evacPodsEl.appendChild(podDiv);
+      // simulate arrival in random time
+      const travel = 8000 + Math.floor(Math.random()*9000); // 8-17s
+      const timeoutId = setTimeout(()=> {
+        // if already aborted or cleared, ignore
+        const podObj = activePods.find(p=>p.name===name);
+        if (!podObj) return;
+        podObj.timeoutId = null; // mark no longer enroute
+        // random chance to "fail" to dock
+        if (Math.random() < 0.06) {
+          podDiv.classList.remove('enroute'); podDiv.classList.add('failed');
+          podDiv.querySelector('.status').textContent = 'FAILED';
+          pushLogLine(`${name} failed to dock — manual recovery required`);
+        } else {
+          podDiv.classList.remove('enroute'); podDiv.classList.add('docked');
+          podDiv.querySelector('.status').textContent = 'DOCKED';
+          pushLogLine(`${name} docked at assembly point`);
+        }
+        updateCancelButtonState();
+      }, travel);
+      activePods.push({name, el: podDiv, timeoutId});
+    }
+
+    // update system state
+    setAlert('evac');
+    pushLogLine(`Escape pods dispatched: ${dispatchedNames.join(', ')}`);
+    // visually confirm to user
+    commMsg.textContent = `Dispatched ${count} escape pod${count>1?'s':''}. Monitor statuses below.`;
+    // disable evacuate button to avoid repeated dispatches while active
+    if (btnEvac) btnEvac.disabled = true;
+    // enable cancel dispatch button
+    if (btnCancel) { btnCancel.disabled = false; }
+  }
+
+  // Cancel ongoing dispatch: abort pods still en route
+  function cancelDispatch(){
+    if (!activePods || activePods.length === 0) return;
+    let aborted = [];
+    activePods.forEach(p=>{
+      if (p.timeoutId) {
+        clearTimeout(p.timeoutId);
+        p.timeoutId = null;
+        if (p.el) {
+          p.el.classList.remove('enroute');
+          p.el.classList.add('aborted');
+          const s = p.el.querySelector('.status');
+          if (s) s.textContent = 'ABORTED';
+        }
+        aborted.push(p.name);
+        pushLogLine(`${p.name} aborted in transit`);
+      }
+    });
+    if (aborted.length) {
+      commMsg.textContent = `Dispatch aborted: ${aborted.join(', ')}.`;
+      setAlert('none');
+      // stop alarm immediately
+      SoundManager.stop();
+      // re-enable evac button
+      if (btnEvac) btnEvac.disabled = false;
+      if (btnCancel) btnCancel.disabled = true;
+    }
+  }
+
+  // Button handlers
+  if (btnRed) btnRed.addEventListener('click', () => {
+    if (currentAlert === 'red') setAlert('none');
+    else setAlert('red');
+  });
+
+  if (btnEvac) btnEvac.addEventListener('click', () => {
+    showEvacModal();
+  });
+
+  if (btnCancel) btnCancel.addEventListener('click', () => {
+    if (!confirm('Cancel ongoing pod dispatch? This will abort pods still en route.')) return;
+    cancelDispatch();
+  });
+
+  if (btnClear) btnClear.addEventListener('click', () => {
+    if (!confirm('Clear active alerts and return to Standby?')) return;
+    setAlert('none');
+    // clear pod UI and re-enable evac button
+    evacPodsEl.innerHTML = '';
+    activePods = [];
+    if (btnEvac) btnEvac.disabled = false;
+    if (btnCancel) btnCancel.disabled = true;
+  });
+
+  if (evacCancel) evacCancel.addEventListener('click', ()=> hideEvacModal());
+  if (evacConfirm) evacConfirm.addEventListener('click', ()=>{
+    const n = parseInt(evacCountInput.value,10) || 0;
+    if (n < 1) { alert('Please choose at least one pod to dispatch.'); evacCountInput.focus(); return; }
+    hideEvacModal();
+    // small delay to let modal close visually
+    setTimeout(()=> dispatchPods(n), 220);
+  });
+
+  if (btnMute) {
+    btnMute.addEventListener('click', () => {
+      const newMuted = !SoundManager.isMuted();
+      SoundManager.setMute(newMuted);
+      btnMute.setAttribute('aria-pressed', String(newMuted));
+      btnMute.textContent = newMuted ? '🔇 Muted' : '🔈 Mute';
+      pushTelemetryLine && pushTelemetryLine(newMuted ? 'Alarm muted' : 'Alarm unmuted');
+    });
+  }
+
+  // Keyboard shortcut: Shift+E opens confirmation modal
+  document.addEventListener('keydown', (e)=>{
+    if (e.shiftKey && e.key.toLowerCase()==='e') {
+      showEvacModal();
+    }
+    // Shift+X cancels ongoing dispatch
+    if (e.shiftKey && e.key.toLowerCase()==='x') {
+      // only if any enroute pods exist
+      const anyEnroute = activePods.some(p=>p.timeoutId);
+      if (!anyEnroute) return;
+      if (confirm('Cancel ongoing pod dispatch (keyboard)?')) cancelDispatch();
+    }
+  });
+
+  // Initialize
+  setAlert('none');
+})();
 </script>
 </body>
 </html>
