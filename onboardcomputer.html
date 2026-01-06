@@ -33,12 +33,19 @@
     .gauge-title{font-size:13px;color:var(--muted);margin-bottom:6px}
     svg.gauge{width:160px;height:120px;overflow:visible}
     .gauge-value{font-size:22px;margin-top:6px}
+    .gauge-optimal{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* optimal status color variants (text-only) */
+.gauge-optimal.status-ok { color: #9ff0c9; font-weight:700; }
+.gauge-optimal.status-warn { color: #ffea99; font-weight:700; }
+.gauge-optimal.status-critical { color: #ffd6d6; font-weight:700; }
 
     /* mini gauges for life support */
     .mini-gauges { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
     .mini-gauge-card { width:120px; background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); display:flex;flex-direction:column; align-items:center; gap:6px }
     svg.mini-gauge{width:96px;height:66px}
     .mini-gauge-value{font-size:14px;color:var(--muted)}
+    .mini-gauge-opt{font-size:11px;color:var(--muted);margin-top:4px}
 
     .panels{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
     .panel{background:var(--panel);padding:18px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);flex:1;min-width:0;overflow:hidden;box-sizing:border-box}
@@ -209,16 +216,17 @@
   <div class="left">
     <!-- Top row: four system gauges (Power + Reactor temp + Fuel level + Network latency) -->
     <section class="gauges" id="gauges">
-      <div class="gauge-card">
+      <div class="gauge-card" id="pw-card">
         <div class="gauge-title">Power</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
           <path id="pw-arc" d="" stroke="#ffcb6b" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="pw-val">-- %</div>
+        <div id="pw-opt" class="gauge-optimal">Optimal: 80–95%</div>
       </div>
 
-      <div class="gauge-card">
+      <div class="gauge-card" id="reactor-card">
         <div class="gauge-title">Reactor Core</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
           <defs>
@@ -231,22 +239,27 @@
           <path id="reactor-arc" d="" stroke="url(#reactor-grad)" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="reactor-val">-- °C</div>
+        <div id="reactor-opt" class="gauge-optimal">Optimal: 420–520 °C</div>
       </div>
 
-      <div class="gauge-card">
+      <div class="gauge-card" id="fuel-card">
         <div class="gauge-title">Fuel Level</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
+          <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
           <path id="fuel-arc" d="" stroke="#9ad65b" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="fuel-val">-- %</div>
+        <div id="fuel-opt" class="gauge-optimal">Optimal: &gt; 60%</div>
       </div>
 
-      <div class="gauge-card">
+      <div class="gauge-card" id="net-card">
         <div class="gauge-title">Network</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true">
+          <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
           <path id="net-arc" d="" stroke="#66a0ff" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="net-val">-- ms</div>
+        <div id="net-opt" class="gauge-optimal">Optimal: &lt; 60 ms</div>
       </div>
     </section>
 
@@ -270,6 +283,7 @@
                 </defs>
               </svg>
               <div class="mini-gauge-value" id="o2-mini-val">-- %</div>
+              <div id="o2-opt" class="mini-gauge-opt">Optimal: 78–82%</div>
             </div>
 
             <div class="mini-gauge-card" aria-hidden="true">
@@ -279,6 +293,7 @@
                 <path id="p-arc" d="" stroke="#66a0ff" stroke-width="6" fill="none" stroke-linecap="round"></path>
               </svg>
               <div class="mini-gauge-value" id="p-mini-val">-- kPa</div>
+              <div id="p-opt" class="mini-gauge-opt">Optimal: 100–103 kPa</div>
             </div>
           </div>
 
@@ -514,10 +529,12 @@ function polarToCartesian(cx, cy, r, angleInDegrees) {
   return { x: cx + (r * Math.cos(angleInRadians)), y: cy + (r * Math.sin(angleInRadians)) };
 }
 const arcStart = -135, arcEnd = 135;
-function setGauge(pathEl, percent) {
+
+/* setGauge now accepts optional center and radius to support mini gauges */
+function setGauge(pathEl, percent, cx = 50, cy = 50, r = 34) {
   percent = Math.max(0, Math.min(1, percent));
   const angle = arcStart + (arcEnd - arcStart) * percent;
-  const d = describeArc(50,50,34,arcStart, angle);
+  const d = describeArc(cx, cy, r, arcStart, angle);
   if (pathEl) pathEl.setAttribute('d', d);
 }
 
@@ -545,6 +562,66 @@ const lsStatusEl = document.getElementById('ls-status'); // optional
 const commStatus = document.getElementById('comm-status');
 
 function cToF(c){ return (c * 9/5) + 32; }
+
+/* classification helper for optimal/warn/critical */
+function classifyRange(value, optLow, optHigh, warnLow, warnHigh) {
+  if (value >= optLow && value <= optHigh) return 'ok';
+  if (value >= warnLow && value <= warnHigh) return 'warn';
+  return 'critical';
+}
+
+/* classification for one-sided thresholds (min only) */
+function classifyMin(value, optMin, warnMin) {
+  if (value >= optMin) return 'ok';
+  if (value >= warnMin) return 'warn';
+  return 'critical';
+}
+
+/* classification for one-sided max (like latency) */
+function classifyMax(value, optMax, warnMax) {
+  if (value <= optMax) return 'ok';
+  if (value <= warnMax) return 'warn';
+  return 'critical';
+}
+
+/* update the small "Optimal" label appearances */
+function updateOptimalIndicators() {
+  // Power: optimal 80-95, warn 70-99
+  const pw = telemetry.power;
+  const pwState = classifyRange(pw, 80, 95, 70, 99);
+  const pwOpt = document.getElementById('pw-opt');
+  if (pwOpt) { pwOpt.className = 'gauge-optimal ' + (pwState === 'ok' ? 'status-ok' : pwState === 'warn' ? 'status-warn' : 'status-critical'); }
+
+  // Reactor: optimal 420-520, warn 380-560
+  const rt = telemetry.reactorTemp;
+  const rtState = classifyRange(rt, 420, 520, 380, 560);
+  const rtOpt = document.getElementById('reactor-opt');
+  if (rtOpt) rtOpt.className = 'gauge-optimal ' + (rtState === 'ok' ? 'status-ok' : rtState === 'warn' ? 'status-warn' : 'status-critical');
+
+  // Fuel: optimal >60, warn 40-60
+  const fl = telemetry.fuelLevel;
+  const flState = classifyMin(fl, 60, 40);
+  const flOpt = document.getElementById('fuel-opt');
+  if (flOpt) flOpt.className = 'gauge-optimal ' + (flState === 'ok' ? 'status-ok' : flState === 'warn' ? 'status-warn' : 'status-critical');
+
+  // Network: optimal <60, warn 60-150
+  const nl = telemetry.netLatency;
+  const nlState = classifyMax(nl, 60, 150);
+  const nlOpt = document.getElementById('net-opt');
+  if (nlOpt) nlOpt.className = 'gauge-optimal ' + (nlState === 'ok' ? 'status-ok' : nlState === 'warn' ? 'status-warn' : 'status-critical');
+
+  // O2: optimal 78-82, warn 74-78 and 82-85 -> implement as two-sided with warn bounds
+  const o2 = telemetry.o2;
+  const o2State = classifyRange(o2, 78, 82, 74, 85);
+  const o2Opt = document.getElementById('o2-opt');
+  if (o2Opt) o2Opt.className = 'mini-gauge-opt ' + (o2State === 'ok' ? 'status-ok' : o2State === 'warn' ? 'status-warn' : 'status-critical');
+
+  // Pressure: optimal 100-103, warn 97-106
+  const p = telemetry.pressure;
+  const pState = classifyRange(p, 100, 103, 97, 106);
+  const pOpt = document.getElementById('p-opt');
+  if (pOpt) pOpt.className = 'mini-gauge-opt ' + (pState === 'ok' ? 'status-ok' : pState === 'warn' ? 'status-warn' : 'status-critical');
+}
 
 function simulateStep() {
   telemetry.o2 += (Math.random()-0.5)*0.35;
@@ -576,19 +653,19 @@ function simulateStep() {
   telemetry.netLatency = Math.max(2, Math.min(800, telemetry.netLatency));
 
   // update gauges
-  // life support mini gauges
-  setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60));
-  setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90));
+  // life support mini gauges (use mini gauge center & radius)
+  setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60), 40, 40, 24);
+  setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90), 40, 40, 24);
 
-  // top-row gauges
-  setGauge(document.getElementById('pw-arc'), telemetry.power/100);
+  // top-row gauges (default center 50,50,34)
+  setGauge(document.getElementById('pw-arc'), telemetry.power/100, 50, 50, 34);
   // reactor temp: map 250..900C to 0..1
-  setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250));
+  setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250), 50, 50, 34);
   // fuel level direct
-  setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100);
+  setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100, 50, 50, 34);
   // network latency: map 0..300ms where 300ms is full arc (tweakable)
   const netPercent = Math.max(0, Math.min(1, telemetry.netLatency / 300));
-  setGauge(document.getElementById('net-arc'), netPercent);
+  setGauge(document.getElementById('net-arc'), netPercent, 50, 50, 34);
 
   // update values text
   const o2Val = document.getElementById('o2-mini-val');
@@ -617,6 +694,9 @@ function simulateStep() {
   if (effEl) effEl.textContent = Math.round(telemetry.scrubberEfficiency) + '%';
   if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%';
   if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h';
+
+  // update optimal label statuses
+  updateOptimalIndicators();
 
   const now = new Date();
   const ts = now.toISOString().slice(11,23);
@@ -769,12 +849,12 @@ document.addEventListener('keydown', (e)=>{
 
 /* initial draw and start */
 // initial mini/major gauges
-setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60));
-setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90));
-setGauge(document.getElementById('pw-arc'), telemetry.power/100);
-setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250));
-setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100);
-setGauge(document.getElementById('net-arc'), Math.max(0, Math.min(1, telemetry.netLatency / 300)));
+setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60), 40,40,24);
+setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90), 40,40,24);
+setGauge(document.getElementById('pw-arc'), telemetry.power/100, 50,50,34);
+setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250), 50,50,34);
+setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100, 50,50,34);
+setGauge(document.getElementById('net-arc'), Math.max(0, Math.min(1, telemetry.netLatency / 300)), 50,50,34);
 
 simulateStep();
 setInterval(simulateStep, 1100);
@@ -783,7 +863,6 @@ setInterval(simulateStep, 1100);
 for (let i=0;i<2;i++) setTimeout(pushVagueError, 300*i+600);
 
 /* --- ALERT / SOUND MANAGER (original style) --- */
-/* Restored the earlier audio: short double-beep for red alert and LFO-modulated siren for evac (WebAudio). */
 const SoundManager = (function(){
   let ctx = null;
   let redInterval = null;
@@ -814,11 +893,9 @@ const SoundManager = (function(){
 
   function startRedAlert(){
     stopAll();
-    // periodic short beeps (double-beep)
     redInterval = setInterval(()=> {
-      // a short double-beep pattern
-      beep(120, 880); // first
-      setTimeout(()=> beep(120, 660), 160); // second lower
+      beep(120, 880);
+      setTimeout(()=> beep(120, 660), 160);
     }, 900);
   }
 
@@ -826,33 +903,29 @@ const SoundManager = (function(){
     stopAll();
     ensureCtx();
     if (!ctx) return;
-    // continuous siren: oscillator frequency modulated
     evacOsc = ctx.createOscillator();
     evacGain = ctx.createGain();
     evacOsc.type = 'sine';
     evacGain.gain.value = mute ? 0 : 0.22;
     evacOsc.connect(evacGain);
     evacGain.connect(ctx.destination);
-    // LFO for sweep
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
     lfo.type = 'sine';
-    lfo.frequency.value = 0.6; // speed of sweep
-    lfoGain.gain.value = 220; // sweep amplitude
+    lfo.frequency.value = 0.6;
+    lfoGain.gain.value = 220;
     lfo.connect(lfoGain);
     lfoGain.connect(evacOsc.frequency);
-    evacOsc.frequency.value = 440; // base freq
+    evacOsc.frequency.value = 440;
     evacOsc.start();
     lfo.start();
-    evacOsc._lfo = lfo; // keep ref to stop later
+    evacOsc._lfo = lfo;
   }
 
   function stopAll(){
     if (redInterval) { clearInterval(redInterval); redInterval = null; }
     if (evacOsc) {
-      try {
-        if (evacOsc._lfo) evacOsc._lfo.stop();
-      } catch(e){}
+      try { if (evacOsc._lfo) evacOsc._lfo.stop(); } catch(e){}
       try { evacOsc.stop(); } catch(e){}
       try { evacOsc.disconnect(); } catch(e){}
       evacOsc = null;
@@ -862,7 +935,6 @@ const SoundManager = (function(){
 
   function setMute(val){
     mute = !!val;
-    // adjust gain if evac running
     if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
   }
 
@@ -875,7 +947,7 @@ const SoundManager = (function(){
   };
 })();
 
-/* Evac modal + dispatch + cancel logic (cancel now force-stops alarm & visual) */
+/* Evac modal + dispatch + cancel logic */
 (function(){
   const btnRed = document.getElementById('btn-red-alert');
   const btnEvac = document.getElementById('btn-evacuate');
@@ -884,7 +956,7 @@ const SoundManager = (function(){
   const commStatusEl = document.getElementById('comm-status');
   const commBadge = document.getElementById('comms-badge');
   const commMsg = document.getElementById('comm-msg');
-  const btnMute = document.getElementById('btn-mute'); 
+  const btnMute = document.getElementById('btn-mute');
   const overlay = document.getElementById('alert-overlay');
 
   const evacModal = document.getElementById('evac-modal');
@@ -909,7 +981,6 @@ const SoundManager = (function(){
   }
 
   function updateCancelButtonState(){
-    // enable cancel if any pod is enroute
     const anyEnroute = activePods.some(p => p.timeoutId);
     if (btnCancel) btnCancel.disabled = !anyEnroute;
   }
@@ -939,34 +1010,18 @@ const SoundManager = (function(){
       pushLogLine('Alerts cleared — system normal');
       SoundManager.stop();
     }
-    // overlay pointer behavior: block interactions during evac to encourage follow-through
     overlay.style.pointerEvents = (level === 'evac') ? 'auto' : 'none';
-
-    // update button states
-    if (btnEvac) btnEvac.disabled = (level === 'evac'); // prevent re-dispatch while active
+    if (btnEvac) btnEvac.disabled = (level === 'evac');
     if (btnCancel) updateCancelButtonState();
   }
 
-  // Evac modal controls
-  function showEvacModal(){
-    evacModal.classList.remove('hidden');
-    evacCountInput.focus();
-  }
-  function hideEvacModal(){
-    evacModal.classList.add('hidden');
-  }
+  function showEvacModal(){ evacModal.classList.remove('hidden'); evacCountInput.focus(); }
+  function hideEvacModal(){ evacModal.classList.add('hidden'); }
 
-  // Create pod names: Pod 01, Pod 02, ...
-  function makePodName(i){
-    return 'Pod ' + String(i).padStart(2,'0');
-  }
+  function makePodName(i){ return 'Pod ' + String(i).padStart(2,'0'); }
 
-  // Dispatch pods: create UI entries and simulate transit -> dock/complete
   function dispatchPods(count){
-    // clear previous pod list
-    activePods.forEach(p => {
-      if (p.timeoutId) { clearTimeout(p.timeoutId); }
-    });
+    activePods.forEach(p => { if (p.timeoutId) clearTimeout(p.timeoutId); });
     activePods = [];
     evacPodsEl.innerHTML = '';
     const dispatchedNames = [];
@@ -978,14 +1033,11 @@ const SoundManager = (function(){
       podDiv.id = 'pod-'+i;
       podDiv.innerHTML = `<div>${name}</div><div class="status">EN ROUTE</div>`;
       evacPodsEl.appendChild(podDiv);
-      // simulate arrival in random time
-      const travel = 8000 + Math.floor(Math.random()*9000); // 8-17s
+      const travel = 8000 + Math.floor(Math.random()*9000);
       const timeoutId = setTimeout(()=> {
-        // if already aborted or cleared, ignore
         const podObj = activePods.find(p=>p.name===name);
         if (!podObj) return;
-        podObj.timeoutId = null; // mark no longer enroute
-        // random chance to "fail" to dock
+        podObj.timeoutId = null;
         if (Math.random() < 0.06) {
           podDiv.classList.remove('enroute'); podDiv.classList.add('failed');
           podDiv.querySelector('.status').textContent = 'FAILED';
@@ -999,27 +1051,15 @@ const SoundManager = (function(){
       }, travel);
       activePods.push({name, el: podDiv, timeoutId});
     }
-
-    // update system state
     setAlert('evac');
     pushLogLine(`Escape pods dispatched: ${dispatchedNames.join(', ')}`);
-    // visually confirm to user
     commMsg.textContent = `Dispatched ${count} escape pod${count>1?'s':''}. Monitor statuses below.`;
-    // disable evacuate button to avoid repeated dispatches while active
     if (btnEvac) btnEvac.disabled = true;
-    // enable cancel dispatch button
-    if (btnCancel) { btnCancel.disabled = false; }
+    if (btnCancel) btnCancel.disabled = false;
   }
 
-  // Cancel ongoing dispatch: abort pods still en route
   function cancelDispatch(){
-    if (!activePods || activePods.length === 0) {
-      // still ensure alerts & sound are cleared
-      setAlert('none');
-      SoundManager.stop();
-      if (btnCancel) btnCancel.disabled = true;
-      return;
-    }
+    if (!activePods || activePods.length === 0) { setAlert('none'); SoundManager.stop(); if (btnCancel) btnCancel.disabled = true; return; }
     let aborted = [];
     activePods.forEach(p=>{
       if (p.timeoutId) {
@@ -1035,39 +1075,20 @@ const SoundManager = (function(){
         pushLogLine(`${p.name} aborted in transit`);
       }
     });
-    if (aborted.length) {
-      commMsg.textContent = `Dispatch aborted: ${aborted.join(', ')}.`;
-    } else {
-      commMsg.textContent = 'No en-route pods to abort.';
-    }
-    // stop alarm & visuals
+    if (aborted.length) commMsg.textContent = `Dispatch aborted: ${aborted.join(', ')}.`;
+    else commMsg.textContent = 'No en-route pods to abort.';
     setAlert('none');
     SoundManager.stop();
-    // clear activePods timeouts and keep UI showing aborted/docked states
     activePods.forEach(p=>{ if (p.timeoutId) { clearTimeout(p.timeoutId); p.timeoutId = null; } });
-    // re-enable evac button
     if (btnEvac) btnEvac.disabled = false;
     if (btnCancel) btnCancel.disabled = true;
   }
 
-  // Button handlers
-  if (btnRed) btnRed.addEventListener('click', () => {
-    if (currentAlert === 'red') setAlert('none');
-    else setAlert('red');
-  });
-
-  if (btnEvac) btnEvac.addEventListener('click', () => {
-    showEvacModal();
-  });
-
-  if (btnCancel) btnCancel.addEventListener('click', () => {
-    if (!confirm('Cancel ongoing pod dispatch? This will abort pods still en route and stop alarms.')) return;
-    cancelDispatch();
-  });
-
+  if (btnRed) btnRed.addEventListener('click', () => { if (currentAlert === 'red') setAlert('none'); else setAlert('red'); });
+  if (btnEvac) btnEvac.addEventListener('click', () => { showEvacModal(); });
+  if (btnCancel) btnCancel.addEventListener('click', () => { if (!confirm('Cancel ongoing pod dispatch? This will abort pods still en route and stop alarms.')) return; cancelDispatch(); });
   if (btnClear) btnClear.addEventListener('click', () => {
     if (!confirm('Clear active alerts and return to Standby?')) return;
-    // clear pod UI and re-enable evac button
     evacPodsEl.innerHTML = '';
     activePods.forEach(p => { if (p.timeoutId) { clearTimeout(p.timeoutId); }});
     activePods = [];
@@ -1081,7 +1102,6 @@ const SoundManager = (function(){
     const n = parseInt(evacCountInput.value,10) || 0;
     if (n < 1) { alert('Please choose at least one pod to dispatch.'); evacCountInput.focus(); return; }
     hideEvacModal();
-    // small delay to let modal close visually
     setTimeout(()=> dispatchPods(n), 220);
   });
 
@@ -1095,24 +1115,15 @@ const SoundManager = (function(){
     });
   }
 
-  // Keyboard shortcut: Shift+E opens confirmation modal
   document.addEventListener('keydown', (e)=>{
-    if (e.shiftKey && e.key.toLowerCase()==='e') {
-      showEvacModal();
-    }
-    // Shift+X cancels ongoing dispatch
+    if (e.shiftKey && e.key.toLowerCase()==='e') { showEvacModal(); }
     if (e.shiftKey && e.key.toLowerCase()==='x') {
       const anyEnroute = activePods.some(p=>p.timeoutId);
-      if (!anyEnroute) {
-        // still stop alarms if any (but only if user wants)
-        if (confirm('No pods en route. Stop alarms and clear alerts?')) cancelDispatch();
-        return;
-      }
+      if (!anyEnroute) { if (confirm('No pods en route. Stop alarms and clear alerts?')) cancelDispatch(); return; }
       if (confirm('Cancel ongoing pod dispatch (keyboard)?')) cancelDispatch();
     }
   });
 
-  // Initialize
   setAlert('none');
 })();
 </script>
