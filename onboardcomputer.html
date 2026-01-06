@@ -702,10 +702,13 @@ setInterval(simulateStep, 1100);
 /* small startup noise */
 for (let i=0;i<2;i++) setTimeout(pushVagueError, 300*i+600);
 
-/* --- ALERT / SOUND MANAGER (updated alarm beep patterns) --- */
+/* --- ALERT / SOUND MANAGER (original style) --- */
+/* Restored the earlier audio: short double-beep for red alert and LFO-modulated siren for evac (WebAudio). */
 const SoundManager = (function(){
   let ctx = null;
-  let intervalId = null;
+  let redInterval = null;
+  let evacOsc = null;
+  let evacGain = null;
   let mute = false;
 
   function ensureCtx(){
@@ -715,7 +718,7 @@ const SoundManager = (function(){
     }
   }
 
-  function beep(duration=120, freq=1000, type='square', when=0, gain=0.2){
+  function beep(duration=150, freq=880, type='sine', when=0, gain=0.18){
     ensureCtx();
     if (!ctx) return;
     const now = ctx.currentTime + when/1000;
@@ -723,7 +726,7 @@ const SoundManager = (function(){
     const g = ctx.createGain();
     o.type = type;
     o.frequency.setValueAtTime(freq, now);
-    g.gain.setValueAtTime((mute ? 0 : gain), now);
+    g.gain.setValueAtTime(gain * (mute ? 0 : 1), now);
     o.connect(g); g.connect(ctx.destination);
     o.start(now);
     o.stop(now + duration/1000);
@@ -731,39 +734,64 @@ const SoundManager = (function(){
 
   function startRedAlert(){
     stopAll();
-    // repeating short staccato beeps (single/double)
-    intervalId = setInterval(()=>{
-      beep(90, 1200, 'square'); // sharp beep
-      setTimeout(()=> beep(90, 900, 'square'), 140);
-    }, 700);
+    // periodic short beeps (double-beep)
+    redInterval = setInterval(()=> {
+      // a short double-beep pattern
+      beep(120, 880); // first
+      setTimeout(()=> beep(120, 660), 160); // second lower
+    }, 900);
   }
 
   function startEvac(){
     stopAll();
-    // stronger multi-beep cluster repeated
-    intervalId = setInterval(()=>{
-      beep(140, 1600, 'square');
-      setTimeout(()=> beep(120, 1300, 'square'), 160);
-      setTimeout(()=> beep(120, 1000, 'square'), 320);
-    }, 900);
+    ensureCtx();
+    if (!ctx) return;
+    // continuous siren: oscillator frequency modulated
+    evacOsc = ctx.createOscillator();
+    evacGain = ctx.createGain();
+    evacOsc.type = 'sine';
+    evacGain.gain.value = mute ? 0 : 0.22;
+    evacOsc.connect(evacGain);
+    evacGain.connect(ctx.destination);
+    // LFO for sweep
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.6; // speed of sweep
+    lfoGain.gain.value = 220; // sweep amplitude
+    lfo.connect(lfoGain);
+    lfoGain.connect(evacOsc.frequency);
+    evacOsc.frequency.value = 440; // base freq
+    evacOsc.start();
+    lfo.start();
+    evacOsc._lfo = lfo; // keep ref to stop later
   }
 
   function stopAll(){
-    if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    if (redInterval) { clearInterval(redInterval); redInterval = null; }
+    if (evacOsc) {
+      try {
+        if (evacOsc._lfo) evacOsc._lfo.stop();
+      } catch(e){}
+      try { evacOsc.stop(); } catch(e){}
+      try { evacOsc.disconnect(); } catch(e){}
+      evacOsc = null;
+      evacGain = null;
+    }
   }
 
   function setMute(val){
     mute = !!val;
+    // adjust gain if evac running
+    if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
   }
-
-  function isMuted(){ return mute; }
 
   return {
     startRed(){ startRedAlert(); },
     startEvac(){ startEvac(); },
     stop(){ stopAll(); },
     setMute,
-    isMuted
+    isMuted(){ return mute; }
   };
 })();
 
