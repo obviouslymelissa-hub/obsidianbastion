@@ -236,9 +236,25 @@
       display:grid;
       grid-template-columns: repeat(2, minmax(0,1fr));
       gap:8px 12px;
+      align-items:start;
     }
-    .core-list li { display:flex; gap:8px; align-items:flex-start; margin:0; }
-    .core-list strong { color:var(--accent); min-width:0; display:inline-block; font-weight:700; }
+    /* make each list row a flex row with a fixed-width label and a flexible description so text wraps cleanly */
+    .core-list li { display:flex; gap:8px; align-items:flex-start; margin:0; min-width:0; }
+    .core-list strong {
+      color:var(--accent);
+      min-width:0;
+      display:inline-block;
+      font-weight:700;
+      flex: 0 0 150px; /* fixed-ish label width so descriptions line up */
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .core-list .core-desc {
+      color:var(--text-muted);
+      flex: 1 1 auto;
+      min-width:0; /* allow the description to shrink/wrap within the grid column */
+    }
 
     /* area to show chip info */
     .detail-info {
@@ -488,13 +504,12 @@
 
           <h4 style="margin:12px 0 6px 0;color:var(--text-main)">Core assets</h4>
           <ul class="core-list" aria-label="Core assets">
-            <li><strong>Mission:</strong> Exploration, Navigation & Tactical Relay</li>
-            <li><strong>Mainframe:</strong> Telemetry & comms</li>
-            <li><strong>Engineering:</strong> Modular repair hub</li>
-            <li><strong>Computer:</strong> Continuous system monitoring</li>
-            <li><strong>Defense:</strong> Lasers & shields</li>
-            <li><strong>Crew Quarters:</strong> Fortified for Comfort & Security
-</li>
+            <li><strong>Mission:</strong> <span class="core-desc">Exploration, Navigation & Tactical Relay</span></li>
+            <li><strong>Mainframe:</strong> <span class="core-desc">Telemetry & comms</span></li>
+            <li><strong>Engineering:</strong> <span class="core-desc">Modular repair hub</span></li>
+            <li><strong>Computer:</strong> <span class="core-desc">Continuous system monitoring</span></li>
+            <li><strong>Defense:</strong> <span class="core-desc">Lasers & shields</span></li>
+            <li><strong>Crew Quarters:</strong> <span class="core-desc">Fortified for Comfort & Security</span></li>
           </ul>
 
           <div id="detailInfo" class="detail-info" aria-live="polite"></div>
