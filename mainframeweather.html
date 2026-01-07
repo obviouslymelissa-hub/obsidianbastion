@@ -238,10 +238,8 @@
     phenomena: qs('#phenomena'),
     location: qs('#location'),
     diagnostics: qs('#diagnostics'),
-    json: qs('#json'),
     shuffle: qs('#shuffle'),
     earthToggle: qs('#earthToggle'),
-    copyJson: qs('#copyJson'),
     unitToggle: qs('#unitToggle'),
     findHabitable: qs('#findHabitable'),
     orbitSvg: qs('#orbitSvg'),
@@ -252,7 +250,6 @@
     gaugeContainer: qs('#gaugeContainer'),
     gaugeText: qs('#gaugeText'),
     funfacts: qs('#funfacts'),
-    shuffle: qs('#shuffle'),
     saveFavorite: qs('#saveFavorite'),
     saveNote: qs('#saveNote'),
     planetNameInput: qs('#planetNameInput'),
@@ -590,7 +587,8 @@
     label.setAttribute('y', py + 4);
     label.setAttribute('fill', '#bfe6ff');
     label.setAttribute('font-size', '12');
-    label.textContent = el.planetName.textContent;
+    // Use the displayed UI name so label always matches the main section
+    label.textContent = el.planetName.textContent || planet.planetCode;
     svg.appendChild(label);
   }
 
@@ -660,21 +658,25 @@
   }
 
   // --- Thumbnail generation ---
+  // create a compact canvas thumbnail (data URL)
   function generateThumbnail(dataset, size = 300){
     if(!dataset) return null;
     const star = dataset.star;
     const planet = dataset.planet;
+    // offscreen canvas
     const cvs = document.createElement('canvas');
     cvs.width = size;
     cvs.height = size;
     const ctx = cvs.getContext('2d');
 
+    // background gradient
     const g = ctx.createLinearGradient(0,0,0,size);
     g.addColorStop(0, '#071025');
     g.addColorStop(1, '#021021');
     ctx.fillStyle = g;
     ctx.fillRect(0,0,size,size);
 
+    // star (center-left)
     const cx = size * 0.35;
     const cy = size * 0.45;
     ctx.beginPath();
@@ -682,20 +684,24 @@
     ctx.arc(cx, cy, Math.max(6, size*0.04), 0, Math.PI*2);
     ctx.fill();
 
+    // orbit ellipse
     const r = size * (0.25 + Math.min(planet.orbitalAU / 5, 0.6) * 0.35);
     ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4,6]);
     ctx.beginPath();
-    ctx.ellipse(cx, cy, r, r*0.60, 0, 0, Math.PI*2);
+    ctx.ellipse(cx, cy, r, r*0.6, 0, 0, Math.PI*2);
     ctx.stroke();
     ctx.setLineDash([]);
 
+    // planet position (angle from index)
     const angle = (planet.index/12) * Math.PI*2;
     const px = cx + r*Math.cos(angle);
     const py = cy + r*0.6*Math.sin(angle);
+    // planet color
     const pColor = planet.type.includes('Gas') ? '#85c1ff' : '#6ee7b7';
     const pSize = Math.max(6, Math.min(40, planet.radiusEarth * 6));
+    // glow for gas giants
     if(planet.type.includes('Gas')){
       const rad = pSize * 1.8;
       const lg = ctx.createRadialGradient(px,py,0,px,py,rad);
@@ -711,11 +717,14 @@
     ctx.arc(px,py,pSize,0,Math.PI*2);
     ctx.fill();
 
+    // use the displayed UI name (authoritative)
+    const displayName = el.planetName.textContent || planet.planetCode;
     ctx.fillStyle = 'rgba(191,230,255,0.9)';
     ctx.font = `${Math.max(10, size*0.04)}px Inter, sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText((document.querySelector('#planetName').textContent || planet.planetCode), Math.max(px + pSize + 6, 12), Math.min(py + 6, size - 12));
+    ctx.fillText(displayName, Math.max(px + pSize + 6, 12), Math.min(py + 6, size - 12));
 
+    // bottom info bar
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.fillRect(0, size - 48, size, 48);
     ctx.fillStyle = '#bfe6ff';
@@ -724,6 +733,7 @@
     const tempString = displayUnit === 'F' ? `${planet.tempF}°F` : `${planet.tempC}°C`;
     ctx.fillText(`${planet.type} • ${tempString} • ${planet.habitability.habitable ? 'LIVABLE' : 'UNSUITABLE'}`, size/2, size - 20);
 
+    // result
     return cvs.toDataURL('image/png');
   }
 
@@ -737,21 +747,24 @@
     }
     const a = document.createElement('a');
     a.href = lastThumbnailDataUrl;
-    const name = (el.planetNameInput.value.trim() || (lastDataset && lastDataset.planet.planetCode) || 'planet').replace(/\s+/g,'_');
+    const name = (el.planetName.textContent.trim() || (lastDataset && lastDataset.planet.planetCode) || 'planet').replace(/\s+/g,'_');
     a.download = `${name}_thumbnail.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
   }
 
+  // Save favorite includes thumbnail and uses displayed name
   function saveFavorite(){
     if(!lastDataset) return;
+    // ensure we have a thumbnail
     if(!lastThumbnailDataUrl){
       lastThumbnailDataUrl = generateThumbnail(lastDataset, 300);
     }
+    const displayName = (el.planetName.textContent || lastDataset.planet.planetCode || '').trim();
     const entry = {
       id: `${lastDataset.planet.planetCode}-${Date.now()}`,
-      name: el.planetNameInput.value.trim() || lastDataset.planet.planetCode,
+      name: displayName || (el.planetNameInput.value.trim() || lastDataset.planet.planetCode),
       created: new Date().toISOString(),
       star: lastDataset.star,
       planet: lastDataset.planet,
@@ -777,7 +790,10 @@
       d.appendChild(img);
       d.title = `${item.name}\n${new Date(item.created).toLocaleString()}`;
       d.addEventListener('click', ()=>{
+        // clicking thumbnail loads that planet into the UI
         render({star: item.star, planet: item.planet});
+        // also set the planetNameInput to the saved display name for clarity
+        el.planetNameInput.value = item.name;
       });
       el.thumbGrid.appendChild(d);
     });
@@ -809,7 +825,6 @@
     // Disable controls while searching
     el.shuffle.disabled = true;
     el.findHabitable.disabled = true;
-    el.copyJson?.disabled = true;
     el.unitToggle.disabled = true;
     el.earthToggle.disabled = true;
     el.generateThumb.disabled = true;
@@ -833,7 +848,6 @@
           // restore toggles & controls
           el.shuffle.disabled = false;
           el.findHabitable.disabled = false;
-          el.copyJson?.disabled = false;
           el.unitToggle.disabled = false;
           el.earthToggle.disabled = false;
           el.generateThumb.disabled = false;
@@ -856,7 +870,6 @@
     // restore toggles & controls
     el.shuffle.disabled = false;
     el.findHabitable.disabled = false;
-    el.copyJson?.disabled = false;
     el.unitToggle.disabled = false;
     el.earthToggle.disabled = false;
     el.generateThumb.disabled = false;
