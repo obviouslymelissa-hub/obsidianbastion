@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mainframe Health — Obsidian Bastian</title>
+  <title>System Health — Obsidian Bastian</title>
 
   <!-- Inter is optional; if you prefer a local font, remove the link -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
@@ -21,6 +21,7 @@
       --accent:#66a0ff;
       --accent-2:#78e08f;
       --danger:#ff7b7b;
+      --warn:#ffb86b;
       --glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
       --radius:12px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", monospace;
@@ -149,12 +150,29 @@
     .note{font-size:13px;color:var(--muted)}
     .small{font-size:12px;color:var(--muted)}
     .badge{font-size:12px;padding:6px;border-radius:8px;background:rgba(0,0,0,0.2)}
+
+    /* incident log styles */
+    .incident-log { display:flex; flex-direction:column; gap:10px; }
+    .incident { display:flex; gap:12px; align-items:flex-start; padding:10px; border-radius:10px; background:rgba(255,255,255,0.012); border:1px solid rgba(255,255,255,0.02); }
+    .incident .meta { width:160px; font-size:12px; color:var(--muted); }
+    .incident .meta .time { font-family:var(--mono); color:#bfe7ff; display:block; margin-bottom:6px; }
+    .incident .main { flex:1; }
+    .incident .title { font-weight:600; margin:0 0 6px 0; font-size:13px; }
+    .incident .desc { font-size:13px; color:var(--muted); margin:0 0 8px 0; }
+    .pill { display:inline-block; padding:6px 8px; border-radius:999px; font-size:12px; font-weight:600; color:#021219; }
+    .sev-critical { background:linear-gradient(90deg,var(--danger),#ff9e9e); }
+    .sev-high { background:linear-gradient(90deg,var(--warn),#ffd39a); color:#021219; }
+    .sev-ok { background:linear-gradient(90deg,var(--accent-2),#aaf7c8); color:#021219; }
+    .incident .actions { display:flex; gap:8px; margin-top:6px; }
+    .muted-link { color:var(--accent); text-decoration:none; font-size:13px; }
+    .small-muted { font-size:12px; color:var(--muted); }
+    .resolved { opacity:0.6; text-decoration:line-through; }
   </style>
 </head>
 <body>
   <header>
     <div class="title">
-      <h1>Mainframe Health</h1>
+      <h1>System Health</h1>
       <div class="muted">system observability dashboard — CPU, I/O, latency & contention</div>
     </div>
 
@@ -168,8 +186,6 @@
         <button data-range="24h">24h</button>
       </div>
 
-      <!-- mode toggle removed as requested -->
-
       <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
     </div>
   </header>
@@ -182,7 +198,7 @@
         <div class="stat" title="Current CPU utilization">
           <div>
             <div class="label">CPU Utilization</div>
-            <div class="small">avg across LPARs</div>
+            <div class="small">avg across hosts</div>
           </div>
           <div class="value" id="cpuNow">—%</div>
         </div>
@@ -206,12 +222,20 @@
         <div style="margin-top:10px" class="note">Top contributors, recent incidents, and quick links live here.</div>
       </div>
 
-      <!-- Quick Trends removed as requested -->
+      <div class="card" aria-labelledby="incTitle">
+        <h3 id="incTitle" style="margin:0 0 8px 0;font-size:13px">Incident Log</h3>
+        <p class="small">Recent incidents, their current status, severity and owner. Use this as a lightweight timeline for responders.</p>
 
-      <div class="card">
-        <h3 style="margin:0 0 8px 0;font-size:13px">Notes</h3>
-        <p class="small">Planned features: annotations for service-level impact, heatmap of contention, historical baselining, and live alerts.</p>
-        <p class="small"><a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" style="color:var(--accent)">← Back to Command Hub</a></p>
+        <div id="incidentLog" class="incident-log" aria-live="polite">
+          <!-- incidents will be injected here -->
+        </div>
+
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button id="addSample" title="Add a sample incident">Add sample incident</button>
+          <button id="clearResolved" title="Remove resolved incidents">Clear resolved</button>
+        </div>
+
+        <p class="small" style="margin-top:8px"><a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" style="color:var(--accent)">← Back to Command Hub</a></p>
       </div>
     </div>
 
@@ -243,17 +267,17 @@
       </div>
 
       <footer class="card small">
-        System message: "All hands calm — core systems are humming. If they weren't, you'd be seeing red." (This page displays system telemetry — use the Export CSV button to download the visible window.)
+        System message: "All hands calm — core systems are humming. If they weren't, you'd be seeing red." This page displays system telemetry — use the Export CSV button to download the visible window of metrics for troubleshooting or post-incident analysis.
       </footer>
     </main>
   </div>
 
   <script>
     /**************************************************************
-     * Mainframe Health — interactive demo (trimmed)
+     * System Health — interactive demo (trimmed)
      * - Chart.js v4
-     * - Runs in simulated mode by default (no UI toggle)
-     * - Data model: time-series arrays for cpu/io/network
+     * - Runs in simulated mode by default
+     * - Includes a lightweight incident log UI
      **************************************************************/
 
     // state
@@ -261,7 +285,7 @@
     let timer = null;
 
     // in-memory timeseries for the "visible window"
-    const WINDOW_SIZE = 60; // number of points shown (approx)
+    let WINDOW_SIZE = 60; // number of points shown (approx)
 
     const series = {
       cpu: [],
@@ -271,15 +295,40 @@
       contention: []
     };
 
+    // Simple incident model (in-memory)
+    const incidents = [
+      {
+        id: generateId(),
+        time: Date.now() - 1000 * 60 * 45,
+        title: "DB queue backlog spike",
+        severity: "high",
+        status: "investigating",
+        owner: "oncall-db",
+        desc: "Increased IO latency on DB nodes causing request queuing. Initial mitigation: throttled batch jobs.",
+        runbook: "#db-queue-backlog"
+      },
+      {
+        id: generateId(),
+        time: Date.now() - 1000 * 60 * 120,
+        title: "Packet loss on northbound link",
+        severity: "critical",
+        status: "mitigated",
+        owner: "network-team",
+        desc: "Intermittent packet drops detected between datacenter A and B. Traffic rerouted to secondary path.",
+        runbook: "#net-failover"
+      }
+    ];
+
     // helpers
+    function generateId(){ return 'inc_' + Math.random().toString(36).slice(2,9); }
     function pushPoint(arr, point){
       arr.push(point);
       if (arr.length > WINDOW_SIZE) arr.shift();
     }
 
-    function formatTime(ts){
+    function formatTimeISO(ts){
       const d = new Date(ts);
-      return d.toLocaleTimeString();
+      return d.toLocaleString();
     }
 
     // Generate a single simulated datapoint (replace with real telemetry ingestion)
@@ -380,6 +429,7 @@
     const netNowEl = document.getElementById('netNow');
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const healthBadge = document.getElementById('healthBadge');
+    const incidentLogEl = document.getElementById('incidentLog');
 
     function updateSummary(){
       const lastCpu = series.cpu[series.cpu.length-1];
@@ -398,7 +448,7 @@
         healthBadge.style.background = '';
       }
 
-      lastUpdatedEl.textContent = 'last updated: ' + formatTime(Date.now());
+      lastUpdatedEl.textContent = 'last updated: ' + formatTimeISO(Date.now());
     }
 
     // push a new datapoint into all series and update charts
@@ -423,6 +473,129 @@
       packetChart.update('none');
 
       updateSummary();
+    }
+
+    // render incident log
+    function renderIncidents(){
+      incidentLogEl.innerHTML = '';
+      if (incidents.length === 0){
+        const p = document.createElement('div');
+        p.className = 'small-muted';
+        p.textContent = 'No incidents recorded.';
+        incidentLogEl.appendChild(p);
+        return;
+      }
+
+      // show newest first
+      const sorted = incidents.slice().sort((a,b)=>b.time - a.time);
+      sorted.forEach(inc => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'incident';
+        if (inc.status === 'resolved') wrapper.classList.add('resolved');
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const time = document.createElement('span');
+        time.className = 'time';
+        time.textContent = formatTimeISO(inc.time);
+        meta.appendChild(time);
+        const owner = document.createElement('div');
+        owner.className = 'small-muted';
+        owner.textContent = `Owner: ${inc.owner}`;
+        meta.appendChild(owner);
+
+        const main = document.createElement('div');
+        main.className = 'main';
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = inc.title + (inc.status === 'resolved' ? ' — Resolved' : '');
+        main.appendChild(title);
+
+        const desc = document.createElement('div');
+        desc.className = 'desc';
+        desc.textContent = inc.desc;
+        main.appendChild(desc);
+
+        // severity pill
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        if (inc.severity === 'critical') pill.classList.add('sev-critical');
+        else if (inc.severity === 'high') pill.classList.add('sev-high');
+        else pill.classList.add('sev-ok');
+        pill.textContent = inc.severity.toUpperCase();
+
+        const metaRow = document.createElement('div');
+        metaRow.style.display = 'flex';
+        metaRow.style.justifyContent = 'space-between';
+        metaRow.style.alignItems = 'center';
+
+        const leftGroup = document.createElement('div');
+        leftGroup.appendChild(pill);
+        const status = document.createElement('span');
+        status.className = 'small-muted';
+        status.style.marginLeft = '8px';
+        status.textContent = `Status: ${inc.status}`;
+        leftGroup.appendChild(status);
+
+        metaRow.appendChild(leftGroup);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        // acknowledge / resolve
+        const ackBtn = document.createElement('button');
+        ackBtn.textContent = inc.status === 'resolved' ? 'Reopen' : 'Resolve';
+        ackBtn.addEventListener('click', ()=>{
+          toggleResolve(inc.id);
+        });
+        actions.appendChild(ackBtn);
+
+        // link to runbook
+        const rb = document.createElement('a');
+        rb.href = inc.runbook || '#';
+        rb.className = 'muted-link';
+        rb.textContent = 'Runbook';
+        rb.target = '_blank';
+        actions.appendChild(rb);
+
+        main.appendChild(metaRow);
+        main.appendChild(actions);
+
+        wrapper.appendChild(meta);
+        wrapper.appendChild(main);
+        incidentLogEl.appendChild(wrapper);
+      });
+    }
+
+    function toggleResolve(id){
+      const idx = incidents.findIndex(i=>i.id===id);
+      if (idx === -1) return;
+      incidents[idx].status = incidents[idx].status === 'resolved' ? 'investigating' : 'resolved';
+      renderIncidents();
+    }
+
+    // Add a simulated incident (for demo)
+    function addSampleIncident(){
+      const now = Date.now();
+      const candidate = {
+        id: generateId(),
+        time: now,
+        title: "Service latency spike",
+        severity: Math.random() > 0.6 ? 'high' : 'critical',
+        status: "investigating",
+        owner: Math.random() > 0.5 ? 'oncall-app' : 'network-team',
+        desc: "Observed elevated p99 latency for API requests. Investigating upstream dependencies and network paths.",
+        runbook: "#api-latency"
+      };
+      incidents.push(candidate);
+      renderIncidents();
+    }
+
+    // remove resolved incidents
+    function clearResolved(){
+      for (let i = incidents.length - 1; i >= 0; i--){
+        if (incidents[i].status === 'resolved') incidents.splice(i,1);
+      }
+      renderIncidents();
     }
 
     // Simulated run loop
@@ -455,7 +628,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mainframe-health-${new Date().toISOString()}.csv`;
+      a.download = `system-health-${new Date().toISOString()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -479,6 +652,7 @@
     });
 
     function setWindowSize(n){
+      WINDOW_SIZE = n;
       while(series.cpu.length > n) series.cpu.shift();
       while(series.io.length > n) series.io.shift();
       while(series.net.length > n) series.net.shift();
@@ -518,13 +692,25 @@
       mainChart.update();
     });
 
-    // start the demo in simulated mode
+    // incident controls
+    document.getElementById('addSample').addEventListener('click', addSampleIncident);
+    document.getElementById('clearResolved').addEventListener('click', clearResolved);
+
+    // initial render/start
+    renderIncidents();
     startSimulated();
     updateSummary();
 
     // expose ingestion helper for integrations
-    window.MainframeWeather = {
-      ingestPoint
+    window.SystemHealth = {
+      ingestPoint,
+      addIncident: function(obj){
+        // expected fields: {time, title, severity, owner, desc, runbook}
+        const inc = Object.assign({ id: generateId(), status: 'investigating', time: Date.now() }, obj);
+        incidents.push(inc);
+        renderIncidents();
+      },
+      listIncidents: () => incidents.slice()
     };
   </script>
 </body>
