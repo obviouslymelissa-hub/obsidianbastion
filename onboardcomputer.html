@@ -47,6 +47,7 @@
     /* Left column stack: gauges (top) + subpanels (below) */
     .left{display:grid;grid-template-rows:auto 1fr;gap:14px}
 
+    /* Global SVG gradient defs are inlined in the document; see body */
     /* Gauges row: force four equal columns on larger screens, but allow responsive resizing on mobile */
     .gauges{
       display: grid;
@@ -55,7 +56,7 @@
       align-items: start;
     }
 
-    /* Gauge card: fill grid cell, allow SVG to scale */
+    /* Gauge card: fill grid cell, allow SVG to scale; fixed height to keep cards uniform */
     .gauge-card{
       background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);
       padding:14px;
@@ -64,27 +65,37 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:flex-start;
+      justify-content:space-between;
       min-width:0; /* prevents overflow in grid cells */
+      height: 230px; /* uniform card height to avoid uneven columns from wrapping text */
     }
-    .gauge-title{font-size:13px;color:var(--muted);margin-bottom:6px;text-align:center}
+    .gauge-title{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:6px;
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      width:100%;
+    }
     /* make SVG responsive: scale to the cell width and preserve aspect ratio */
     svg.gauge{
       width:100%;
       height:auto;
       display:block;
       aspect-ratio:160 / 120;
-      max-height:220px; /* optional cap for very tall layouts */
+      max-height:150px; /* tighter cap so title and value have space */
     }
     .gauge-value{font-size:22px;margin-top:6px}
-    .gauge-optimal{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+    .gauge-optimal{font-size:12px;color:var(--muted);margin-top:6px;text-align:center;white-space:nowrap}
 
 /* optimal status color variants (text-only) */
 .gauge-optimal.status-ok { color: #9ff0c9; font-weight:700; }
 .gauge-optimal.status-warn { color: #ffea99; font-weight:700; }
 .gauge-optimal.status-critical { color: #ffd6d6; font-weight:700; }
 
-    /* mini gauges for life support */
+    /* mini gauges for life support - keep consistent card size and prevent title wrapping */
     .mini-gauges { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
     .mini-gauge-card {
       width:120px;
@@ -96,10 +107,13 @@
       flex-direction:column;
       align-items:center;
       justify-content:center;
+      height:150px; /* uniform mini-gauge card height to keep vertical rhythm */
+      box-sizing:border-box;
     }
+    .mini-gauge-card > div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center; }
     svg.mini-gauge{width:96px;height:66px}
     .mini-gauge-value{font-size:14px;color:var(--muted)}
-    .mini-gauge-opt{font-size:11px;color:var(--muted);margin-top:4px}
+    .mini-gauge-opt{font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap}
 
     /* Subpanels area (below gauges) split into two columns */
     .subpanels{
@@ -121,7 +135,7 @@
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
     .telemetry{font-family:monospace;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:10px;border-radius:6px;max-height:220px;overflow:auto;color:#cfeff0}
-    footer{padding:12px 18px;color:var(--muted);font-size:13px}
+    /* footer removed per request */
 
     .kbd-list{display:flex;flex-direction:column;gap:6px;font-size:13px}
     .kbd{display:inline-block;background:#08121a;border:1px solid rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;color:var(--muted);font-family:monospace}
@@ -163,21 +177,32 @@
     .meter > i { display:block;height:100%;background:linear-gradient(90deg,#7bd389,#2ec4b6);transition:width .3s ease }
     .ls-compact { display:flex;gap:12px;align-items:center;flex-wrap:wrap }
 
-    /* Emergency controls: allow wrapping so buttons never get cut off on narrow viewports */
+    @media (max-width:700px){
+      .tile.main { grid-column: auto; }
+      .systems-dock { grid-template-columns: 1fr; }
+      .ls-controls { width:100%; }
+      .mini-gauges { justify-content:space-between }
+      .gauges { grid-template-columns: repeat(2, 1fr); } /* fallback for narrow tablets */
+      svg.gauge { aspect-ratio: 4 / 3; max-height:160px; }
+      .gauge-card { height: 210px; }
+      .mini-gauge-card { height: 140px; }
+    }
+
+    /* Emergency controls: center-align buttons in the panel */
     .emergency-controls {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: center; /* center alignment requested */
       align-items: center;
     }
     .emergency-controls button {
       flex: 0 1 auto;
       white-space: nowrap;
     }
-    /* On small screens, make buttons take up usable space and wrap into two-per-row */
+    /* On small screens, keep buttons wrapping but centered */
     @media (max-width:560px) {
-      .emergency-controls { justify-content: flex-start; }
+      .emergency-controls { justify-content: center; }
       .emergency-controls > button { flex: 1 1 48%; min-width: 0; }
     }
 
@@ -193,7 +218,8 @@
         aspect-ratio: 4 / 3;
         max-height: 160px;
       }
-      .gauges .gauge-card { padding:10px; }
+      .gauges .gauge-card { padding:10px; height: auto; } /* allow cards to size naturally on very small screens */
+      .mini-gauge-card { height: auto; }
     }
 
     /* Alert overlay and visual pulse effects */
@@ -289,6 +315,41 @@
   </style>
 </head>
 <body>
+  <!-- Inline hidden SVG defs used across gauges (gradients) -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="reactor-grad" x1="0" x2="1">
+        <stop offset="0%" stop-color="#66c2ff"/>
+        <stop offset="100%" stop-color="#ff7b7b"/>
+      </linearGradient>
+
+      <linearGradient id="grad-power" x1="0" x2="1">
+        <stop offset="0%" stop-color="#ffea92"/>
+        <stop offset="100%" stop-color="#ffb86b"/>
+      </linearGradient>
+
+      <linearGradient id="grad-fuel" x1="0" x2="1">
+        <stop offset="0%" stop-color="#bff29b"/>
+        <stop offset="100%" stop-color="#6ccf5a"/>
+      </linearGradient>
+
+      <linearGradient id="grad-net" x1="0" x2="1">
+        <stop offset="0%" stop-color="#9dcfff"/>
+        <stop offset="100%" stop-color="#5b9dff"/>
+      </linearGradient>
+
+      <linearGradient id="o2-mini-grad" x1="0" x2="1">
+        <stop offset="0%" stop-color="#7bd389"/>
+        <stop offset="100%" stop-color="#2ec4b6"/>
+      </linearGradient>
+
+      <linearGradient id="p-mini-grad" x1="0" x2="1">
+        <stop offset="0%" stop-color="#66a0ff"/>
+        <stop offset="100%" stop-color="#5b82ff"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
   <!-- Shared site header -->
   <header class="site-header">
     <div class="header-inner" role="banner" aria-label="Obsidian Bastian header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px">
@@ -319,13 +380,13 @@
 
 <main>
   <div class="left">
-    <!-- Top row: gauges -->
+    <!-- Top row: gauges (4 across on desktop/tablet; responsive below 600px) -->
     <section class="gauges" id="gauges">
       <div class="gauge-card" id="pw-card">
         <div class="gauge-title">Power</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Power gauge">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="pw-arc" d="" stroke="#ffcb6b" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="pw-arc" d="" stroke="url(#grad-power)" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="pw-val">-- %</div>
         <div id="pw-opt" class="gauge-optimal">Optimal: 80–95%</div>
@@ -334,24 +395,18 @@
       <div class="gauge-card" id="reactor-card">
         <div class="gauge-title">Reactor Core</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Reactor temperature">
-          <defs>
-            <linearGradient id="reactor-grad" x1="0" x2="1">
-              <stop offset="0%" stop-color="#66c2ff"/>
-              <stop offset="100%" stop-color="#ff7b7b"/>
-            </linearGradient>
-          </defs>
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
           <path id="reactor-arc" d="" stroke="url(#reactor-grad)" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
-        <div class="gauge-value" id="reactor-val">-- °C</div>
-        <div id="reactor-opt" class="gauge-optimal">Optimal: 420–520 °C</div>
+        <div class="gauge-value" id="reactor-val">-- °F</div>
+        <div id="reactor-opt" class="gauge-optimal">Optimal: 788–968 °F</div>
       </div>
 
       <div class="gauge-card" id="fuel-card">
         <div class="gauge-title">Fuel Level</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Fuel level">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="fuel-arc" d="" stroke="#9ad65b" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="fuel-arc" d="" stroke="url(#grad-fuel)" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="fuel-val">-- %</div>
         <div id="fuel-opt" class="gauge-optimal">Optimal: &gt; 60%</div>
@@ -361,7 +416,7 @@
         <div class="gauge-title">Network</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Network latency">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="net-arc" d="" stroke="#66a0ff" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="net-arc" d="" stroke="url(#grad-net)" stroke-width="8" fill="none" stroke-linecap="round"></path>
         </svg>
         <div class="gauge-value" id="net-val">-- ms</div>
         <div id="net-opt" class="gauge-optimal">Optimal: &lt; 60 ms</div>
@@ -378,15 +433,9 @@
             <div class="mini-gauges" style="margin-bottom:10px">
               <div class="mini-gauge-card" aria-hidden="true">
                 <div style="font-size:12px;color:var(--muted)">O2</div>
-                <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true">
+                <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true" role="img" aria-label="Oxygen level">
                   <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"></circle>
                   <path id="o2-arc" d="" stroke="url(#o2-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round"></path>
-                  <defs>
-                    <linearGradient id="o2-mini-grad" x1="0" x2="1">
-                      <stop offset="0%" stop-color="#7bd389"/>
-                      <stop offset="100%" stop-color="#2ec4b6"/>
-                    </linearGradient>
-                  </defs>
                 </svg>
                 <div class="mini-gauge-value" id="o2-mini-val">-- %</div>
                 <div id="o2-opt" class="mini-gauge-opt">Optimal: 78–82%</div>
@@ -394,9 +443,9 @@
 
               <div class="mini-gauge-card" aria-hidden="true">
                 <div style="font-size:12px;color:var(--muted)">Pressure</div>
-                <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true">
+                <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true" role="img" aria-label="Pressure">
                   <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"></circle>
-                  <path id="p-arc" d="" stroke="#66a0ff" stroke-width="6" fill="none" stroke-linecap="round"></path>
+                  <path id="p-arc" d="" stroke="url(#p-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round"></path>
                 </svg>
                 <div class="mini-gauge-value" id="p-mini-val">-- kPa</div>
                 <div id="p-opt" class="mini-gauge-opt">Optimal: 100–103 kPa</div>
@@ -592,10 +641,6 @@
   </aside>
 </main>
 
-<footer>
-  Last simulated update: <span id="last-updated">--</span>
-</footer>
-
 <!-- Visual overlay element for alerts -->
 <div id="alert-overlay" aria-hidden="true"></div>
 
@@ -650,7 +695,7 @@ const telemetry = {
   scrubberEfficiency: 82.0,
   scrubberEtaHours: 22,
 
-  // new top-row metrics
+  // reactor temp stored in °C; displayed as °F
   reactorTemp: 480.0,    // °C
   fuelLevel: 74.0,       // %
   netLatency: 18         // ms
@@ -658,6 +703,7 @@ const telemetry = {
 
 const telemetryEl = document.getElementById('telemetry');
 const errorLogEl = document.getElementById('error-log');
+// lastUpdated removed from DOM per request; safe to keep variable if null
 const lastUpdatedEl = document.getElementById('last-updated');
 const lsStatusEl = document.getElementById('ls-status'); // optional
 const commStatus = document.getElementById('comm-status');
@@ -693,7 +739,7 @@ function updateOptimalIndicators() {
   const pwOpt = document.getElementById('pw-opt');
   if (pwOpt) { pwOpt.className = 'gauge-optimal ' + (pwState === 'ok' ? 'status-ok' : pwState === 'warn' ? 'status-warn' : 'status-critical'); }
 
-  // Reactor: optimal 420-520, warn 380-560
+  // Reactor: still classed in °C (420-520), display in °F only
   const rt = telemetry.reactorTemp;
   const rtState = classifyRange(rt, 420, 520, 380, 560);
   const rtOpt = document.getElementById('reactor-opt');
@@ -734,7 +780,7 @@ function simulateStep() {
   telemetry.scrubberEfficiency += (Math.random()-0.5)*0.4;
   telemetry.scrubberEtaHours -= (Math.random()*0.02);
 
-  // reactor temp drifts slowly
+  // reactor temp drifts slowly (in °C)
   telemetry.reactorTemp += (Math.random()-0.5)*2.2;
   telemetry.fuelLevel += (Math.random()-0.5)*0.18;
   telemetry.netLatency += (Math.random()-0.5)*3.5;
@@ -778,7 +824,7 @@ function simulateStep() {
   if (o2Val) o2Val.textContent = telemetry.o2.toFixed(1) + ' %';
   if (pVal) pVal.textContent = telemetry.pressure.toFixed(1) + ' kPa';
   if (pwVal) pwVal.textContent = telemetry.power.toFixed(0) + ' %';
-  if (reactorVal) reactorVal.textContent = Math.round(telemetry.reactorTemp) + ' °C';
+  if (reactorVal) reactorVal.textContent = Math.round(cToF(telemetry.reactorTemp)) + ' °F';
   if (fuelVal) fuelVal.textContent = Math.round(telemetry.fuelLevel) + ' %';
   if (netVal) netVal.textContent = Math.round(telemetry.netLatency) + ' ms';
 
@@ -808,7 +854,7 @@ function simulateStep() {
     `${ts} CO2: ${Math.round(telemetry.co2)} ppm`,
     `${ts} Temp: ${Math.round(cToF(telemetry.tempC))}°F`,
     `${ts} Humidity: ${telemetry.humidity.toFixed(0)}%`,
-    `${ts} Reactor: ${Math.round(telemetry.reactorTemp)}°C • Fuel: ${Math.round(telemetry.fuelLevel)}% • Net: ${Math.round(telemetry.netLatency)}ms`,
+    `${ts} Reactor: ${Math.round(cToF(telemetry.reactorTemp))}°F • Fuel: ${Math.round(telemetry.fuelLevel)}% • Net: ${Math.round(telemetry.netLatency)}ms`,
     `${ts} Scrubber: ${Math.round(telemetry.scrubberEfficiency)}% eff • ${Math.round(telemetry.scrubberEtaHours)}h`
   ];
   if (telemetryEl) telemetryEl.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
