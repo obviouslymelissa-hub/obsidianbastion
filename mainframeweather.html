@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Planetary Atmospherics</title>
+  <title>Planetary Atmospherics — Obsidian Bastian</title>
+  <link rel="stylesheet" href="app.css">
   <style>
     :root{
       --bg:#0b0f1a; --card:#0f1724; --muted:#9aa6c0; --accent:#6ee7b7;
       --danger:#ff7b7b; --glass: rgba(255,255,255,0.03);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,#041024 0%, #071025 60%);color:#e6eef8;}
-    .wrap{max-width:980px;margin:36px auto;padding:24px;}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    html,body{height:100%;margin:0;color:#e6eef8;}
+    .wrap{max-width:980px;margin:0 auto;padding:24px;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
     .header-left{display:flex;flex-direction:column}
     h1{font-size:20px;margin:0}
     .controls{display:flex;gap:8px;align-items:center}
@@ -57,10 +58,28 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
       <div class="header-left">
-        <h1>Planetary Atmospherics</h1>
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Planetary Atmospherics</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Planetary Atmospherics Dashboard</h1>
         <div class="small">Solar system and planet explorer with atmospheric conditions and habitability check.</div>
       </div>
 

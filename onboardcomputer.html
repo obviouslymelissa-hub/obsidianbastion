@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Obsidian Bastian — Control UI</title>
+  <title>Control UI — Obsidian Bastian</title>
+  <link rel="stylesheet" href="app.css">
   <style>
     :root{
       --bg:#0b1220;
@@ -13,12 +14,12 @@
       --danger:#ff7b7b;
     }
 
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071017 0%, #0b1220 60%);color:#e6eef3;box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef3;box-sizing:border-box}
     *,*::before,*::after{box-sizing:inherit}
 
-    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);backdrop-filter: blur(4px);border-bottom:1px solid rgba(255,255,255,0.03)}
-    header h1{margin:0;font-size:18px;letter-spacing:0.6px}
-    header .controls{display:flex;gap:8px;align-items:center}
+    .page-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);backdrop-filter: blur(4px);border-bottom:1px solid rgba(255,255,255,0.03);margin-bottom:0}
+    .page-header h1{margin:0;font-size:18px;letter-spacing:0.6px}
+    .page-header .controls{display:flex;gap:8px;align-items:center}
     button{background:var(--panel);border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:6px;cursor:pointer}
     button.primary{background:linear-gradient(90deg,#114b3b,#427f62);color:white;border:none}
     button.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:7px 10px;border-radius:8px;font-weight:600}
@@ -198,16 +199,33 @@
   </style>
 </head>
 <body>
-<header>
-  <h1>Obsidian Bastian — Mission UI</h1>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Mission Control UI</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
+  </header>
+
+<div class="page-header">
+  <h1>Mission Control Dashboard</h1>
   <div class="controls">
-    <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="link">← Back to Command Hub</a>
     <button id="btn-toggle-gauges" class="primary">Toggle Gauges (G)</button>
     <div class="mute-toggle" title="Alarm sound controls" aria-label="Alarm sound controls">
       <button id="btn-mute" class="ghost" aria-pressed="false">🔈 Mute</button>
     </div>
   </div>
-</header>
+</div>
 
 <main>
   <div class="left">

@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ship — Power Management</title>
+  <title>Power Management — Obsidian Bastian</title>
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
+  <link rel="stylesheet" href="app.css">
   <style>
     /* Simple, dark sci-fi styling; adjust colors to match your site theme */
     :root{
@@ -22,14 +23,17 @@
 
     html,body{height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
     body{
-      background: linear-gradient(180deg,#071019 0%, #071217 60%), var(--bg);
       color:#e6f0f3;
-      padding:24px;
+      padding:0;
       box-sizing:border-box;
     }
 
-    /* Header area */
-    header{
+    .page-content {
+      padding: 24px;
+    }
+
+    /* Page header area */
+    .page-header{
       display:flex;
       flex-direction:column;
       gap:12px;
@@ -68,19 +72,7 @@
     }
     h1{font-size:20px; margin:0;}
     p.subtitle{margin:0; color:var(--muted); font-size:13px;}
-
-    .return-link{
-      margin-left:auto;
-      font-size:14px;
-      color:var(--muted);
-      text-decoration:none;
-      border:1px solid rgba(255,255,255,0.03);
-      padding:8px 12px;
-      border-radius:8px;
-      background:var(--glass);
     }
-    .return-link:hover{ color:var(--accent); border-color: rgba(45,212,191,0.12); }
-
     /* Nav row - under header */
     nav{
       display:flex;
@@ -201,17 +193,34 @@
   </style>
 </head>
 <body>
-  <header>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Power Management</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-content">
+  <div class="page-header">
     <div class="top-row">
       <div class="brand">
-        <div class="logo">OB</div>
+        <div class="logo">⚡</div>
         <div class="title-wrap">
-          <h1>Obsidian Bastian — Power Management Console</h1>
+          <h1>Power Management Console</h1>
           <p class="subtitle">Ship power, fuel and reactor telemetry</p>
         </div>
       </div>
-
-      <a class="return-link" href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" target="_blank" rel="noopener">← Return to Command Hub</a>
     </div>
 
     <nav>
@@ -220,7 +229,7 @@
       <button class="nav-btn active">Power</button>
       <button class="nav-btn">Logs</button>
     </nav>
-  </header>
+  </div>
 
   <main>
     <section class="panel left">
@@ -551,8 +560,9 @@
       }
     }, 1000);
 
-    // Initialize UI
+        // Initialize UI
     updateReads();
   </script>
+  </div>
 </body>
 </html>
