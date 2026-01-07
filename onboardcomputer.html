@@ -47,16 +47,15 @@
     /* Left column stack: gauges (top) + subpanels (below) */
     .left{display:grid;grid-template-rows:auto 1fr;gap:14px}
 
-    /* Global SVG gradient defs are inlined in the document; see body */
-    /* Gauges row: force four equal columns on larger screens, but allow responsive resizing on mobile */
+    /* Gauges row (four across on larger screens, responsive on mobile) */
     .gauges{
       display: grid;
-      grid-template-columns: repeat(4, 1fr); /* keep four across on desktop/tablet */
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       align-items: start;
     }
 
-    /* Gauge card: fill grid cell, allow SVG to scale; fixed height to keep cards uniform */
+    /* Gauge card: uniform sizing to avoid text wrapping affecting layout */
     .gauge-card{
       background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);
       padding:14px;
@@ -66,8 +65,8 @@
       flex-direction:column;
       align-items:center;
       justify-content:space-between;
-      min-width:0; /* prevents overflow in grid cells */
-      height: 230px; /* uniform card height to avoid uneven columns from wrapping text */
+      min-width:0;
+      height: 230px;
     }
     .gauge-title{
       font-size:13px;
@@ -79,23 +78,19 @@
       text-overflow:ellipsis;
       width:100%;
     }
-    /* make SVG responsive: scale to the cell width and preserve aspect ratio */
+    /* responsive SVG sizing with preserved aspect ratio and allow overflow so glow isn't clipped */
     svg.gauge{
       width:100%;
       height:auto;
       display:block;
       aspect-ratio:160 / 120;
-      max-height:150px; /* tighter cap so title and value have space */
+      max-height:150px;
+      overflow: visible; /* allow blur/filters to render outside the viewport */
     }
-    .gauge-value{font-size:22px;margin-top:6px}
+    .gauge-value{font-size:22px;margin-top:6px;white-space:nowrap}
     .gauge-optimal{font-size:12px;color:var(--muted);margin-top:6px;text-align:center;white-space:nowrap}
 
-/* optimal status color variants (text-only) */
-.gauge-optimal.status-ok { color: #9ff0c9; font-weight:700; }
-.gauge-optimal.status-warn { color: #ffea99; font-weight:700; }
-.gauge-optimal.status-critical { color: #ffd6d6; font-weight:700; }
-
-    /* mini gauges for life support - keep consistent card size and prevent title wrapping */
+    /* mini gauges for life support: uniform card height so columns match */
     .mini-gauges { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
     .mini-gauge-card {
       width:120px;
@@ -107,11 +102,11 @@
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      height:150px; /* uniform mini-gauge card height to keep vertical rhythm */
+      height:150px;
       box-sizing:border-box;
     }
     .mini-gauge-card > div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center; }
-    svg.mini-gauge{width:96px;height:66px}
+    svg.mini-gauge{width:96px;height:66px; overflow: visible}
     .mini-gauge-value{font-size:14px;color:var(--muted)}
     .mini-gauge-opt{font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap}
 
@@ -135,12 +130,8 @@
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
     .telemetry{font-family:monospace;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:10px;border-radius:6px;max-height:220px;overflow:auto;color:#cfeff0}
-    /* footer removed per request */
 
-    .kbd-list{display:flex;flex-direction:column;gap:6px;font-size:13px}
-    .kbd{display:inline-block;background:#08121a;border:1px solid rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;color:var(--muted);font-family:monospace}
-
-    /* Systems dock / tile styles (kept in right column) */
+    /* Systems dock / tile styles */
     .systems-panel { margin-top: 8px; }
     .systems-dock {
       display: grid;
@@ -166,6 +157,31 @@
     .tile-desc { color:var(--muted); font-size:0.9rem; margin-top:4px }
     .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block }
 
+    /* stronger, brighter gradient button styles for additional prominence */
+    .btn-alert {
+      background: linear-gradient(90deg,#ff7a7a,#ff4b4b);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(255,75,75,0.12);
+    }
+
+    .btn-alert.ghost { background: transparent; color: #ff9a9a; border:1px solid rgba(255,90,90,0.08); }
+
+    .btn-danger {
+      background: linear-gradient(90deg,#ff5a5a,#c91a1a);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(200,30,30,0.14);
+    }
+
     /* Life support extras + fixes */
     .ls-controls { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center }
     .status-badge { padding:6px 8px;border-radius:6px;font-weight:700;display:inline-block }
@@ -182,25 +198,25 @@
       .systems-dock { grid-template-columns: 1fr; }
       .ls-controls { width:100%; }
       .mini-gauges { justify-content:space-between }
-      .gauges { grid-template-columns: repeat(2, 1fr); } /* fallback for narrow tablets */
+      .gauges { grid-template-columns: repeat(2, 1fr); }
       svg.gauge { aspect-ratio: 4 / 3; max-height:160px; }
       .gauge-card { height: 210px; }
       .mini-gauge-card { height: 140px; }
     }
 
-    /* Emergency controls: center-align buttons in the panel */
+    /* Emergency controls: center-align buttons in the panel, and add spacing */
     .emergency-controls {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
-      justify-content: center; /* center alignment requested */
+      justify-content: center;
       align-items: center;
+      margin-top: 12px;
     }
     .emergency-controls button {
       flex: 0 1 auto;
       white-space: nowrap;
     }
-    /* On small screens, keep buttons wrapping but centered */
     @media (max-width:560px) {
       .emergency-controls { justify-content: center; }
       .emergency-controls > button { flex: 1 1 48%; min-width: 0; }
@@ -218,7 +234,7 @@
         aspect-ratio: 4 / 3;
         max-height: 160px;
       }
-      .gauges .gauge-card { padding:10px; height: auto; } /* allow cards to size naturally on very small screens */
+      .gauges .gauge-card { padding:10px; height: auto; }
       .mini-gauge-card { height: auto; }
     }
 
@@ -234,7 +250,6 @@
       opacity: 0;
     }
 
-    /* Red alert: gentle red wash with slow pulse */
     body.red-alert #alert-overlay {
       background: rgba(255,40,40,0.06);
       opacity: 1;
@@ -242,22 +257,20 @@
       pointer-events: none;
     }
 
-    /* Evacuate: stronger red and faster pulse and block interactions (optional) */
     body.evac #alert-overlay {
       background: rgba(255,10,10,0.18);
       opacity: 1;
       animation: pulse-alert 0.6s linear infinite;
-      pointer-events: auto; /* blocks clicks while evac is engaged to avoid accidental actions */
+      pointer-events: auto;
     }
 
-    /* Keep critical controls clickable above the overlay during EVAC */
     body.evac .controls,
     body.evac .controls *,
     body.evac #btn-cancel-dispatch,
     body.evac #btn-clear-alert,
     body.evac #btn-mute {
       position: relative;
-      z-index: 10002;      /* above #alert-overlay (9998) and modal (10001) */
+      z-index: 10002;
       pointer-events: auto;
     }
 
@@ -267,7 +280,6 @@
       100% { filter: drop-shadow(0 0 6px rgba(255,0,0,0.06)); transform: scale(1); }
     }
 
-    /* Modal for confirmations */
     .modal {
       position: fixed;
       inset: 0;
@@ -291,18 +303,6 @@
     .modal .row { display:flex; gap:8px; align-items:center; margin-top:8px }
     .hidden { display:none; }
 
-    /* Danger button */
-    .btn-danger {
-      background: linear-gradient(90deg,#ff5a5a,#c91a1a);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    /* Small controls in header for sound/mute */
     .mute-toggle { display:flex;align-items:center;gap:8px }
     .mute-toggle button{padding:6px 8px;font-size:13px}
     .pod { display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02);font-size:13px }
@@ -315,36 +315,60 @@
   </style>
 </head>
 <body>
-  <!-- Inline hidden SVG defs used across gauges (gradients) -->
+  <!-- Inline SVG defs for vivid gradients and larger filter regions so glow doesn't clip -->
   <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
     <defs>
+      <!-- larger filter regions to avoid clipping the blurred glow -->
+      <filter id="glow-strong" x="-300%" y="-300%" width="600%" height="600%" filterUnits="objectBoundingBox">
+        <feGaussianBlur stdDeviation="6" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+
+      <!-- Reactor (intensified) -->
       <linearGradient id="reactor-grad" x1="0" x2="1">
-        <stop offset="0%" stop-color="#66c2ff"/>
-        <stop offset="100%" stop-color="#ff7b7b"/>
+        <stop offset="0%" stop-color="#4ec8ff" />
+        <stop offset="45%" stop-color="#66c2ff" />
+        <stop offset="75%" stop-color="#ff8a6b" />
+        <stop offset="100%" stop-color="#ff5a5a" />
       </linearGradient>
 
+      <!-- Power: bright gradient -->
       <linearGradient id="grad-power" x1="0" x2="1">
-        <stop offset="0%" stop-color="#ffea92"/>
-        <stop offset="100%" stop-color="#ffb86b"/>
+        <stop offset="0%" stop-color="#fff27a" />
+        <stop offset="40%" stop-color="#ffd76b" />
+        <stop offset="75%" stop-color="#ff9a7a" />
+        <stop offset="100%" stop-color="#ff6b9a" />
       </linearGradient>
 
+      <!-- Fuel: vivid green -->
       <linearGradient id="grad-fuel" x1="0" x2="1">
-        <stop offset="0%" stop-color="#bff29b"/>
-        <stop offset="100%" stop-color="#6ccf5a"/>
+        <stop offset="0%" stop-color="#cfff9a" />
+        <stop offset="45%" stop-color="#9ef36a" />
+        <stop offset="85%" stop-color="#4ddf8b" />
+        <stop offset="100%" stop-color="#2ecf7a" />
       </linearGradient>
 
+      <!-- Network: cyan -> electric blue -->
       <linearGradient id="grad-net" x1="0" x2="1">
-        <stop offset="0%" stop-color="#9dcfff"/>
-        <stop offset="100%" stop-color="#5b9dff"/>
+        <stop offset="0%" stop-color="#bff2ff" />
+        <stop offset="45%" stop-color="#7fd8ff" />
+        <stop offset="80%" stop-color="#5b9dff" />
+        <stop offset="100%" stop-color="#6b6bff" />
       </linearGradient>
 
+      <!-- Mini gauge gradients -->
       <linearGradient id="o2-mini-grad" x1="0" x2="1">
-        <stop offset="0%" stop-color="#7bd389"/>
+        <stop offset="0%" stop-color="#bff8d8"/>
+        <stop offset="60%" stop-color="#7bd389"/>
         <stop offset="100%" stop-color="#2ec4b6"/>
       </linearGradient>
 
       <linearGradient id="p-mini-grad" x1="0" x2="1">
-        <stop offset="0%" stop-color="#66a0ff"/>
+        <stop offset="0%" stop-color="#bfe1ff"/>
+        <stop offset="60%" stop-color="#66a0ff"/>
         <stop offset="100%" stop-color="#5b82ff"/>
       </linearGradient>
     </defs>
@@ -386,7 +410,7 @@
         <div class="gauge-title">Power</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Power gauge">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="pw-arc" d="" stroke="url(#grad-power)" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="pw-arc" d="" stroke="url(#grad-power)" stroke-width="8" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
         </svg>
         <div class="gauge-value" id="pw-val">-- %</div>
         <div id="pw-opt" class="gauge-optimal">Optimal: 80–95%</div>
@@ -396,7 +420,7 @@
         <div class="gauge-title">Reactor Core</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Reactor temperature">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="reactor-arc" d="" stroke="url(#reactor-grad)" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="reactor-arc" d="" stroke="url(#reactor-grad)" stroke-width="8" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
         </svg>
         <div class="gauge-value" id="reactor-val">-- °F</div>
         <div id="reactor-opt" class="gauge-optimal">Optimal: 788–968 °F</div>
@@ -406,7 +430,7 @@
         <div class="gauge-title">Fuel Level</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Fuel level">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="fuel-arc" d="" stroke="url(#grad-fuel)" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="fuel-arc" d="" stroke="url(#grad-fuel)" stroke-width="8" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
         </svg>
         <div class="gauge-value" id="fuel-val">-- %</div>
         <div id="fuel-opt" class="gauge-optimal">Optimal: &gt; 60%</div>
@@ -416,7 +440,7 @@
         <div class="gauge-title">Network</div>
         <svg class="gauge" viewBox="-10 -10 120 80" aria-hidden="true" role="img" aria-label="Network latency">
           <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-          <path id="net-arc" d="" stroke="url(#grad-net)" stroke-width="8" fill="none" stroke-linecap="round"></path>
+          <path id="net-arc" d="" stroke="url(#grad-net)" stroke-width="8" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
         </svg>
         <div class="gauge-value" id="net-val">-- ms</div>
         <div id="net-opt" class="gauge-optimal">Optimal: &lt; 60 ms</div>
@@ -435,7 +459,7 @@
                 <div style="font-size:12px;color:var(--muted)">O2</div>
                 <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true" role="img" aria-label="Oxygen level">
                   <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"></circle>
-                  <path id="o2-arc" d="" stroke="url(#o2-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round"></path>
+                  <path id="o2-arc" d="" stroke="url(#o2-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
                 </svg>
                 <div class="mini-gauge-value" id="o2-mini-val">-- %</div>
                 <div id="o2-opt" class="mini-gauge-opt">Optimal: 78–82%</div>
@@ -445,7 +469,7 @@
                 <div style="font-size:12px;color:var(--muted)">Pressure</div>
                 <svg class="mini-gauge" viewBox="-8 -8 96 66" aria-hidden="true" role="img" aria-label="Pressure">
                   <circle cx="40" cy="40" r="24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"></circle>
-                  <path id="p-arc" d="" stroke="url(#p-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round"></path>
+                  <path id="p-arc" d="" stroke="url(#p-mini-grad)" stroke-width="6" fill="none" stroke-linecap="round" filter="url(#glow-strong)"></path>
                 </svg>
                 <div class="mini-gauge-value" id="p-mini-val">-- kPa</div>
                 <div id="p-opt" class="mini-gauge-opt">Optimal: 100–103 kPa</div>
@@ -507,20 +531,20 @@
         <div class="panel" style="margin-top:12px">
           <h3>Emergency Operations</h3>
 
-          <!-- Compact Communications cockpit + Red Alert / Evacuate controls -->
+          <!-- Communications cockpit + controls -->
           <div id="comms-cockpit" style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
-              <div style="display:flex;gap:8px;align-items:center">
-                <span class="status-badge status-ok" id="comms-badge">STANDBY</span>
-                <div style="font-size:13px;color:var(--muted)">Channel: <strong id="comms-channel">Alpha</strong></div>
-              </div>
+            <!-- Standby row centered -->
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px">
+              <span class="status-badge status-ok" id="comms-badge">STANDBY</span>
+              <div style="font-size:13px;color:var(--muted)">Channel: <strong id="comms-channel">Alpha</strong></div>
+            </div>
 
-              <div class="emergency-controls" style="margin-left:12px">
-                <button id="btn-red-alert" class="ghost" title="Toggle Red Alert">Red Alert</button>
-                <button id="btn-evacuate" class="btn-danger" title="Initiate Evacuate">Evacuate Now</button>
-                <button id="btn-cancel-dispatch" class="ghost" title="Cancel ongoing dispatch" disabled>Cancel Dispatch</button>
-                <button id="btn-clear-alert" class="btn" title="Clear current alert">Clear Alert</button>
-              </div>
+            <!-- Buttons row separated with spacing, centered -->
+            <div class="emergency-controls" aria-hidden="false">
+              <button id="btn-red-alert" class="btn-alert" title="Toggle Red Alert">Red Alert</button>
+              <button id="btn-evacuate" class="btn-danger" title="Initiate Evacuate">Evacuate Now</button>
+              <button id="btn-cancel-dispatch" class="ghost" title="Cancel ongoing dispatch" disabled>Cancel Dispatch</button>
+              <button id="btn-clear-alert" class="btn" title="Clear current alert">Clear Alert</button>
             </div>
 
             <div id="comm-msg" class="placeholder" style="min-height:48px;padding:10px">No active comms events</div>
@@ -676,7 +700,7 @@ function polarToCartesian(cx, cy, r, angleInDegrees) {
 }
 const arcStart = -135, arcEnd = 135;
 
-/* setGauge now accepts optional center and radius to support mini gauges */
+/* setGauge supports optional center/radius for mini gauges */
 function setGauge(pathEl, percent, cx = 50, cy = 50, r = 34) {
   percent = Math.max(0, Math.min(1, percent));
   const angle = arcStart + (arcEnd - arcStart) * percent;
@@ -684,7 +708,7 @@ function setGauge(pathEl, percent, cx = 50, cy = 50, r = 34) {
   if (pathEl) pathEl.setAttribute('d', d);
 }
 
-/* telemetry state (temp is Celsius internally) */
+/* telemetry state (kept in °C internally; reactor displayed in °F) */
 const telemetry = {
   o2: 78.0,
   pressure: 101.3,
@@ -695,7 +719,6 @@ const telemetry = {
   scrubberEfficiency: 82.0,
   scrubberEtaHours: 22,
 
-  // reactor temp stored in °C; displayed as °F
   reactorTemp: 480.0,    // °C
   fuelLevel: 74.0,       // %
   netLatency: 18         // ms
@@ -703,67 +726,55 @@ const telemetry = {
 
 const telemetryEl = document.getElementById('telemetry');
 const errorLogEl = document.getElementById('error-log');
-// lastUpdated removed from DOM per request; safe to keep variable if null
-const lastUpdatedEl = document.getElementById('last-updated');
+const lastUpdatedEl = document.getElementById('last-updated'); // may be null
 const lsStatusEl = document.getElementById('ls-status'); // optional
 const commStatus = document.getElementById('comm-status');
 
 function cToF(c){ return (c * 9/5) + 32; }
 
-/* classification helper for optimal/warn/critical */
+/* classification helpers */
 function classifyRange(value, optLow, optHigh, warnLow, warnHigh) {
   if (value >= optLow && value <= optHigh) return 'ok';
   if (value >= warnLow && value <= warnHigh) return 'warn';
   return 'critical';
 }
-
-/* classification for one-sided thresholds (min only) */
 function classifyMin(value, optMin, warnMin) {
   if (value >= optMin) return 'ok';
   if (value >= warnMin) return 'warn';
   return 'critical';
 }
-
-/* classification for one-sided max (like latency) */
 function classifyMax(value, optMax, warnMax) {
   if (value <= optMax) return 'ok';
   if (value <= warnMax) return 'warn';
   return 'critical';
 }
 
-/* update the small "Optimal" label appearances */
 function updateOptimalIndicators() {
-  // Power: optimal 80-95, warn 70-99
   const pw = telemetry.power;
   const pwState = classifyRange(pw, 80, 95, 70, 99);
   const pwOpt = document.getElementById('pw-opt');
   if (pwOpt) { pwOpt.className = 'gauge-optimal ' + (pwState === 'ok' ? 'status-ok' : pwState === 'warn' ? 'status-warn' : 'status-critical'); }
 
-  // Reactor: still classed in °C (420-520), display in °F only
   const rt = telemetry.reactorTemp;
   const rtState = classifyRange(rt, 420, 520, 380, 560);
   const rtOpt = document.getElementById('reactor-opt');
   if (rtOpt) rtOpt.className = 'gauge-optimal ' + (rtState === 'ok' ? 'status-ok' : rtState === 'warn' ? 'status-warn' : 'status-critical');
 
-  // Fuel: optimal >60, warn 40-60
   const fl = telemetry.fuelLevel;
   const flState = classifyMin(fl, 60, 40);
   const flOpt = document.getElementById('fuel-opt');
   if (flOpt) flOpt.className = 'gauge-optimal ' + (flState === 'ok' ? 'status-ok' : flState === 'warn' ? 'status-warn' : 'status-critical');
 
-  // Network: optimal <60, warn 60-150
   const nl = telemetry.netLatency;
   const nlState = classifyMax(nl, 60, 150);
   const nlOpt = document.getElementById('net-opt');
   if (nlOpt) nlOpt.className = 'gauge-optimal ' + (nlState === 'ok' ? 'status-ok' : nlState === 'warn' ? 'status-warn' : 'status-critical');
 
-  // O2: optimal 78-82, warn 74-78 and 82-85 -> implement as two-sided with warn bounds
   const o2 = telemetry.o2;
   const o2State = classifyRange(o2, 78, 82, 74, 85);
   const o2Opt = document.getElementById('o2-opt');
   if (o2Opt) o2Opt.className = 'mini-gauge-opt ' + (o2State === 'ok' ? 'status-ok' : o2State === 'warn' ? 'status-warn' : 'status-critical');
 
-  // Pressure: optimal 100-103, warn 97-106
   const p = telemetry.pressure;
   const pState = classifyRange(p, 100, 103, 97, 106);
   const pOpt = document.getElementById('p-opt');
@@ -780,12 +791,10 @@ function simulateStep() {
   telemetry.scrubberEfficiency += (Math.random()-0.5)*0.4;
   telemetry.scrubberEtaHours -= (Math.random()*0.02);
 
-  // reactor temp drifts slowly (in °C)
   telemetry.reactorTemp += (Math.random()-0.5)*2.2;
   telemetry.fuelLevel += (Math.random()-0.5)*0.18;
   telemetry.netLatency += (Math.random()-0.5)*3.5;
 
-  // bounds
   telemetry.o2 = Math.max(60, Math.min(95, telemetry.o2));
   telemetry.pressure = Math.max(90, Math.min(110, telemetry.pressure));
   telemetry.power = Math.max(10, Math.min(100, telemetry.power));
@@ -799,22 +808,21 @@ function simulateStep() {
   telemetry.fuelLevel = Math.max(0, Math.min(100, telemetry.fuelLevel));
   telemetry.netLatency = Math.max(2, Math.min(800, telemetry.netLatency));
 
-  // update gauges
-  // life support mini gauges (use mini gauge center & radius)
+  // mini gauges
   setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60), 40, 40, 24);
   setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90), 40, 40, 24);
 
-  // top-row gauges (default center 50,50,34)
+  // top row
   setGauge(document.getElementById('pw-arc'), telemetry.power/100, 50, 50, 34);
-  // reactor temp: map 250..900C to 0..1
   setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250), 50, 50, 34);
-  // fuel level direct
   setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100, 50, 50, 34);
-  // network latency: map 0..300ms where 300ms is full arc (tweakable)
-  const netPercent = Math.max(0, Math.min(1, telemetry.netLatency / 300));
-  setGauge(document.getElementById('net-arc'), netPercent, 50, 50, 34);
 
-  // update values text
+  // NETWORK: visual boost so the arc is a little more visible while numeric value remains accurate
+  const netPercent = Math.max(0, Math.min(1, telemetry.netLatency / 300));
+  const netVisual = Math.max(0.08, netPercent); // ensure a minimum visual fill so it reads better
+  setGauge(document.getElementById('net-arc'), netVisual, 50, 50, 34);
+
+  // update labels (numeric values remain real)
   const o2Val = document.getElementById('o2-mini-val');
   const pVal = document.getElementById('p-mini-val');
   const pwVal = document.getElementById('pw-val');
@@ -842,9 +850,10 @@ function simulateStep() {
   if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%';
   if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h';
 
-  // update optimal label statuses
   updateOptimalIndicators();
+  if (Math.random() < 0.04) pushVagueError();
 
+  // optional: update telemetry feed
   const now = new Date();
   const ts = now.toISOString().slice(11,23);
   const lines = [
@@ -858,26 +867,18 @@ function simulateStep() {
     `${ts} Scrubber: ${Math.round(telemetry.scrubberEfficiency)}% eff • ${Math.round(telemetry.scrubberEtaHours)}h`
   ];
   if (telemetryEl) telemetryEl.innerHTML = lines.map(l => `<div>${l}</div>`).join('');
-  if (lastUpdatedEl) lastUpdatedEl.textContent = now.toISOString().replace('T',' ').slice(0,19);
-
-  updateStatusBadges();
-  if (Math.random() < 0.04) pushVagueError();
 }
 
-function updateStatusBadges() {
-  if (!lsStatusEl) return;
-  if (telemetry.o2 < 70 || telemetry.co2 > 1200 || telemetry.scrubberEfficiency < 30) {
-    lsStatusEl.className = 'status-badge status-critical';
-    lsStatusEl.textContent = 'CRITICAL';
-  } else if (telemetry.o2 < 74 || telemetry.co2 > 800 || telemetry.scrubberEfficiency < 55) {
-    lsStatusEl.className = 'status-badge status-warn';
-    lsStatusEl.textContent = 'WARN';
-  } else {
-    lsStatusEl.className = 'status-badge status-ok';
-    lsStatusEl.textContent = 'OK';
-  }
+/* small helper to append telemetry-like lines */
+function pushTelemetryLine(text){
+  const when = new Date().toISOString().slice(11,23);
+  const d = document.createElement('div');
+  d.textContent = `${when} ${text}`;
+  if (telemetryEl) telemetryEl.prepend(d);
+  if (telemetryEl) while (telemetryEl.children.length > 60) telemetryEl.removeChild(telemetryEl.lastChild);
 }
 
+/* small helper to push vague errors */
 function pushVagueError() {
   const messages = [
     'Subsystem latency exceeded expected threshold',
@@ -894,96 +895,28 @@ function pushVagueError() {
   if (errorLogEl) while (errorLogEl.children.length > 20) errorLogEl.removeChild(errorLogEl.lastChild);
 }
 
-/* small helper to append telemetry-like lines */
-function pushTelemetryLine(text){
-  const when = new Date().toISOString().slice(11,23);
-  const d = document.createElement('div');
-  d.textContent = `${when} ${text}`;
-  if (telemetryEl) telemetryEl.prepend(d);
-  if (telemetryEl) while (telemetryEl.children.length > 60) telemetryEl.removeChild(telemetryEl.lastChild);
-}
-
-/* Manual scrubber controls (UI handlers) */
+/* Manual scrubber controls */
 const btnCycle = document.getElementById('btn-cycle-scrubber');
 const btnReset = document.getElementById('btn-reset-scrubber');
 if (btnCycle) btnCycle.addEventListener('click', cycleScrubber);
 if (btnReset) btnReset.addEventListener('click', resetScrubber);
+function cycleScrubber(){ if (!btnCycle) return; btnCycle.disabled = true; const original = btnCycle.textContent; btnCycle.textContent = 'Cycling...'; setTimeout(()=>{ const delta = 4 + Math.random()*8; telemetry.scrubberEfficiency = Math.min(100, telemetry.scrubberEfficiency + delta); telemetry.scrubberEtaHours = Math.max(0, telemetry.scrubberEtaHours - (1 + Math.random()*2)); const effEl = document.getElementById('scrubber-eff'); const meterEl = document.getElementById('scrubber-meter'); const etaEl = document.getElementById('scrubber-eta'); if (effEl) effEl.textContent = Math.round(telemetry.scrubberEfficiency) + '%'; if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%'; if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h'; pushTelemetryLine('Manual scrubber cycle applied — efficiency updated'); btnCycle.disabled = false; btnCycle.textContent = original; }, 1400); }
+function resetScrubber(){ if (!btnReset) return; if (!confirm('Reset scrubber to factory defaults? This sets efficiency to 100% and resets ETA.')) return; btnReset.disabled = true; const original = btnReset.textContent; btnReset.textContent = 'Resetting...'; setTimeout(()=>{ telemetry.scrubberEfficiency = 100; telemetry.scrubberEtaHours = 48; const effEl = document.getElementById('scrubber-eff'); const meterEl = document.getElementById('scrubber-meter'); const etaEl = document.getElementById('scrubber-eta'); if (effEl) effEl.textContent = Math.round(telemetry.scrubberEfficiency) + '%'; if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%'; if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h'; pushTelemetryLine('Scrubber reset to defaults'); btnReset.disabled = false; btnReset.textContent = original; }, 1600); }
 
-function cycleScrubber(){
-  if (!btnCycle) return;
-  btnCycle.disabled = true;
-  const original = btnCycle.textContent;
-  btnCycle.textContent = 'Cycling...';
-  setTimeout(()=>{
-    const delta = 4 + Math.random()*8;
-    telemetry.scrubberEfficiency = Math.min(100, telemetry.scrubberEfficiency + delta);
-    telemetry.scrubberEtaHours = Math.max(0, telemetry.scrubberEtaHours - (1 + Math.random()*2));
-
-    const effEl = document.getElementById('scrubber-eff');
-    const meterEl = document.getElementById('scrubber-meter');
-    const etaEl = document.getElementById('scrubber-eta');
-    if (effEl) effEl.textContent = Math.round(telemetry.scrubberEfficiency) + '%';
-    if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%';
-    if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h';
-
-    pushTelemetryLine('Manual scrubber cycle applied — efficiency updated');
-    btnCycle.disabled = false;
-    btnCycle.textContent = original;
-  }, 1400);
-}
-
-function resetScrubber(){
-  if (!btnReset) return;
-  if (!confirm('Reset scrubber to factory defaults? This sets efficiency to 100% and resets ETA.')) return;
-  btnReset.disabled = true;
-  const original = btnReset.textContent;
-  btnReset.textContent = 'Resetting...';
-  setTimeout(()=>{
-    telemetry.scrubberEfficiency = 100;
-    telemetry.scrubberEtaHours = 48;
-
-    const effEl = document.getElementById('scrubber-eff');
-    const meterEl = document.getElementById('scrubber-meter');
-    const etaEl = document.getElementById('scrubber-eta');
-    if (effEl) effEl.textContent = Math.round(telemetry.scrubberEfficiency) + '%';
-    if (meterEl) meterEl.style.width = Math.round(telemetry.scrubberEfficiency) + '%';
-    if (etaEl) etaEl.textContent = Math.round(telemetry.scrubberEtaHours) + 'h';
-
-    pushTelemetryLine('Scrubber reset to defaults');
-    btnReset.disabled = false;
-    btnReset.textContent = original;
-  }, 1600);
-}
-
-/* UI wiring (keyboard shortcuts removed) */
-const btnDiag = document.getElementById('btn-diagnostics');
-const btnWeather = document.getElementById('btn-weather');
-const btnToggleG = document.getElementById('btn-toggle-gauges');
-
-if (btnDiag) btnDiag.addEventListener('click', ()=>{ window.location.href='/diagnostics.html'; });
-if (btnWeather) btnWeather.addEventListener('click', ()=>{ window.location.href='/mainframeweather.html'; });
-if (btnToggleG) btnToggleG.addEventListener('click', ()=>{ toggleGauges(); });
-
-function toggleGauges(){ const g = document.getElementById('gauges'); if (!g) return; g.style.display = (g.style.display==='none') ? 'grid': 'grid'; }
-function toggleLife(){ const lp = document.getElementById('life-placeholder'); if (!lp) return; lp.style.display = (lp.style.display==='none') ? 'flex':'none'; }
-function toggleComm(){ const cp = document.getElementById('comm-placeholder'); if (!cp) return; cp.style.display = (cp.style.display==='none') ? 'flex':'none'; }
-
-/* initial draw and start */
-// initial mini/major gauges
+/* initial draw and schedule simulation */
 setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60), 40,40,24);
 setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90), 40,40,24);
 setGauge(document.getElementById('pw-arc'), telemetry.power/100, 50,50,34);
 setGauge(document.getElementById('reactor-arc'), (telemetry.reactorTemp - 250) / (900 - 250), 50,50,34);
 setGauge(document.getElementById('fuel-arc'), telemetry.fuelLevel/100, 50,50,34);
-setGauge(document.getElementById('net-arc'), Math.max(0, Math.min(1, telemetry.netLatency / 300)), 50,50,34);
+// initial net arc uses the same visual boost so it's visible
+const initialNetPercent = Math.max(0.08, Math.min(1, telemetry.netLatency / 300));
+setGauge(document.getElementById('net-arc'), initialNetPercent, 50,50,34);
 
 simulateStep();
 setInterval(simulateStep, 1100);
 
-/* small startup noise */
-for (let i=0;i<2;i++) setTimeout(pushVagueError, 300*i+600);
-
-/* --- ALERT / SOUND MANAGER (original style) --- */
+/* --- ALERT / SOUND MANAGER (copied from previous working version) --- */
 const SoundManager = (function(){
   let ctx = null;
   let redInterval = null;
