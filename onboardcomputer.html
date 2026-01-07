@@ -47,17 +47,16 @@
     /* Left column stack: gauges (top) + subpanels (below) */
     .left{display:grid;grid-template-rows:auto 1fr;gap:14px}
 
-    /* Gauges row: left/top */
+    /* Gauges row: force four equal columns on larger screens, but allow responsive resizing on mobile */
     .gauges{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      flex-wrap:wrap;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* keep four across on desktop/tablet */
+      gap: 12px;
+      align-items: start;
     }
+
+    /* Gauge card: fill grid cell, allow SVG to scale */
     .gauge-card{
-      flex: 0 1 220px;
-      max-width: 260px;
-      min-width: 160px;
       background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);
       padding:14px;
       border-radius:10px;
@@ -66,16 +65,24 @@
       flex-direction:column;
       align-items:center;
       justify-content:flex-start;
+      min-width:0; /* prevents overflow in grid cells */
     }
     .gauge-title{font-size:13px;color:var(--muted);margin-bottom:6px;text-align:center}
-    svg.gauge{width:160px;height:120px;overflow:visible;display:block;margin:0 auto;flex-shrink:0}
+    /* make SVG responsive: scale to the cell width and preserve aspect ratio */
+    svg.gauge{
+      width:100%;
+      height:auto;
+      display:block;
+      aspect-ratio:160 / 120;
+      max-height:220px; /* optional cap for very tall layouts */
+    }
     .gauge-value{font-size:22px;margin-top:6px}
     .gauge-optimal{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
 
-    /* optimal status color variants (text-only) */
-    .gauge-optimal.status-ok { color: #9ff0c9; font-weight:700; }
-    .gauge-optimal.status-warn { color: #ffea99; font-weight:700; }
-    .gauge-optimal.status-critical { color: #ffd6d6; font-weight:700; }
+/* optimal status color variants (text-only) */
+.gauge-optimal.status-ok { color: #9ff0c9; font-weight:700; }
+.gauge-optimal.status-warn { color: #ffea99; font-weight:700; }
+.gauge-optimal.status-critical { color: #ffd6d6; font-weight:700; }
 
     /* mini gauges for life support */
     .mini-gauges { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
@@ -156,15 +163,6 @@
     .meter > i { display:block;height:100%;background:linear-gradient(90deg,#7bd389,#2ec4b6);transition:width .3s ease }
     .ls-compact { display:flex;gap:12px;align-items:center;flex-wrap:wrap }
 
-    @media (max-width:700px){
-      .tile.main { grid-column: auto; }
-      .systems-dock { grid-template-columns: 1fr; }
-      .ls-controls { width:100%; }
-      .mini-gauges { justify-content:space-between }
-      .gauges .gauge-card { flex: 1 1 48%; max-width: none; min-width: 140px; }
-      svg.gauge { width: 120px; height: 92px; }
-    }
-
     /* Emergency controls: allow wrapping so buttons never get cut off on narrow viewports */
     .emergency-controls {
       display: flex;
@@ -185,6 +183,18 @@
 
     /* Ensure mini gauges keep their width */
     .mini-gauge-card { width: 120px; flex: 0 0 120px; }
+
+    /* MOBILE: below this breakpoint allow gauges to wrap/resize into a responsive grid */
+    @media (max-width:600px) {
+      .gauges {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+      svg.gauge {
+        aspect-ratio: 4 / 3;
+        max-height: 160px;
+      }
+      .gauges .gauge-card { padding:10px; }
+    }
 
     /* Alert overlay and visual pulse effects */
     #alert-overlay {
@@ -908,7 +918,7 @@ if (btnDiag) btnDiag.addEventListener('click', ()=>{ window.location.href='/diag
 if (btnWeather) btnWeather.addEventListener('click', ()=>{ window.location.href='/mainframeweather.html'; });
 if (btnToggleG) btnToggleG.addEventListener('click', ()=>{ toggleGauges(); });
 
-function toggleGauges(){ const g = document.getElementById('gauges'); if (!g) return; g.style.display = (g.style.display==='none') ? 'flex': 'none'; }
+function toggleGauges(){ const g = document.getElementById('gauges'); if (!g) return; g.style.display = (g.style.display==='none') ? 'grid': 'grid'; }
 function toggleLife(){ const lp = document.getElementById('life-placeholder'); if (!lp) return; lp.style.display = (lp.style.display==='none') ? 'flex':'none'; }
 function toggleComm(){ const cp = document.getElementById('comm-placeholder'); if (!cp) return; cp.style.display = (cp.style.display==='none') ? 'flex':'none'; }
 
