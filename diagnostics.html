@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Diagnostics — Obsidian Bastian</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="app.css">
   <style>
     :root {
       --bg-dark: #181c24;
@@ -18,23 +19,10 @@
       --font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
     }
     body {
-      background: var(--bg-dark);
       color: var(--text-main);
       font-family: var(--font-family);
       margin: 0;
       padding: 0;
-    }
-    header {
-      background: var(--bg-panel);
-      padding: 1.5rem 2rem;
-      border-bottom: 2px solid var(--accent);
-      text-align: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2rem;
-      color: var(--accent);
-      letter-spacing: 2px;
     }
     main {
       max-width: 600px;
@@ -137,6 +125,9 @@
       text-decoration: none;
       font-size: 1rem;
     }
+    .return-link:hover {
+      text-decoration: underline;
+    }
     /* small screens */
     @media (max-width: 480px) {
       .diagnostics-select button { padding: 0.5rem 0.8rem; font-size: .95rem; }
@@ -145,9 +136,24 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Diagnostics — Obsidian Bastian</h1>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Diagnostics</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
   </header>
+
   <main>
     <div class="diagnostics-select" role="tablist" aria-label="Subsystems">
       <button data-area="Life Support">Life Support</button>

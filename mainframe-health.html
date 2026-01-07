@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
+  <link rel="stylesheet" href="app.css">
   <style>
     :root{
       --bg:#071217;
@@ -32,14 +33,17 @@
       margin:0;
       min-height:100%;
       font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
-      background:var(--bg);
       color:#d7eef0;
-      padding:24px;
+      padding:0;
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
     }
 
-    header{
+    .page-content {
+      padding: 24px;
+    }
+
+    .page-header{
       display:flex;
       gap:16px;
       align-items:center;
@@ -47,7 +51,7 @@
       margin-bottom:18px;
     }
 
-    header .title{
+    .page-header .title{
       display:flex;
       gap:12px;
       align-items:baseline;
@@ -170,25 +174,41 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="title">
-      <h1>System Health</h1>
-      <div class="muted">system observability dashboard — CPU, I/O, latency & contention</div>
-    </div>
-
-    <div class="controls">
-      <div class="seg" role="tablist" aria-label="Time range">
-        <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
-        <button data-range="6h" role="tab" aria-selected="false">6h</button>
-        <button data-range="24h" role="tab" aria-selected="false">24h</button>
-        <button data-range="1h" class="active" aria-pressed="true">1h</button>
-        <button data-range="6h">6h</button>
-        <button data-range="24h">24h</button>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>System Health</h2>
+        </div>
       </div>
-
-      <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
     </div>
   </header>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div class="title">
+        <h1>System Health Dashboard</h1>
+        <div class="muted">system observability dashboard — CPU, I/O, latency & contention</div>
+      </div>
+
+      <div class="controls">
+        <div class="seg" role="tablist" aria-label="Time range">
+          <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
+          <button data-range="6h" role="tab" aria-selected="false">6h</button>
+          <button data-range="24h" role="tab" aria-selected="false">24h</button>
+        </div>
+
+        <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
+      </div>
+    </div>
 
   <div class="layout">
     <div class="left">
@@ -702,5 +722,6 @@
       listIncidents: () => incidents.slice()
     };
   </script>
+  </div>
 </body>
 </html>
