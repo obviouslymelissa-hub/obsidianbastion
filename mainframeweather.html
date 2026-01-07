@@ -20,7 +20,7 @@
     button{background:var(--accent);color:#042023;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
     .toggle{display:flex;align-items:center;gap:8px;font-size:14px}
     .grid{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-top:18px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.[...]
     .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     .item{padding:10px;background:var(--glass);border-radius:8px}
     .label{font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -252,7 +252,6 @@
     saveFavorite: qs('#saveFavorite'),
     saveNote: qs('#saveNote'),
     planetNameInput: qs('#planetNameInput'),
-    generateThumb: qs('#generateThumb'),
     downloadThumb: qs('#downloadThumb'),
     thumbGrid: qs('#thumbGrid'),
   };
@@ -746,7 +745,8 @@
     }
     const a = document.createElement('a');
     a.href = lastThumbnailDataUrl;
-    const name = (el.planetName.textContent.trim() || (lastDataset && lastDataset.planet.planetCode) || 'planet').replace(/\s+/g,'_');
+    const inputName = (el.planetNameInput && el.planetNameInput.value.trim());
+    const name = (inputName || el.planetName.textContent.trim() || (lastDataset && lastDataset.planet.planetCode) || 'planet').replace(/\s+/g,'_');
     a.download = `${name}_thumbnail.png`;
     document.body.appendChild(a);
     a.click();
@@ -760,7 +760,9 @@
     if(!lastThumbnailDataUrl){
       lastThumbnailDataUrl = generateThumbnail(lastDataset, 300);
     }
-    const displayName = (el.planetName.textContent || lastDataset.planet.planetCode || '').trim();
+    // prefer user-input name if present
+    const inputName = el.planetNameInput && el.planetNameInput.value.trim();
+    const displayName = inputName || el.planetName.textContent || lastDataset.planet.planetCode;
     const entry = {
       id: `${lastDataset.planet.planetCode}-${Date.now()}`,
       name: displayName || (el.planetNameInput.value.trim() || lastDataset.planet.planetCode),
@@ -790,9 +792,9 @@
       d.title = `${item.name}\n${new Date(item.created).toLocaleString()}`;
       d.addEventListener('click', ()=>{
         // clicking thumbnail loads that planet into the UI
+        // set the planetNameInput first so render will pick it up as the displayed name
+        if(el.planetNameInput) el.planetNameInput.value = item.name;
         render({star: item.star, planet: item.planet});
-        // also set the planetNameInput to the saved display name for clarity
-        el.planetNameInput.value = item.name;
       });
       el.thumbGrid.appendChild(d);
     });
@@ -826,8 +828,7 @@
     el.findHabitable.disabled = true;
     el.unitToggle.disabled = true;
     el.earthToggle.disabled = true;
-    el.generateThumb.disabled = true;
-    el.downloadThumb.disabled = true;
+    if(el.downloadThumb) el.downloadThumb.disabled = true;
     el.saveFavorite.disabled = true;
 
     const maxAttempts = 5000;
@@ -849,8 +850,7 @@
           el.findHabitable.disabled = false;
           el.unitToggle.disabled = false;
           el.earthToggle.disabled = false;
-          el.generateThumb.disabled = false;
-          el.downloadThumb.disabled = false;
+          if(el.downloadThumb) el.downloadThumb.disabled = false;
           el.saveFavorite.disabled = false;
           el.earthToggle.checked = prevEarth;
           searching = false;
@@ -871,8 +871,7 @@
     el.findHabitable.disabled = false;
     el.unitToggle.disabled = false;
     el.earthToggle.disabled = false;
-    el.generateThumb.disabled = false;
-    el.downloadThumb.disabled = false;
+    if(el.downloadThumb) el.downloadThumb.disabled = false;
     el.saveFavorite.disabled = false;
     el.earthToggle.checked = prevEarth;
     searching = false;
@@ -890,22 +889,28 @@
     });
   });
 
-  // Thumbnail controls
-  el.generateThumb.addEventListener('click', ()=>{
-    if(!lastDataset){
-      alert('Generate or load a planet first.');
-      return;
-    }
-    lastThumbnailDataUrl = generateThumbnail(lastDataset, 600);
-    el.saveNote.textContent = 'Thumbnail generated';
-    setTimeout(()=> el.saveNote.textContent = '', 1800);
-  });
+  if(el.downloadThumb){
+    el.downloadThumb.addEventListener('click', ()=>{
+      downloadCurrentThumbnail();
+    });
+  }
 
-  el.downloadThumb.addEventListener('click', ()=>{
-    downloadCurrentThumbnail();
-  });
+  if(el.saveFavorite){
+    el.saveFavorite.addEventListener('click', ()=> saveFavorite());
+  }
 
-  el.saveFavorite.addEventListener('click', ()=> saveFavorite());
+  // Wire planet name input so typing updates the display immediately
+  if(el.planetNameInput){
+    el.planetNameInput.addEventListener('input', ()=>{
+      // If a dataset exists, re-render so label, orbit label, and thumbnails use the value
+      if(lastDataset){
+        render(lastDataset);
+      } else {
+        // no dataset yet — just set visible label
+        el.planetName.textContent = el.planetNameInput.value.trim() || '—';
+      }
+    });
+  }
 
   el.unitToggle.addEventListener('change', ()=>{
     displayUnit = el.unitToggle.checked ? 'C' : 'F';
