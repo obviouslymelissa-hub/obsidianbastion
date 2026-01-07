@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Carter's Star — Obsidian Bastian</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .star-header {
+      display: flex;
+      gap: 2rem;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .star-image-container {
+      flex: 0 0 300px;
+      min-width: 280px;
+    }
+
+    .star-image {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(79,209,197,0.08), rgba(127,240,223,0.04));
+      border: 2px solid rgba(79,209,197,0.15);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 60px rgba(79,209,197,0.06) inset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .star-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .star-image-placeholder {
+      font-size: 120px;
+      opacity: 0.3;
+      color: var(--accent);
+    }
+
+    .star-info {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .star-title {
+      font-size: 2.5rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: 1.5px;
+    }
+
+    .star-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin: 0 0 1.5rem 0;
+      font-weight: 600;
+    }
+
+    .info-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      margin-bottom: 1.5rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .info-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .info-value {
+      font-size: 1.1rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .dedication-section {
+      background: linear-gradient(180deg, rgba(79,209,197,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(79,209,197,0.08);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .dedication-section h2 {
+      margin: 0 0 1rem 0;
+      color: var(--accent);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .dedication-text {
+      color: var(--text-main);
+      line-height: 1.8;
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .dedication-meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(79,209,197,0.1);
+    }
+
+    .dedication-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .certificate-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .certificate-section h2 {
+      margin: 0 0 1rem 0;
+      color: var(--accent);
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .certificate-placeholder {
+      background: linear-gradient(135deg, rgba(79,209,197,0.04), rgba(127,240,223,0.02));
+      border: 2px dashed rgba(79,209,197,0.15);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    .certificate-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+
+    .certificate-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-certificate {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+      font-size: 1rem;
+    }
+
+    .btn-certificate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+
+    .btn-certificate.secondary {
+      background: var(--bg-panel);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .notes-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .notes-section h3 {
+      margin: 0 0 1rem 0;
+      color: var(--accent);
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .notes-content {
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 768px) {
+      .star-header {
+        flex-direction: column;
+      }
+
+      .star-image-container {
+        flex: 1;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      .star-title {
+        font-size: 2rem;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Star Registry</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <!-- Star Header with Image and Basic Info -->
+    <section class="star-header">
+      <div class="star-image-container">
+        <div class="star-image" role="img" aria-label="Carter's Star">
+          <!-- Placeholder: Replace with actual image -->
+          <div class="star-image-placeholder">⭐</div>
+          <!-- <img src="images/carters-star.jpg" alt="Carter's Star" /> -->
+        </div>
+      </div>
+
+      <div class="star-info">
+        <h1 class="star-title">Carter's Star</h1>
+        <p class="star-subtitle">A beacon of exploration and wonder</p>
+
+        <!-- Coordinates and Location Card -->
+        <div class="info-card">
+          <h3 style="margin: 0 0 1rem 0; color: var(--accent); font-size: 1.1rem;">Star Coordinates & Location</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Right Ascension</div>
+              <div class="info-value">12h 34m 56s</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Declination</div>
+              <div class="info-value">+45° 12' 34"</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Constellation</div>
+              <div class="info-value">Cygnus</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Distance</div>
+              <div class="info-value">~2,500 light years</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Spectral Type</div>
+              <div class="info-value">G2V (Sun-like)</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Magnitude</div>
+              <div class="info-value">+8.5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dedication Section -->
+    <section class="dedication-section">
+      <h2>Star Dedication</h2>
+      <div class="dedication-text">
+        "This star is dedicated to Captain Carter, explorer of galaxies and dreamer of infinite possibilities. 
+        May this celestial beacon serve as a reminder that the universe is vast, beautiful, and filled with endless adventures waiting to be discovered. 
+        Just as stars guide travelers through the darkness of space, may this star guide you through every journey, 
+        reminding you of your courage, curiosity, and the boundless wonder that lies ahead."
+      </div>
+
+      <div class="dedication-meta">
+        <div class="dedication-meta-item">
+          <div class="info-label">Dedicated By</div>
+          <div class="info-value">Strategic Operations Board</div>
+        </div>
+        <div class="dedication-meta-item">
+          <div class="info-label">Dedication Date</div>
+          <div class="info-value">January 22, 2026</div>
+        </div>
+        <div class="dedication-meta-item">
+          <div class="info-label">Registry ID</div>
+          <div class="info-value">OB-CS-2026-001</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Certificate Section -->
+    <section class="certificate-section">
+      <h2>Official Star Registry Certificate</h2>
+      <div class="certificate-placeholder">
+        <div class="certificate-icon">📜</div>
+        <p style="font-size: 1.1rem; margin: 0;">
+          Your official star registry certificate will be available here.
+        </p>
+        <p style="font-size: 0.9rem; margin: 1rem 0 0 0; opacity: 0.8;">
+          Certificate includes official coordinates, dedication text, and registry seal.
+        </p>
+      </div>
+
+      <div class="certificate-actions">
+        <button class="btn-certificate" onclick="alert('Certificate download feature coming soon!')">
+          📥 Download Certificate
+        </button>
+        <button class="btn-certificate secondary" onclick="window.print()">
+          🖨️ Print Certificate
+        </button>
+      </div>
+    </section>
+
+    <!-- Additional Notes Section -->
+    <section class="notes-section">
+      <h3>About This Star</h3>
+      <div class="notes-content">
+        <p>
+          Carter's Star is a G-type main-sequence star (G2V), similar in spectral class to our own Sun. 
+          Located in the constellation Cygnus, this star represents hope, exploration, and the eternal quest for knowledge.
+        </p>
+        <p>
+          While this star cannot be seen with the naked eye due to its distance and magnitude, 
+          it shines brightly in the hearts of those who gaze upon the night sky with wonder and imagination.
+        </p>
+        <p>
+          <strong>Special Note:</strong> This star dedication is a symbolic gesture honoring the spirit of exploration 
+          and the boundless curiosity that drives us to reach for the stars.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer style="text-align: center; color: var(--text-muted); padding: 2rem 1rem; margin-top: 3rem; border-top: 1px solid var(--border); font-size: 0.9rem;">
+    <p style="margin: 0;">"To the stars we sail — curiosity is our compass."</p>
+    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;">Obsidian Bastian — Star Registry Division</p>
+  </footer>
+
+</body>
+</html>

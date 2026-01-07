@@ -1,1 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Achievements — Obsidian Bastian</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
 
+    .page-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .achievement-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .achievement-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    .achievement-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+      text-align: center;
+    }
+
+    .achievement-title {
+      font-size: 1.2rem;
+      color: var(--accent);
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .achievement-description {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .locked {
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+
+    .page-intro {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Shared site header -->
+  <header class="site-header">
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
+      <div class="header-left">
+        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+        </div>
+        <div class="header-text" aria-label="Site title">
+          <h1>Obsidian Bastian</h1>
+          <h2>Achievements</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <div class="page-intro">
+      <h1 style="color: var(--accent); font-size: 2rem; margin: 0 0 1rem 0;">Mission Achievements</h1>
+      <p>Track your progress and accomplishments across the Obsidian Bastian missions.</p>
+    </div>
+
+    <div class="achievements-grid">
+      <!-- Example achievement - unlocked -->
+      <div class="achievement-card">
+        <div class="achievement-icon">🚀</div>
+        <h3 class="achievement-title">First Launch</h3>
+        <p class="achievement-description">Successfully completed your first mission aboard the Obsidian Bastian.</p>
+      </div>
+
+      <!-- Example achievement - unlocked -->
+      <div class="achievement-card">
+        <div class="achievement-icon">🌟</div>
+        <h3 class="achievement-title">Star Gazer</h3>
+        <p class="achievement-description">Discovered your first star in the navigation console.</p>
+      </div>
+
+      <!-- Example achievement - locked -->
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🛰️</div>
+        <h3 class="achievement-title">Communications Expert</h3>
+        <p class="achievement-description">Send 100 messages through ship communications.</p>
+      </div>
+
+      <!-- Example achievement - locked -->
+      <div class="achievement-card locked">
+        <div class="achievement-icon">⚡</div>
+        <h3 class="achievement-title">Power Master</h3>
+        <p class="achievement-description">Maintain optimal power levels for 24 hours.</p>
+      </div>
+
+      <!-- Example achievement - locked -->
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🔧</div>
+        <h3 class="achievement-title">Master Mechanic</h3>
+        <p class="achievement-description">Order and install 50 ship parts.</p>
+      </div>
+
+      <!-- Example achievement - locked -->
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🛡️</div>
+        <h3 class="achievement-title">Defender</h3>
+        <p class="achievement-description">Successfully defend against 10 threats.</p>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: var(--bg-panel); border-radius: 12px; border: 1px solid var(--border);">
+      <p style="color: var(--text-muted); margin: 0; font-size: 0.95rem;">
+        <em>More achievements coming soon! Keep exploring and completing missions.</em>
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>
