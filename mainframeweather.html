@@ -45,11 +45,15 @@
     .unit-switch input{width:16px;height:16px}
     /* Habitability gauge */
     .gauge { width:140px; height:140px; display:inline-block; }
-    .gauge svg { transform: rotate(-90deg); }
+    /* Removed rotation here so the SVG text isn't rotated */
     .funfacts{font-size:13px;line-height:1.4;color:#d9f6ff}
     .save-note{font-size:12px;color:var(--muted);margin-left:8px}
     .header-actions{display:flex;gap:8px;align-items:center}
     input[type="text"].planet-name{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+    /* thumbnail gallery */
+    .thumb-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .thumb{width:88px;height:88px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);background:#031a2b;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
   </style>
 </head>
 <body>
@@ -80,6 +84,8 @@
       <div class="header-actions">
         <button id="shuffle">Random Planet</button>
         <button id="findHabitable">Find Habitable</button>
+        <button id="generateThumb">Generate Thumbnail</button>
+        <button id="downloadThumb">Download Thumbnail</button>
         <button id="saveFavorite">Save Favorite</button>
         <div id="saveNote" class="save-note" aria-live="polite"></div>
       </div>
@@ -179,6 +185,13 @@
             <div id="funfacts" class="funfacts" style="margin-top:8px">—</div>
           </div>
         </div>
+
+        <div class="card">
+          <div class="label">Saved Thumbnails</div>
+          <div id="thumbGrid" class="thumb-grid">
+            <!-- thumbnails -->
+          </div>
+        </div>
       </aside>
     </div>
 
@@ -225,8 +238,10 @@
     phenomena: qs('#phenomena'),
     location: qs('#location'),
     diagnostics: qs('#diagnostics'),
+    json: qs('#json'),
     shuffle: qs('#shuffle'),
     earthToggle: qs('#earthToggle'),
+    copyJson: qs('#copyJson'),
     unitToggle: qs('#unitToggle'),
     findHabitable: qs('#findHabitable'),
     orbitSvg: qs('#orbitSvg'),
@@ -237,9 +252,13 @@
     gaugeContainer: qs('#gaugeContainer'),
     gaugeText: qs('#gaugeText'),
     funfacts: qs('#funfacts'),
+    shuffle: qs('#shuffle'),
     saveFavorite: qs('#saveFavorite'),
     saveNote: qs('#saveNote'),
     planetNameInput: qs('#planetNameInput'),
+    generateThumb: qs('#generateThumb'),
+    downloadThumb: qs('#downloadThumb'),
+    thumbGrid: qs('#thumbGrid'),
   };
 
   // Keep last dataset to allow re-render when switching units
@@ -248,8 +267,10 @@
   let displayUnit = 'F';
   // Searching state
   let searching = false;
+  // last thumbnail
+  let lastThumbnailDataUrl = null;
 
-  // Random generators (same as before)
+  // Random generators
   function makeSystemName(){
     if(Math.random() < 0.25){
       return choice(['Kepler','TRAPPIST','Gliese','HD','KIC']) + '-' + randint(10,9999);
@@ -293,6 +314,7 @@
     }
     const gravity = +(massEarth / (radiusEarth*radiusEarth)).toFixed(2);
 
+    // Temperature: compute via Kelvin then convert to C and F; store both
     let tempK = 278 * Math.pow(star.luminosityFactor, 0.25) / Math.sqrt(Math.max(orbital,0.2));
     tempK = tempK * (0.6 + Math.random()*1.8);
     const tempC = +(tempK - 273.15).toFixed(1);
@@ -343,6 +365,7 @@
       let n2 = +(rand(30,90)).toFixed(1);
       let o2 = +(rand(0,30)).toFixed(1);
       let co2 = +(rand(0,10)).toFixed(2);
+      // Bias for habitable-like mixes using Fahrenheit range roughly equivalent to original C bias
       if(tempF >= -13 && tempF <= 131 && Math.random() < 0.5){
         n2 = +(rand(60,80)).toFixed(1);
         o2 = +(rand(10,25)).toFixed(1);
@@ -357,6 +380,7 @@
       if(Math.random() < 0.12) comps.push({gas:'SO2',pct: +(rand(0,4)).toFixed(2)});
     }
     let sum = comps.reduce((s,c)=>s+Number(c.pct),0);
+    if(sum < 30 && pType.includes('Gas')) sum = comps.reduce((s,c)=>s+Number(c.pct),0);
     comps.forEach(c => { c.pct = +(100 * c.pct / sum).toFixed(2); });
     return comps.sort((a,b)=>b.pct - a.pct);
   }
@@ -378,6 +402,7 @@
   }
 
   function evaluateHabitability({tempF, tempC, pressure, comp, gravity, pType}){
+    // Heuristic uses Fahrenheit bounds internally
     let score = 0;
     if(pType==='Terrestrial' || pType==='Super-Earth' || pType==='Ocean World') score += 1;
     if(tempF >= -4 && tempF <= 122) score += 2;
@@ -466,6 +491,7 @@
     el.orbital.textContent = `${planet.orbitalAU} AU (index ${planet.index})`;
     el.gravity.textContent = `${planet.gravity} g`;
 
+    // Temperature display based on unit toggle
     const tempDisplay = (displayUnit === 'F') ? `${planet.tempF} °F` : `${planet.tempC} °C`;
     el.temperature.textContent = tempDisplay;
 
@@ -503,6 +529,9 @@
     drawOrbit(planet, star);
     drawGauge(planet.habitability.score);
     populateFunFacts(planet, star);
+
+    // reset last thumbnail until generateThumbnail is run
+    lastThumbnailDataUrl = null;
   }
 
   function makeCoordinate(){
@@ -596,6 +625,8 @@
     fg.setAttribute('stroke-linecap', 'round');
     fg.setAttribute('stroke-dasharray', `${filled} ${c - filled}`);
     fg.setAttribute('stroke-dashoffset', '0');
+    // rotate only the foreground arc so the arc starts at top, but text remains upright
+    fg.setAttribute('transform', 'rotate(-90)');
     g.appendChild(fg);
     // center text
     const t = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -628,6 +659,130 @@
     el.funfacts.textContent = facts.join('\n');
   }
 
+  // --- Thumbnail generation ---
+  function generateThumbnail(dataset, size = 300){
+    if(!dataset) return null;
+    const star = dataset.star;
+    const planet = dataset.planet;
+    const cvs = document.createElement('canvas');
+    cvs.width = size;
+    cvs.height = size;
+    const ctx = cvs.getContext('2d');
+
+    const g = ctx.createLinearGradient(0,0,0,size);
+    g.addColorStop(0, '#071025');
+    g.addColorStop(1, '#021021');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,size,size);
+
+    const cx = size * 0.35;
+    const cy = size * 0.45;
+    ctx.beginPath();
+    ctx.fillStyle = '#ffd97a';
+    ctx.arc(cx, cy, Math.max(6, size*0.04), 0, Math.PI*2);
+    ctx.fill();
+
+    const r = size * (0.25 + Math.min(planet.orbitalAU / 5, 0.6) * 0.35);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r*0.60, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const angle = (planet.index/12) * Math.PI*2;
+    const px = cx + r*Math.cos(angle);
+    const py = cy + r*0.6*Math.sin(angle);
+    const pColor = planet.type.includes('Gas') ? '#85c1ff' : '#6ee7b7';
+    const pSize = Math.max(6, Math.min(40, planet.radiusEarth * 6));
+    if(planet.type.includes('Gas')){
+      const rad = pSize * 1.8;
+      const lg = ctx.createRadialGradient(px,py,0,px,py,rad);
+      lg.addColorStop(0, pColor);
+      lg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = lg;
+      ctx.beginPath();
+      ctx.arc(px,py,rad,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle = pColor;
+    ctx.beginPath();
+    ctx.arc(px,py,pSize,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(191,230,255,0.9)';
+    ctx.font = `${Math.max(10, size*0.04)}px Inter, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText((document.querySelector('#planetName').textContent || planet.planetCode), Math.max(px + pSize + 6, 12), Math.min(py + 6, size - 12));
+
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(0, size - 48, size, 48);
+    ctx.fillStyle = '#bfe6ff';
+    ctx.font = `${Math.max(10, size*0.038)}px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    const tempString = displayUnit === 'F' ? `${planet.tempF}°F` : `${planet.tempC}°C`;
+    ctx.fillText(`${planet.type} • ${tempString} • ${planet.habitability.habitable ? 'LIVABLE' : 'UNSUITABLE'}`, size/2, size - 20);
+
+    return cvs.toDataURL('image/png');
+  }
+
+  function downloadCurrentThumbnail(){
+    if(!lastThumbnailDataUrl && lastDataset){
+      lastThumbnailDataUrl = generateThumbnail(lastDataset, 600);
+    }
+    if(!lastThumbnailDataUrl) {
+      alert('No thumbnail available. Generate one first.');
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = lastThumbnailDataUrl;
+    const name = (el.planetNameInput.value.trim() || (lastDataset && lastDataset.planet.planetCode) || 'planet').replace(/\s+/g,'_');
+    a.download = `${name}_thumbnail.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function saveFavorite(){
+    if(!lastDataset) return;
+    if(!lastThumbnailDataUrl){
+      lastThumbnailDataUrl = generateThumbnail(lastDataset, 300);
+    }
+    const entry = {
+      id: `${lastDataset.planet.planetCode}-${Date.now()}`,
+      name: el.planetNameInput.value.trim() || lastDataset.planet.planetCode,
+      created: new Date().toISOString(),
+      star: lastDataset.star,
+      planet: lastDataset.planet,
+      thumbnail: lastThumbnailDataUrl
+    };
+    const existing = JSON.parse(localStorage.getItem('pb_favorites') || '[]');
+    existing.push(entry);
+    localStorage.setItem('pb_favorites', JSON.stringify(existing));
+    el.saveNote.textContent = `Saved as favorite (${entry.name})`;
+    renderGallery();
+    setTimeout(()=> el.saveNote.textContent = '', 3000);
+  }
+
+  function renderGallery(){
+    const list = JSON.parse(localStorage.getItem('pb_favorites') || '[]');
+    el.thumbGrid.innerHTML = '';
+    list.slice().reverse().forEach(item=>{
+      const d = document.createElement('div');
+      d.className = 'thumb';
+      const img = document.createElement('img');
+      img.src = item.thumbnail;
+      img.alt = item.name;
+      d.appendChild(img);
+      d.title = `${item.name}\n${new Date(item.created).toLocaleString()}`;
+      d.addEventListener('click', ()=>{
+        render({star: item.star, planet: item.planet});
+      });
+      el.thumbGrid.appendChild(d);
+    });
+  }
+
   // Main actions
   function randomize(){
     if(el.earthToggle.checked){
@@ -646,16 +801,20 @@
     if(searching) return;
     searching = true;
 
+    // Save current states to restore later
     const prevEarth = el.earthToggle.checked;
     // Disable earthToggle during search to avoid collision
     el.earthToggle.checked = false;
 
+    // Disable controls while searching
     el.shuffle.disabled = true;
     el.findHabitable.disabled = true;
+    el.copyJson?.disabled = true;
     el.unitToggle.disabled = true;
     el.earthToggle.disabled = true;
+    el.generateThumb.disabled = true;
+    el.downloadThumb.disabled = true;
     el.saveFavorite.disabled = true;
-    el.saveNote.textContent = '';
 
     const maxAttempts = 5000;
     const chunkSize = 100; // process in chunks then yield
@@ -671,25 +830,37 @@
         if(planet.habitability.habitable){
           render({star,planet});
           el.diagnostics.textContent = `Found habitable after ${attempts} attempts • ${new Date().toISOString()}`;
+          // restore toggles & controls
           el.shuffle.disabled = false;
           el.findHabitable.disabled = false;
+          el.copyJson?.disabled = false;
           el.unitToggle.disabled = false;
           el.earthToggle.disabled = false;
+          el.generateThumb.disabled = false;
+          el.downloadThumb.disabled = false;
           el.saveFavorite.disabled = false;
           el.earthToggle.checked = prevEarth;
           searching = false;
           return;
         }
       }
+      // update diagnostics and yield to the UI
       el.diagnostics.textContent = `Searching for habitable planet... attempts: ${attempts}`;
+      // short pause to keep UI responsive
+      // eslint-disable-next-line no-await-in-loop
       await new Promise(r => setTimeout(r, 0));
     }
 
+    // If we reach here, no habitable planet found within attempt limit
     el.diagnostics.textContent = `No habitable planet found after ${attempts} attempts. Try increasing maxAttempts.`;
+    // restore toggles & controls
     el.shuffle.disabled = false;
     el.findHabitable.disabled = false;
+    el.copyJson?.disabled = false;
     el.unitToggle.disabled = false;
     el.earthToggle.disabled = false;
+    el.generateThumb.disabled = false;
+    el.downloadThumb.disabled = false;
     el.saveFavorite.disabled = false;
     el.earthToggle.checked = prevEarth;
     searching = false;
@@ -707,36 +878,35 @@
     });
   });
 
-  // Save favorite (localStorage)
-  el.saveFavorite.addEventListener('click', ()=>{
-    if(!lastDataset) return;
-    const entry = {
-      id: `${lastDataset.planet.planetCode}-${Date.now()}`,
-      name: el.planetNameInput.value.trim() || lastDataset.planet.planetCode,
-      created: new Date().toISOString(),
-      star: lastDataset.star,
-      planet: lastDataset.planet
-    };
-    const existing = JSON.parse(localStorage.getItem('pb_favorites') || '[]');
-    existing.push(entry);
-    localStorage.setItem('pb_favorites', JSON.stringify(existing));
-    el.saveNote.textContent = `Saved as favorite (${entry.name})`;
-    setTimeout(()=> el.saveNote.textContent = '', 3000);
+  // Thumbnail controls
+  el.generateThumb.addEventListener('click', ()=>{
+    if(!lastDataset){
+      alert('Generate or load a planet first.');
+      return;
+    }
+    lastThumbnailDataUrl = generateThumbnail(lastDataset, 600);
+    el.saveNote.textContent = 'Thumbnail generated';
+    setTimeout(()=> el.saveNote.textContent = '', 1800);
   });
 
-  // Unit toggle listener — re-render using saved lastDataset
+  el.downloadThumb.addEventListener('click', ()=>{
+    downloadCurrentThumbnail();
+  });
+
+  el.saveFavorite.addEventListener('click', ()=> saveFavorite());
+
   el.unitToggle.addEventListener('change', ()=>{
     displayUnit = el.unitToggle.checked ? 'C' : 'F';
     render(lastDataset);
   });
 
-  // Quick listeners
   el.shuffle.addEventListener('click', ()=> randomize());
   el.earthToggle.addEventListener('change', ()=> randomize());
   el.findHabitable.addEventListener('click', ()=> findHabitable());
 
   // Initial generation
   randomize();
+  renderGallery();
 
 })();
 </script>
