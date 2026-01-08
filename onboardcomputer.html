@@ -129,7 +129,7 @@
     .panel h3{margin:0 0 12px 0;font-size:13px;color:var(--muted);position:relative;z-index:1}
     .panel .section-body { margin-top:8px; }
 
-    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-sizing:border-box;padding:12px}
+    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-s[...]
 
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
@@ -159,7 +159,7 @@
     .tile-icon { width:48px;height:48px;border-radius:10px;background:rgba(127,240,223,0.04);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent) }
     .tile-title { font-weight:700; font-size:1rem }
     .tile-desc { color:var(--muted); font-size:0.9rem; margin-top:4px }
-    .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block }
+    .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block[...]
 
     /* stronger, brighter gradient button styles for additional prominence */
     .btn-alert {
@@ -391,7 +391,7 @@
         </div>
       </div>
       <div class="header-right">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">← Return</a>
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">← Re[...]
       </div>
     </div>
   </header>
@@ -680,7 +680,7 @@
 
     <div class="row" style="margin-top:8px">
       <label for="evac-count" style="color:var(--muted);font-size:13px">Pods to dispatch</label>
-      <input id="evac-count" type="number" min="1" max="20" value="6" style="margin-left:auto;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:inherit;width:80px">
+      <input id="evac-count" type="number" min="1" max="20" value="6" style="margin-left:auto;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:inherit;wid[...]
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
@@ -998,213 +998,4 @@ const SoundManager = (function(){
     lfo.type = 'sine';
     lfo.frequency.value = 0.6;
     lfoGain.gain.value = 220;
-    lfo.connect(lfoGain);
-    lfoGain.connect(evacOsc.frequency);
-    evacOsc.frequency.value = 440;
-    evacOsc.start();
-    lfo.start();
-    evacOsc._lfo = lfo;
-  }
-
-  function stopAll(){
-    if (redInterval) { clearInterval(redInterval); redInterval = null; }
-    if (evacOsc) {
-      try { if (evacOsc._lfo) evacOsc._lfo.stop(); } catch(e){}
-      try { evacOsc.stop(); } catch(e){}
-      try { evacOsc.disconnect(); } catch(e){}
-      evacOsc = null;
-      evacGain = null;
-    }
-  }
-
-  function setMute(val){
-    mute = !!val;
-    if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
-  }
-
-  return {
-    startRed(){ startRedAlert(); },
-    startEvac(){ startEvac(); },
-    stop(){ stopAll(); },
-    setMute,
-    isMuted(){ return mute; }
-  };
-})();
-
-/* Wire up some controls (mute / red alert / evacuate) */
-const btnMute = document.getElementById('btn-mute');
-if (btnMute) {
-  btnMute.addEventListener('click', () => {
-    const isMuted = SoundManager.isMuted();
-    SoundManager.setMute(!isMuted);
-    btnMute.textContent = isMuted ? '🔈 Mute' : '🔇 Muted';
-    btnMute.setAttribute('aria-pressed', (!isMuted).toString());
-  });
-}
-
-const btnRed = document.getElementById('btn-red-alert');
-if (btnRed) {
-  btnRed.addEventListener('click', () => {
-    const active = document.body.classList.toggle('red-alert');
-    if (active) SoundManager.startRed(); else SoundManager.stop();
-  });
-}
-
-const btnEvac = document.getElementById('btn-evacuate');
-const evacModal = document.getElementById('evac-modal');
-const evacCancel = document.getElementById('evac-cancel');
-const evacConfirm = document.getElementById('evac-confirm');
-if (btnEvac) {
-  btnEvac.addEventListener('click', () => {
-    evacModal.classList.remove('hidden');
-  });
-}
-if (evacCancel) evacCancel.addEventListener('click', () => evacModal.classList.add('hidden'));
-
-/* --- Evac pod dispatching (restores "call ships in" behavior) --- */
-const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
-const evacPodsEl = document.getElementById('evac-pods');
-const commMsgEl = document.getElementById('comm-msg');
-
-let evacDispatch = {
-  active: false,
-  pods: [] // { id, el, timerId, state }
-};
-
-function mkPodEl(id) {
-  const pod = document.createElement('div');
-  pod.className = 'pod enroute';
-  pod.dataset.podId = id;
-  pod.innerHTML = `<div>Pod ${id}</div><div class="status">ENROUTE</div>`;
-  return pod;
-}
-
-function setPodState(podObj, state, note) {
-  podObj.state = state;
-  const el = podObj.el;
-  el.classList.remove('enroute','docked','failed','aborted');
-  if (state === 'enroute') el.classList.add('enroute');
-  else if (state === 'docked') el.classList.add('docked');
-  else if (state === 'failed') el.classList.add('failed');
-  else if (state === 'aborted') el.classList.add('aborted');
-
-  const statusEl = el.querySelector('.status');
-  statusEl.textContent = (state === 'enroute' ? 'ENROUTE' :
-                          state === 'docked' ? 'DOCKED' :
-                          state === 'failed' ? 'FAILED' :
-                          state === 'aborted' ? 'ABORTED' : state);
-  if (note) statusEl.textContent += ' • ' + note;
-}
-
-function pushComm(text) {
-  if (!commMsgEl) return;
-  commMsgEl.textContent = text;
-  pushTelemetryLine('[COMMS] ' + text);
-}
-
-function dispatchPods(count) {
-  // cleanup any previous
-  if (evacPodsEl) evacPodsEl.innerHTML = '';
-  evacDispatch.pods.forEach(p => { if (p.timerId) clearTimeout(p.timerId); });
-  evacDispatch.pods = [];
-
-  if (count <= 0) return;
-
-  evacDispatch.active = true;
-  pushComm(`Dispatching ${count} pod${count>1?'s':''} — ETA incoming`);
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Dispatching';
-
-  // enable cancel button
-  if (btnCancelDispatch) {
-    btnCancelDispatch.disabled = false;
-  }
-
-  for (let i = 1; i <= count; i++) {
-    const podEl = mkPodEl(i);
-    if (evacPodsEl) evacPodsEl.appendChild(podEl);
-
-    const podObj = { id: i, el: podEl, state: 'enroute', timerId: null };
-    evacDispatch.pods.push(podObj);
-
-    // simulate transit time (6–16 seconds) and small failure chance
-    const transit = 6000 + Math.round(Math.random() * 10000);
-    podObj.timerId = setTimeout(() => {
-      // if aborted meanwhile, skip
-      if (podObj.state !== 'enroute') return;
-
-      const failed = Math.random() < 0.06; // 6% chance to fail
-      if (failed) {
-        setPodState(podObj, 'failed', 'systems fault');
-        pushComm(`Pod ${podObj.id} failed to dock — investigating`);
-      } else {
-        setPodState(podObj, 'docked');
-        pushComm(`Pod ${podObj.id} docked successfully`);
-      }
-
-      // clear timer reference
-      podObj.timerId = null;
-
-      // when all pods are finished (no enroute timers), finalize
-      const stillEnroute = evacDispatch.pods.some(p => p.state === 'enroute' && p.timerId);
-      if (!stillEnroute) finishDispatch();
-    }, transit);
-  }
-}
-
-function finishDispatch() {
-  evacDispatch.active = false;
-  if (btnCancelDispatch) btnCancelDispatch.disabled = true;
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Standby';
-  pushTelemetryLine('Evac dispatch completed');
-  // leave body.evac until operator clears with Clear Alert button
-}
-
-// cancel/abort handler
-function cancelDispatch() {
-  if (!evacDispatch.active) return;
-  evacDispatch.pods.forEach(podObj => {
-    if (podObj.timerId) {
-      clearTimeout(podObj.timerId);
-      podObj.timerId = null;
-      setPodState(podObj, 'aborted');
-    }
-  });
-  evacDispatch.active = false;
-  if (btnCancelDispatch) btnCancelDispatch.disabled = true;
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Standby';
-  pushComm('Dispatch cancelled — pods aborted');
-  pushTelemetryLine('Evac dispatch cancelled by operator');
-}
-
-// wire up the cancel button (it exists in markup, initially disabled)
-if (btnCancelDispatch) {
-  btnCancelDispatch.addEventListener('click', () => {
-    if (!confirm('Abort active evacuation dispatch?')) return;
-    cancelDispatch();
-  });
-}
-
-// Replace the simple evacConfirm handler with one that dispatches pods:
-if (evacConfirm) {
-  evacConfirm.addEventListener('click', () => {
-    const countInput = document.getElementById('evac-count');
-    let count = 6;
-    if (countInput) {
-      const v = parseInt(countInput.value, 10);
-      if (!isNaN(v) && v > 0) count = Math.min(50, v);
-    }
-
-    evacModal.classList.add('hidden');
-    document.body.classList.add('evac');       // show overlay/state
-    SoundManager.startEvac();                  // start evac alarm
-    dispatchPods(count);
-    pushTelemetryLine(`EVAC initiated — ${count} pods dispatched`);
-  });
-}
-
-const clearBtn = document.getElementById('btn-clear-alert');
-if (clearBtn) clearBtn.addEventListener('click', () => { document.body.classList.remove('red-alert','evac'); SoundManager.stop(); });
-
-</script>
-</body>
-</html>
+[...]
