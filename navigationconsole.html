@@ -4,7 +4,92 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Navigation Console — Obsidian Bastian</title>
+
+  <!-- keep the external stylesheet link (will work when app.css is present) -->
   <link rel="stylesheet" href="app.css">
+
+  <!--
+    Embedded fallback/primary styles so the page renders correctly even when app.css
+    isn't available (e.g. opened via file:// or app.css missing). This also contains
+    small additions for the favorites UI we added earlier.
+  -->
+  <style>
+    :root{
+      --bg:#071025;
+      --panel:#0f1724;
+      --muted:#9aa6c0;
+      --accent:#6ee7b7;
+      --glass: rgba(255,255,255,0.03);
+      --card-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color-scheme: dark;
+    }
+
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#051025,#07142a);color:#e6eef8;}
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Header */
+    .site-header{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-bottom:1px solid rgba(255,255,255,0.03); }
+    .header-inner{ max-width:1100px; margin:0 auto; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; box-sizing:border-box; }
+    .header-left{ display:flex; align-items:center; gap:12px; }
+    .site-emblem img{ width:48px; height:48px; display:block; }
+    .header-text h1{ margin:0; font-size:22px; }
+    .header-text h2{ margin:0; font-size:14px; color:var(--muted); font-weight:500; }
+
+    .header-right a.return-command-hub { background: rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; color:var(--accent); font-weight:700; }
+
+    /* App container */
+    .app{ max-width:1100px; margin:18px auto; padding:0 18px 28px; box-sizing:border-box; }
+
+    .app-header{ display:flex; align-items:center; margin-bottom:12px; }
+    .header-actions{ margin-left:auto; display:flex; gap:8px; align-items:center; }
+    input#search{ padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; min-width:200px; }
+
+    .map-large{ background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); border:1px solid rgba(255,255,255,0.03); border-radius:12px; padding:12px; box-shadow: var(--card-shadow); margin-bottom:12px; overflow:hidden; }
+    #mapSvgLarge{ width:100%; height:240px; display:block; }
+
+    .status-banner{ padding:8px 12px; margin-bottom:12px; border-radius:8px; background:rgba(0,0,0,0.2); color:var(--muted); }
+
+    /* Main grid layout */
+    .grid{ display:grid; grid-template-columns: 240px 1fr 300px; gap:14px; align-items:start; }
+    .panel{ background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); box-shadow: var(--card-shadow); }
+    .panel.systems, .panel.planets, .panel.details{ min-height:120px; }
+    .panel.systems h2, .panel.planets h2{ margin:0 0 8px 0; font-size:18px; }
+    .panel.details h3{ margin:0 0 8px 0; font-size:16px; }
+
+    .list{ display:flex; flex-direction:column; gap:8px; max-height:360px; overflow:auto; padding-right:6px; }
+    .systems .list button, .planets .list button { text-align:left; background:transparent; border:0; padding:8px; border-radius:8px; color:#bfe6ff; cursor:pointer; }
+    .systems .list button:hover, .planets .list button:hover { background:rgba(255,255,255,0.02); }
+
+    .meta{ margin-top:10px; color:var(--muted); font-size:13px; display:grid; gap:6px; }
+    .muted{ color:var(--muted); font-size:13px; }
+
+    .controls{ display:flex; gap:8px; margin-top:10px; }
+    .btn{ background:var(--accent); color:#042023; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
+
+    /* Custom location panel */
+    .panel.custom input, .panel.custom select { background: transparent; color:inherit; border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:8px; }
+    .panel.custom .small-muted{ color:var(--muted); margin-top:8px; }
+
+    /* Favorites list styles (from earlier change) */
+    .fav-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .fav-item { display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:6px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); }
+    .fav-thumb { width:48px; height:48px; border-radius:6px; overflow:hidden; background:#031a2b; display:flex; align-items:center; justify-content:center; flex:0 0 48px; }
+    .fav-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .fav-meta { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .fav-title { color:#bfe6ff; font-weight:700; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fav-sub { color:rgba(191,230,255,0.7); font-size:12px; }
+    .fav-actions { display:flex; gap:6px; }
+    .fav-actions button { padding:6px 8px; border-radius:6px; border:0; background:rgba(255,255,255,0.03); color:#bfe6ff; cursor:pointer; font-size:12px; }
+    .fav-actions button.primary { background:var(--accent); color:#042023; font-weight:700; }
+
+    /* Responsive */
+    @media (max-width:980px){
+      .grid{ grid-template-columns: 1fr; }
+      .header-inner{ padding:14px; }
+    }
+  </style>
 </head>
 <body>
   <!-- Shared site header -->
@@ -77,7 +162,7 @@
     <section class="panel custom" aria-label="Custom Location" style="max-width:1100px;margin:18px auto 28px;display:block">
       <h3>Go to a custom location</h3>
       <div style="display:flex;gap:8px;align-items:center">
-        <input id="customGotoInput" placeholder="Type location (e.g. Earth, Sol-03b, Kepler-452/Kepler-452b)" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text-main)" />
+        <input id="customGotoInput" placeholder="Type location (e.g. Earth, Sol-03b, Kepler-452/Kepler-452b)" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit" />
         <select id="travelModeSelect" title="Travel mode">
           <option value="regular">Regular</option>
           <option value="warp">Warp</option>
@@ -94,7 +179,7 @@
       </div>
     </section>
 
-    <footer class="app-footer">
+    <footer class="app-footer" style="max-width:1100px;margin:0 auto;padding:6px 18px;color:var(--muted);font-size:13px;">
       <small>Prototype — works from file:// (embedded catalog) or hosted (will fetch systems.json if present)</small>
     </footer>
   </div>
@@ -110,8 +195,14 @@
           "star": { "name": "Sun (G2V)", "class": "G", "luminosityFactor": 1 },
           "planets": [
             { "id": "Sol-01b", "name": "Mercury", "index": 1, "orbitalAU": 0.39, "radiusEarth": 0.383, "massEarth": 0.055, "type": "Terrestrial", "summary": "Small, cratered rocky world." },
+            { "id": "Sol-02b", "name": "Venus", "index": 2, "orbitalAU": 0.72, "radiusEarth": 0.95, "massEarth": 0.82, "type": "Terrestrial", "summary": "Dense, hot atmosphere with sulfuric clouds." },
             { "id": "Sol-03b", "name": "Earth", "index": 3, "orbitalAU": 1.00, "radiusEarth": 1.00, "massEarth": 1.00, "type": "Terrestrial", "summary": "Blue planet with abundant life." },
-            { "id": "Sol-04b", "name": "Mars", "index": 4, "orbitalAU": 1.52, "radiusEarth": 0.53, "massEarth": 0.107, "type": "Terrestrial", "summary": "Red dusty world with polar caps." }
+            { "id": "Sol-04b", "name": "Mars", "index": 4, "orbitalAU": 1.52, "radiusEarth": 0.53, "massEarth": 0.107, "type": "Terrestrial", "summary": "Red dusty world with polar caps." },
+            { "id": "Sol-05b", "name": "Jupiter", "index": 5, "orbitalAU": 5.20, "radiusEarth": 11.21, "massEarth": 317.8, "type": "Gas Giant", "summary": "Massive gas giant with strong storms and many moons." },
+            { "id": "Sol-06b", "name": "Saturn", "index": 6, "orbitalAU": 9.58, "radiusEarth": 9.45, "massEarth": 95.2, "type": "Gas Giant", "summary": "Ringed gas giant with prominent ring system." },
+            { "id": "Sol-07b", "name": "Uranus", "index": 7, "orbitalAU": 19.2, "radiusEarth": 4.01, "massEarth": 14.5, "type": "Ice Giant", "summary": "Tilted ice giant with a faint ring and cold atmosphere." },
+            { "id": "Sol-08b", "name": "Neptune", "index": 8, "orbitalAU": 30.05, "radiusEarth": 3.88, "massEarth": 17.1, "type": "Ice Giant", "summary": "Windy ice giant with active storms." },
+            { "id": "Sol-09b", "name": "Pluto", "index": 9, "orbitalAU": 39.5, "radiusEarth": 0.186, "massEarth": 0.0022, "type": "Dwarf", "summary": "Dwarf planet in the Kuiper belt (historical interest)." }
           ]
         },
         {
@@ -120,13 +211,131 @@
           "coords": [420, 80],
           "star": { "name": "Kepler-452", "class": "G", "luminosityFactor": 1.15 },
           "planets": [
-            { "id": "Kepler-452-01b", "name": "Kepler-452b", "index": 1, "orbitalAU": 1.05, "radiusEarth": 1.6, "massEarth": 5.0, "type": "Super-Earth", "summary": "Potentially habitable super-Earth." }
+            { "id": "Kepler-452-01b", "name": "Kepler-452b", "index": 1, "orbitalAU": 1.05, "radiusEarth": 1.6, "massEarth": 5.0, "type": "Super-Earth", "summary": "Potentially habitable super-Earth." },
+            { "id": "Kepler-452-02b", "name": "Kepler-452c", "index": 2, "orbitalAU": 0.6, "radiusEarth": 1.0, "massEarth": 0.9, "type": "Terrestrial", "summary": "Rocky inner world, tidally active." },
+            { "id": "Kepler-452-03b", "name": "Kepler-452d", "index": 3, "orbitalAU": 1.8, "radiusEarth": 2.8, "massEarth": 12.0, "type": "Sub-Neptune", "summary": "Volatile-rich world with thick atmosphere." }
+          ]
+        },
+        {
+          "id": "TRAPPIST-1",
+          "name": "TRAPPIST-1",
+          "coords": [320, 140],
+          "star": { "name": "TRAPPIST-1", "class": "M", "luminosityFactor": 0.02 },
+          "planets": [
+            { "id": "TRAPPIST-1b", "name": "TRAPPIST-1b", "index": 1, "orbitalAU": 0.011, "radiusEarth": 1.11, "massEarth": 1.02, "type": "Terrestrial", "summary": "Very close-in rocky world." },
+            { "id": "TRAPPIST-1c", "name": "TRAPPIST-1c", "index": 2, "orbitalAU": 0.015, "radiusEarth": 1.05, "massEarth": 0.9, "type": "Terrestrial", "summary": "Compact orbit, interesting climate models." }
           ]
         }
       ]
     };
   </script>
 
+  <!-- Favorites integration (reads pb_favorites from localStorage and shows quick access) -->
+  <script>
+    (function(){
+      function qs(id){ return document.getElementById(id); }
+
+      function renderFavorites(){
+        const raw = localStorage.getItem('pb_favorites') || '[]';
+        let list;
+        try{ list = JSON.parse(raw); } catch(e){ list = []; }
+        const container = qs('customList');
+        if(!container) return;
+        container.innerHTML = '';
+        if(!list || !list.length){
+          container.textContent = 'No custom locations yet — create one with the Go button.';
+          return;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'fav-list';
+        list.slice().reverse().slice(0,8).forEach(item=>{
+          const row = document.createElement('div');
+          row.className = 'fav-item';
+
+          const thumb = document.createElement('div');
+          thumb.className = 'fav-thumb';
+          if(item.thumbnail){
+            const img = document.createElement('img');
+            img.src = item.thumbnail;
+            img.alt = item.name || (item.planet && item.planet.planetCode) || 'saved';
+            thumb.appendChild(img);
+          } else {
+            thumb.textContent = '🔭';
+            thumb.style.fontSize = '18px';
+            thumb.style.display = 'flex';
+            thumb.style.alignItems = 'center';
+            thumb.style.justifyContent = 'center';
+            thumb.style.color = 'rgba(191,230,255,0.6)';
+          }
+
+          const meta = document.createElement('div');
+          meta.className = 'fav-meta';
+          const title = document.createElement('div');
+          title.className = 'fav-title';
+          title.textContent = item.name || (item.planet && item.planet.planetCode) || 'Saved Location';
+          const sub = document.createElement('div');
+          sub.className = 'fav-sub';
+          const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
+          const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
+          sub.textContent = `${sys} ${pcode}`.trim();
+
+          meta.appendChild(title);
+          meta.appendChild(sub);
+
+          const actions = document.createElement('div');
+          actions.className = 'fav-actions';
+
+          const loadBtn = document.createElement('button');
+          loadBtn.type = 'button';
+          loadBtn.textContent = 'Load';
+          loadBtn.title = 'Load into the custom location input';
+          loadBtn.addEventListener('click', () => {
+            const input = qs('customGotoInput');
+            if(!input) return;
+            input.value = item.name || (item.planet && item.planet.planetCode) || '';
+            input.focus();
+          });
+
+          const goBtn = document.createElement('button');
+          goBtn.type = 'button';
+          goBtn.className = 'primary';
+          goBtn.textContent = 'Go';
+          goBtn.title = 'Go to this saved location';
+          goBtn.addEventListener('click', () => {
+            const input = qs('customGotoInput');
+            const btn = qs('customGotoBtn');
+            if(!input || !btn) return;
+            input.value = item.name || (item.planet && item.planet.planetCode) || '';
+            btn.click();
+          });
+
+          actions.appendChild(loadBtn);
+          actions.appendChild(goBtn);
+
+          row.appendChild(thumb);
+          row.appendChild(meta);
+          row.appendChild(actions);
+
+          wrapper.appendChild(row);
+        });
+
+        container.appendChild(wrapper);
+      }
+
+      window.addEventListener('storage', (ev) => {
+        if(ev.key === 'pb_favorites') renderFavorites();
+      });
+
+      if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', renderFavorites);
+      } else {
+        renderFavorites();
+      }
+    })();
+  </script>
+
+  <!-- keep the module script for the existing interactive behaviour -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
