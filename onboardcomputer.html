@@ -125,7 +125,7 @@
     .panel h3{margin:0 0 12px 0;font-size:13px;color:var(--muted);position:relative;z-index:1}
     .panel .section-body { margin-top:8px; }
 
-    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-s[...]
+    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-sizing:border-box;padding:12px}
 
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
@@ -155,7 +155,7 @@
     .tile-icon { width:48px;height:48px;border-radius:10px;background:rgba(127,240,223,0.04);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent) }
     .tile-title { font-weight:700; font-size:1rem }
     .tile-desc { color:var(--muted); font-size:0.9rem; margin-top:4px }
-    .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block[...]
+    .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block }
 
     /* stronger, brighter gradient button styles for additional prominence */
     .btn-alert {
@@ -327,8 +327,8 @@
         </feMerge>
       </filter>
 
-      <!-- Reactor (simplified to match other gauges: cool → warm) -->
-      <linearGradient id="reactor-grad" x1="0" x2="1" gradientUnits="objectBoundingBox">
+      <!-- Reactor: simplified two-stop gradient (cool → warm) so it matches other gauges -->
+      <linearGradient id="reactor-grad" x1="0" x2="1">
         <stop offset="0%" stop-color="#4ec8ff" />
         <stop offset="100%" stop-color="#ff5a5a" />
       </linearGradient>
@@ -385,7 +385,7 @@
         </div>
       </div>
       <div class="header-right">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">← Re[...]
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">← Return</a>
       </div>
     </div>
   </header>
@@ -572,7 +572,7 @@
           <div class="tile-head">
             <div class="tile-icon" aria-hidden="true">🖥️</div>
             <div>
-              <div class="tile-title">System Health</div>
+              <div class="tile-title">Mainframe</div>
               <div class="tile-desc">Health metrics and charts.</div>
             </div>
           </div>
@@ -674,7 +674,7 @@
 
     <div class="row" style="margin-top:8px">
       <label for="evac-count" style="color:var(--muted);font-size:13px">Pods to dispatch</label>
-      <input id="evac-count" type="number" min="1" max="20" value="6" style="margin-left:auto;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:inherit;wid[...]
+      <input id="evac-count" type="number" min="1" max="20" value="6" style="margin-left:auto;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#07121a;color:inherit;width:80px">
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
@@ -898,8 +898,35 @@ const btnCycle = document.getElementById('btn-cycle-scrubber');
 const btnReset = document.getElementById('btn-reset-scrubber');
 if (btnCycle) btnCycle.addEventListener('click', cycleScrubber);
 if (btnReset) btnReset.addEventListener('click', resetScrubber);
-function cycleScrubber(){ if (!btnCycle) return; btnCycle.disabled = true; const original = btnCycle.textContent; btnCycle.textContent = 'Cycling...'; setTimeout(()=>{ const delta = 4 + Math.random()*[...]
-function resetScrubber(){ if (!btnReset) return; if (!confirm('Reset scrubber to factory defaults? This sets efficiency to 100% and resets ETA.')) return; btnReset.disabled = true; const original = bt[...]
+function cycleScrubber(){
+  if (!btnCycle) return;
+  btnCycle.disabled = true;
+  const original = btnCycle.textContent;
+  btnCycle.textContent = 'Cycling...';
+  // simulate a scrubber cycle improving efficiency
+  setTimeout(()=> {
+    telemetry.scrubberEfficiency = Math.min(100, telemetry.scrubberEfficiency + 6 + Math.random()*6);
+    telemetry.scrubberEtaHours = Math.max(0, telemetry.scrubberEtaHours - 2 - Math.random()*2);
+    btnCycle.textContent = original;
+    btnCycle.disabled = false;
+    pushTelemetryLine('Scrubber cycle completed — efficiency improved');
+  }, 2200);
+}
+function resetScrubber(){
+  if (!btnReset) return;
+  if (!confirm('Reset scrubber to factory defaults? This sets efficiency to 100% and resets ETA.')) return;
+  btnReset.disabled = true;
+  const original = btnReset.textContent;
+  btnReset.textContent = 'Resetting...';
+  setTimeout(()=> {
+    telemetry.scrubberEfficiency = 100;
+    telemetry.scrubberEtaHours = 0;
+    btnReset.textContent = original;
+    btnReset.disabled = false;
+    pushTelemetryLine('Scrubber reset to factory defaults');
+  }, 1200);
+}
+
 /* initial draw and schedule simulation */
 setGauge(document.getElementById('o2-arc'), (telemetry.o2-60)/(95-60), 40,40,24);
 setGauge(document.getElementById('p-arc'), (telemetry.pressure-90)/(110-90), 40,40,24);
@@ -913,7 +940,7 @@ setGauge(document.getElementById('net-arc'), initialNetPercent, 50,50,34);
 simulateStep();
 setInterval(simulateStep, 1100);
 
-/* --- ALERT / SOUND MANAGER (copied from previous working version) --- */
+/* --- ALERT / SOUND MANAGER --- */
 const SoundManager = (function(){
   let ctx = null;
   let redInterval = null;
@@ -997,6 +1024,46 @@ const SoundManager = (function(){
     isMuted(){ return mute; }
   };
 })();
+
+/* Wire up some controls (mute / red alert / evacuate) */
+const btnMute = document.getElementById('btn-mute');
+if (btnMute) {
+  btnMute.addEventListener('click', () => {
+    const isMuted = SoundManager.isMuted();
+    SoundManager.setMute(!isMuted);
+    btnMute.textContent = isMuted ? '🔈 Mute' : '🔇 Muted';
+    btnMute.setAttribute('aria-pressed', (!isMuted).toString());
+  });
+}
+
+const btnRed = document.getElementById('btn-red-alert');
+if (btnRed) {
+  btnRed.addEventListener('click', () => {
+    const active = document.body.classList.toggle('red-alert');
+    if (active) SoundManager.startRed(); else SoundManager.stop();
+  });
+}
+
+const btnEvac = document.getElementById('btn-evacuate');
+const evacModal = document.getElementById('evac-modal');
+const evacCancel = document.getElementById('evac-cancel');
+const evacConfirm = document.getElementById('evac-confirm');
+if (btnEvac) {
+  btnEvac.addEventListener('click', () => {
+    evacModal.classList.remove('hidden');
+  });
+}
+if (evacCancel) evacCancel.addEventListener('click', () => evacModal.classList.add('hidden'));
+if (evacConfirm) evacConfirm.addEventListener('click', () => {
+  evacModal.classList.add('hidden');
+  document.body.classList.add('evac');
+  SoundManager.startEvac();
+  pushTelemetryLine('EVAC initiated — dispatching pods');
+});
+
+const clearBtn = document.getElementById('btn-clear-alert');
+if (clearBtn) clearBtn.addEventListener('click', () => { document.body.classList.remove('red-alert','evac'); SoundManager.stop(); });
+
 </script>
 </body>
 </html>
