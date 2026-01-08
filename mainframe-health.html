@@ -157,12 +157,31 @@
 
     /* incident log styles */
     .incident-log { display:flex; flex-direction:column; gap:10px; }
-    .incident { display:flex; gap:12px; align-items:flex-start; padding:10px; border-radius:10px; background:rgba(255,255,255,0.012); border:1px solid rgba(255,255,255,0.02); }
-    .incident .meta { width:160px; font-size:12px; color:var(--muted); }
-    .incident .meta .time { font-family:var(--mono); color:#bfe7ff; display:block; margin-bottom:6px; }
-    .incident .main { flex:1; }
-    .incident .title { font-weight:600; margin:0 0 6px 0; font-size:13px; }
-    .incident .desc { font-size:13px; color:var(--muted); margin:0 0 8px 0; }
+    /* Make each incident one column tall (timestamp & owner at the top) */
+    .incident { 
+      display:flex; 
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch; 
+      padding:10px; 
+      border-radius:10px; 
+      background:rgba(255,255,255,0.012); 
+      border:1px solid rgba(255,255,255,0.02); 
+    }
+    .incident .meta { 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      font-size:12px; 
+      color:var(--muted);
+      gap:8px;
+      width:100%;
+    }
+    .incident .meta .time { font-family:var(--mono); color:#bfe7ff; display:block; }
+    .incident .meta .owner { text-align:right; color:var(--muted); font-size:12px; }
+    .incident .main { flex:1; display:flex; flex-direction:column; gap:8px; }
+    .incident .title { font-weight:600; margin:0; font-size:13px; }
+    .incident .desc { font-size:13px; color:var(--muted); margin:0; }
     .pill { display:inline-block; padding:6px 8px; border-radius:999px; font-size:12px; font-weight:600; color:#021219; }
     .sev-critical { background:linear-gradient(90deg,var(--danger),#ff9e9e); }
     .sev-high { background:linear-gradient(90deg,var(--warn),#ffd39a); color:#021219; }
@@ -529,6 +548,7 @@
         wrapper.className = 'incident';
         if (inc.status === 'resolved') wrapper.classList.add('resolved');
 
+        // Meta row at top: timestamp (left) and owner (right)
         const meta = document.createElement('div');
         meta.className = 'meta';
         const time = document.createElement('span');
@@ -536,7 +556,7 @@
         time.textContent = formatTimeISO(inc.time);
         meta.appendChild(time);
         const owner = document.createElement('div');
-        owner.className = 'small-muted';
+        owner.className = 'owner';
         owner.textContent = `Owner: ${inc.owner}`;
         meta.appendChild(owner);
 
@@ -552,7 +572,7 @@
         desc.textContent = inc.desc;
         main.appendChild(desc);
 
-        // severity pill
+        // severity pill and status row
         const pill = document.createElement('span');
         pill.className = 'pill';
         if (inc.severity === 'critical') pill.classList.add('sev-critical');
@@ -588,7 +608,7 @@
         main.appendChild(metaRow);
         main.appendChild(actions);
 
-        wrapper.appendChild(meta);
+        wrapper.appendChild(meta);   // top row with time + owner
         wrapper.appendChild(main);
         incidentLogEl.appendChild(wrapper);
       });
