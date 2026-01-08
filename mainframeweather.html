@@ -7,58 +7,54 @@
   <link rel="stylesheet" href="app.css">
   <style>
     :root{
-      /* Reduced green: move accent toward a cooler blue palette and add a complementary accent2
-         so gradients and UI highlights look blue/teal rather than bright green. */
-      --bg:#0b0f1a;
-      --card:#0f1724;
-      --muted:#9aa6c0;
-      --accent:#60a5fa;    /* primary accent (blue) */
-      --accent2:#7dd3fc;   /* secondary, lighter accent for gradients */
-      --danger:#ff7b7b;
-      --glass: rgba(255,255,255,0.03);
+      /* restored original palette (green accent) */
+      --bg:#0b0f1a; --card:#0f1724; --muted:#9aa6c0; --accent:#6ee7b7;
+      --danger:#ff7b7b; --glass: rgba(255,255,255,0.03);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
+
     html,body{height:100%;margin:0;color:#e6eef8;background:var(--bg);}
     .wrap{max-width:980px;margin:0 auto;padding:24px;}
-    /* Adjusted header layout so subheader text can span full width and won't overlap controls */
+
+    /*
+      Header/subheader layout fixes:
+      - keep a single, top site header spanning full width (unchanged in markup)
+      - the page subheader (.page-header) is a single-row flex container on desktop
+        with three items: left (title+subtitle), controls (toggles), and header-actions (buttons).
+      - make .header-left flexible (flex:1) and add min-width:0 so long subtitle text can
+        shrink correctly and won't force overflow / create a narrow column.
+      - on narrow screens stack items using a media query (max-width:900px).
+    */
     .page-header{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:12px;
       margin-bottom:18px;
-      flex-wrap:wrap; /* allow children to wrap to new lines instead of overlapping */
+      /* do NOT wrap on desktop; stacking handled by media query */
     }
     .header-left{
       display:flex;
       flex-direction:column;
-      flex: 1 1 100%; /* allow the title/subtitle to span full width by default */
-      min-width:0; /* prevents long text from forcing overflow in flex items */
+      flex: 1 1 auto;    /* allow this column to take the remaining space */
+      min-width: 0;      /* IMPORTANT: allows long text to truncate/wrap correctly in a flex item */
     }
     .header-left h1{margin:0}
     .controls{
       display:flex;
       gap:8px;
       align-items:center;
-      flex: 0 1 auto;
-      order:2;
+      flex: 0 0 auto;
     }
-    /* keep default desktop ordering for actions, but allow wrapping on narrow screens */
     .header-actions{
       display:flex;
       gap:8px;
       align-items:center;
-      order:3;
-    }
-    @media (min-width: 900px){
-      /* on wide screens allow the left header to behave like a normal flex child */
-      .header-left{flex:1 1 auto;}
-      .controls, .header-actions{order:0;}
+      flex: 0 0 auto;
     }
 
     h1{font-size:20px;margin:0}
     .controls .center{display:flex;gap:10px;align-items:center}
-    /* Buttons updated to use the new blue accent. Slightly darker text color for contrast. */
     button{background:var(--accent);color:#042023;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
     .toggle{display:flex;align-items:center;gap:8px;font-size:14px}
     .grid{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-top:18px}
@@ -76,8 +72,8 @@
     .composition{margin-top:10px;display:flex;flex-direction:column;gap:6px}
     .comp-row{display:flex;justify-content:space-between;font-size:13px}
     .bar{height:10px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin-top:6px}
-    /* use the new blue accent gradient instead of the green/blue mix */
-    .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%}
+    /* original composition gradient */
+    .bar > i{display:block;height:100%;background:linear-gradient(90deg,#6ee7b7,#60a5fa);width:0%}
     .rightcol{display:flex;flex-direction:column;gap:12px}
     .visual-tabs{display:flex;gap:8px;border-bottom:1px dashed rgba(255,255,255,0.03);padding-bottom:8px;margin-bottom:8px}
     .tab{padding:6px 10px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
@@ -94,7 +90,6 @@
     .unit-switch input{width:16px;height:16px}
     /* Habitability gauge */
     .gauge { width:140px; height:140px; display:inline-block; }
-    /* Removed rotation here so the SVG text isn't rotated */
     .funfacts{font-size:13px;line-height:1.4;color:#d9f6ff}
     .save-note{font-size:12px;color:var(--muted);margin-left:8px}
     .header-actions{display:flex;gap:8px;align-items:center}
@@ -103,19 +98,21 @@
     .thumb-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
     .thumb{width:88px;height:88px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);background:#031a2b;display:flex;align-items:center;justify-content:center;cursor:pointer}
     .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-    /* responsive tweaks */
+
+    /* responsive stacking on narrow screens */
     @media (max-width: 900px){
-      .grid{grid-template-columns:1fr; }
-      .rightcol{order:2}
       .page-header{flex-direction:column;align-items:flex-start}
-      .header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}
+      .controls{width:100%;margin-top:8px}
+      .header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap;margin-top:8px}
+      .grid{grid-template-columns:1fr;}
+      .rightcol{order:2}
     }
   </style>
 </head>
 <body>
   <!-- Shared site header -->
   <header class="site-header">
-    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:linear-gradient(180de[...]
+    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;background:linear-gradient(180deg, rgba(2,6,23,0.95), rgba(2,6,23,0.85));">
       <div style="display:flex;gap:12px;align-items:center">
         <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center">
           <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board" style="width:48px;height:48px;display:block">
@@ -126,7 +123,7 @@
         </div>
       </div>
       <div class="header-right">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="background:var(--accent);padding:10px 18px;bord[...]
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="background:var(--accent);padding:10px 18px;border-radius:8px;color:#042023;text-decoration:none;font-weight:700">Command Hub</a>
       </div>
     </div>
   </header>
@@ -650,6 +647,7 @@
     pEl.setAttribute('cx', px);
     pEl.setAttribute('cy', py);
     pEl.setAttribute('r', planetSize);
+    // color choices: keep a blue/green mix for gas vs terrestrial (same as original)
     pEl.setAttribute('fill', planet.type.includes('Gas') ? '#85c1ff' : '#6ee7b7');
     pEl.setAttribute('stroke', 'rgba(0,0,0,0.2)');
     svg.appendChild(pEl);
@@ -696,7 +694,7 @@
     const fg = document.createElementNS('http://www.w3.org/2000/svg','circle');
     fg.setAttribute('r', r);
     fg.setAttribute('fill', 'none');
-    fg.setAttribute('stroke', pct > 0.66 ? 'var(--accent)' : (pct > 0.33 ? '#ffd97a' : '#ff7b7b'));
+    fg.setAttribute('stroke', pct > 0.66 ? '#6ee7b7' : (pct > 0.33 ? '#ffd97a' : '#ff7b7b'));
     fg.setAttribute('stroke-width', stroke);
     fg.setAttribute('stroke-linecap', 'round');
     fg.setAttribute('stroke-dasharray', `${filled} ${c - filled}`);
