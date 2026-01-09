@@ -3,402 +3,386 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Carter's Star — Obsidian Bastian</title>
+  <title>TRANSMISSION — Enif (ε Pegasi) — Obsidian Bastian</title>
   <link rel="stylesheet" href="app.css">
   <style>
-    body {
-      margin: 0;
-      padding: 0;
+    /*
+      Transmission theme:
+      - Dark, high-contrast terminal / comms layout
+      - Metadata header, payload card, attachments area
+      - Keeps the star info + inscription content (formatted as a transmitted payload)
+    */
+
+    :root{
+      --bg: #06070a;
+      --panel: #0f1720;
+      --muted: #9bb3b0;
+      --accent: #57f0c9;   /* neon cyan */
+      --accent-2: #ffd77a; /* amber for seals */
+      --glass: rgba(255,255,255,0.03);
+      --glow: 0 6px 28px rgba(87,240,201,0.08);
+      --mono: "SFMono-Regular", "Roboto Mono", "Menlo", "Monaco", monospace;
+      --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
-    .page-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
+    html,body{height:100%;}
+    body{
+      margin:0;
+      min-height:100%;
+      font-family:var(--ui);
+      background:
+        radial-gradient(1200px 600px at 10% 20%, rgba(87,240,201,0.02), transparent 6%),
+        linear-gradient(180deg, #020203 0%, var(--bg) 100%);
+      color:#dffbf2;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding-bottom:48px;
     }
 
-    .star-header {
-      display: flex;
-      gap: 2rem;
-      align-items: flex-start;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
+    .container{
+      max-width:1140px;
+      margin:28px auto;
+      padding:18px 20px;
+      box-sizing:border-box;
     }
 
-    .star-image-container {
-      flex: 0 0 300px;
-      min-width: 280px;
+    /* Comm header */
+    .comms-head{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:18px;
     }
 
-    .star-image {
-      width: 100%;
-      aspect-ratio: 1;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(79,209,197,0.08), rgba(127,240,223,0.04));
-      border: 2px solid rgba(79,209,197,0.15);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 60px rgba(79,209,197,0.06) inset;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
+    .comms-left{
+      display:flex;
+      gap:12px;
+      align-items:center;
     }
 
-    .star-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .badge{
+      width:72px;
+      height:72px;
+      border-radius:8px;
+      background:linear-gradient(180deg,#071018,#0b2730);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:2px solid rgba(87,240,201,0.12);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 30px rgba(87,240,201,0.02) inset;
+    }
+    .badge img{ width:56px; height:56px; object-fit:contain; display:block; }
+
+    .comms-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
     }
 
-    .star-image-placeholder {
-      font-size: 120px;
-      opacity: 0.3;
-      color: var(--accent);
+    .trans-label{
+      font-family:var(--mono);
+      font-weight:800;
+      color:var(--accent);
+      letter-spacing:1px;
+      font-size:0.85rem;
     }
 
-    .star-info {
-      flex: 1;
-      min-width: 300px;
+    .trans-sub{
+      font-weight:700;
+      color:var(--muted);
+      font-size:0.95rem;
     }
 
-    .star-title {
-      font-size: 2.5rem;
-      margin: 0 0 0.5rem 0;
-      color: var(--accent);
-      font-weight: 800;
-      letter-spacing: 1.5px;
+    .comms-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
     }
 
-    .star-subtitle {
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      margin: 0 0 1.5rem 0;
-      font-weight: 600;
+    .meta-chip{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      padding:10px 12px;
+      border-radius:8px;
+      font-family:var(--mono);
+      color:var(--muted);
+      font-weight:700;
+      font-size:0.85rem;
+      box-shadow: var(--glow);
     }
 
-    .info-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      margin-bottom: 1.5rem;
+    /* Main grid: left (payload) and right (attachments) */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:18px;
+      align-items:start;
     }
 
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
+    /* Payload card */
+    .payload{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(87,240,201,0.06);
+      border-radius:10px;
+      padding:18px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+      overflow:hidden;
     }
 
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
+    .payload-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:12px;
     }
 
-    .info-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 700;
+    .payload-meta{
+      font-family:var(--mono);
+      color:var(--accent);
+      font-weight:800;
+      font-size:0.92rem;
+      letter-spacing:0.8px;
     }
 
-    .info-value {
-      font-size: 1.1rem;
-      color: var(--text-main);
-      font-weight: 600;
+    .payload-sub{
+      color:var(--muted);
+      font-weight:700;
+      font-size:0.9rem;
     }
 
-    .dedication-section {
-      background: linear-gradient(180deg, rgba(79,209,197,0.03), rgba(255,255,255,0.01));
-      border: 1px solid rgba(79,209,197,0.08);
-      border-radius: 12px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    /* Transmission block (styled like fixed-width packet) */
+    .packet{
+      background: linear-gradient(180deg, rgba(2,8,10,0.4), rgba(2,8,10,0.2));
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      padding:14px;
+      font-family:var(--mono);
+      color:#bfffe9;
+      line-height:1.6;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      position:relative;
+      overflow:hidden;
     }
 
-    .dedication-section h2 {
-      margin: 0 0 1rem 0;
-      color: var(--accent);
-      font-size: 1.5rem;
-      font-weight: 700;
+    /* subtle scanline overlay */
+    .packet::after{
+      content:"";
+      pointer-events:none;
+      position:absolute;
+      inset:0;
+      background-image:linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px);
+      background-size:100% 4px;
+      mix-blend-mode:overlay;
+      opacity:0.6;
     }
 
-    .dedication-text {
-      color: var(--text-main);
-      line-height: 1.8;
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-      font-style: italic;
+    /* make certain lines stand out */
+    .packet .headline{
+      color:var(--accent-2);
+      font-weight:900;
+      letter-spacing:0.8px;
+      margin-bottom:8px;
+      font-size:1rem;
     }
 
-    .dedication-meta {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid rgba(79,209,197,0.1);
+    .packet .payload-text{
+      font-size:0.95rem;
+      color:#dffbf2;
+      margin-bottom:10px;
+      white-space:pre-wrap;
     }
 
-    .dedication-meta-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
+    .packet .kv{
+      display:grid;
+      grid-template-columns:180px 1fr;
+      gap:6px 12px;
+      align-items:start;
+      margin-top:8px;
     }
 
-    .certificate-section {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-      text-align: center;
+    .kv .k{ color:var(--muted); font-family:var(--mono); font-weight:800; font-size:0.80rem; text-transform:uppercase; }
+    .kv .v{ color:#bfffe9; font-weight:700; font-size:0.95rem; }
+
+    /* Formal inscription block (styled as official payload within transmission) */
+    .inscription{
+      margin-top:12px;
+      border-radius:6px;
+      padding:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0));
+      border:1px dashed rgba(87,240,201,0.06);
     }
 
-    .certificate-section h2 {
-      margin: 0 0 1rem 0;
-      color: var(--accent);
-      font-size: 1.5rem;
-      font-weight: 700;
+    .inscription .quote{
+      font-family:var(--mono);
+      font-weight:800;
+      color:var(--accent-2);
+      font-size:1.05rem;
+      margin-bottom:8px;
+      line-height:1.2;
     }
 
-    .certificate-placeholder {
-      background: linear-gradient(135deg, rgba(79,209,197,0.04), rgba(127,240,223,0.02));
-      border: 2px dashed rgba(79,209,197,0.15);
-      border-radius: 12px;
-      padding: 3rem 2rem;
-      margin-bottom: 1.5rem;
-      color: var(--text-muted);
+    .inscription .signed{
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-end;
+      color:var(--muted);
+      font-weight:800;
+      font-family:var(--mono);
     }
 
-    .certificate-icon {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      opacity: 0.4;
+    /* Attachments / right column */
+    .attachments{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
     }
 
-    .certificate-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
+    .att-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      border-radius:10px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
     }
 
-    .btn-certificate {
-      background: var(--accent);
-      color: var(--bg-panel);
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-      transition: transform .12s ease, box-shadow .12s ease;
-      font-size: 1rem;
+    .att-card img{ width:100%; height:220px; object-fit:cover; border-radius:8px; display:block; }
+
+    .att-label{ font-family:var(--mono); color:var(--muted); font-weight:800; font-size:0.86rem; }
+
+    /* Combined info moved below certificate (still styled as packet data) */
+    .combined{
+      margin-top:14px;
+      background:linear-gradient(180deg, rgba(2,8,10,0.3), rgba(2,8,10,0.18));
+      border-radius:8px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,0.02);
+      box-shadow:0 8px 20px rgba(0,0,0,0.55);
+      font-family:var(--mono);
+      color:#bfffe9;
     }
 
-    .btn-certificate:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    .combined .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:10px;
     }
 
-    .btn-certificate.secondary {
-      background: var(--bg-panel);
-      color: var(--text-main);
-      border: 1px solid var(--border);
+    .combined .item .k{ color:var(--muted); font-weight:800; text-transform:uppercase; font-size:0.78rem; }
+    .combined .item .v{ color:#bfffe9; font-weight:700; font-size:0.95rem; margin-top:6px; }
+
+    /* small responsive behaviour */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .comms-right { display:none; } /* hide chips on narrow */
+      .att-card img{ height:180px; }
     }
 
-    .notes-section {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .notes-section h3 {
-      margin: 0 0 1rem 0;
-      color: var(--accent);
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-
-    .notes-content {
-      color: var(--text-muted);
-      line-height: 1.6;
-      font-size: 0.95rem;
-    }
-
-    @media (max-width: 768px) {
-      .star-header {
-        flex-direction: column;
-      }
-
-      .star-image-container {
-        flex: 1;
-        width: 100%;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-
-      .star-title {
-        font-size: 2rem;
-      }
-
-      .info-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width:560px){
+      .badge{ width:56px; height:56px; }
+      .badge img{ width:44px; height:44px; }
+      .att-card img{ height:140px; }
     }
   </style>
 </head>
 <body>
-  <!-- Shared site header -->
-  <header class="site-header">
-    <div class="header-inner" role="banner" aria-label="Obsidian Bastian header">
-      <div class="header-left">
-        <div class="site-emblem" aria-hidden="true" title="Obsidian Bastian emblem">
-          <img src="https://obviouslymelissa-hub.github.io/obsidianbastian/images/StrOpBoard.png" alt="Strategic Operations Board">
+  <div class="container" role="main">
+    <header class="comms-head" role="banner" aria-label="Transmission header">
+      <div class="comms-left">
+        <div class="badge" aria-hidden="true">
+          <!-- Replace with your seal/logo if desired -->
+          <img src="images/ship-seal-placeholder.png" alt="">
         </div>
-        <div class="header-text" aria-label="Site title">
-          <h1>Obsidian Bastian</h1>
-          <h2>Star Registry</h2>
-        </div>
-      </div>
-      <div class="header-right">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastian/index.html" class="return-command-hub" aria-label="Return to Command Hub">← Return to Command Hub</a>
-      </div>
-    </div>
-  </header>
-
-  <div class="page-container">
-    <!-- Star Header with Image and Basic Info -->
-    <section class="star-header">
-      <div class="star-image-container">
-        <div class="star-image" role="img" aria-label="Carter's Star">
-          <!-- Placeholder: Replace with actual image -->
-          <div class="star-image-placeholder">⭐</div>
-          <!-- <img src="images/carters-star.jpg" alt="Carter's Star" /> -->
+        <div class="comms-title" aria-hidden="false">
+          <div class="trans-label">TRANSMISSION</div>
+          <div class="trans-sub">Obsidian Bastian — Shipboard Charts</div>
         </div>
       </div>
 
-      <div class="star-info">
-        <h1 class="star-title">Carter's Star</h1>
-        <p class="star-subtitle">A beacon of exploration and wonder</p>
+      <div class="comms-right" aria-hidden="false">
+        <div class="meta-chip">CLASSIFICATION: PERSONAL</div>
+        <div class="meta-chip">STARDATE: —</div>
+        <div class="meta-chip">ORIGIN: OBSIDIAN BASTIAN</div>
+      </div>
+    </header>
 
-        <!-- Coordinates and Location Card -->
-        <div class="info-card">
-          <h3 style="margin: 0 0 1rem 0; color: var(--accent); font-size: 1.1rem;">Star Coordinates & Location</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">Right Ascension</div>
-              <div class="info-value">12h 34m 56s</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Declination</div>
-              <div class="info-value">+45° 12' 34"</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Constellation</div>
-              <div class="info-value">Cygnus</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Distance</div>
-              <div class="info-value">~2,500 light years</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Spectral Type</div>
-              <div class="info-value">G2V (Sun-like)</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Magnitude</div>
-              <div class="info-value">+8.5</div>
-            </div>
+    <section class="grid" aria-label="Transmission payload and attachments">
+      <!-- left: payload -->
+      <article class="payload" role="article" aria-labelledby="payload-title">
+        <div class="payload-head">
+          <div>
+            <div id="payload-title" class="payload-meta">PAYLOAD — STAR INSCRIPTION / CHART ENTRY</div>
+            <div class="payload-sub">Enif (ε Pegasi) — shipboard marking</div>
+          </div>
+          <div class="payload-sub" style="color:var(--muted); font-family:var(--mono);">Packet ID: OB-BAS/ENIF/001</div>
+        </div>
+
+        <div class="packet" aria-label="Transmission packet">
+          <div class="headline">OFFICIAL INSCRIPTION (SHIPBOARD)</div>
+
+          <div class="payload-text">
+UNDER THE AUTHORITY OF THE STRATEGIC OPERATIONS BOARD
+BY ORDER OF THE OBSIDIAN BASTIAN, THIS STAR IS MARKED AND HONORED FOR:
+
+THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
+          </div>
+
+          <div class="kv" aria-hidden="false" role="list">
+            <div class="k">Honored star</div><div class="v">Enif (Epsilon Pegasi)</div>
+            <div class="k">Location (RA)</div><div class="v">2h 44m 11.6s</div>
+            <div class="k">Location (Dec)</div><div class="v">+09° 52' 30"</div>
+            <div class="k">Apparent brightness</div><div class="v">~+2.4</div>
+            <div class="k">Spectral type</div><div class="v">K2 Ib (orange supergiant)</div>
+            <div class="k">Distance</div><div class="v">~650–700 ly</div>
+            <div class="k">Radius</div><div class="v">~150–185 × R☉</div>
+            <div class="k">Luminosity</div><div class="v">~3,900–12,250 × L☉</div>
+            <div class="k">Surface temp</div><div class="v">~4,100–4,460 K</div>
+          </div>
+
+          <div class="inscription" aria-label="Inscription text">
+            <div class="quote">Inscribed into the Bastian's charts on this stardate, under the seal of the General.</div>
+            <div class="signed">— General Melissa</div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Dedication Section -->
-    <section class="dedication-section">
-      <h2>Star Dedication</h2>
-      <div class="dedication-text">
-        "This star is dedicated to Captain Carter, explorer of galaxies and dreamer of infinite possibilities. 
-        May this celestial beacon serve as a reminder that the universe is vast, beautiful, and filled with endless adventures waiting to be discovered. 
-        Just as stars guide travelers through the darkness of space, may this star guide you through every journey, 
-        reminding you of your courage, curiosity, and the boundless wonder that lies ahead."
-      </div>
-
-      <div class="dedication-meta">
-        <div class="dedication-meta-item">
-          <div class="info-label">Dedicated By</div>
-          <div class="info-value">Strategic Operations Board</div>
+        <!-- combined info block beneath payload for quick reference -->
+        <div class="combined" aria-label="Combined star information">
+          <div style="font-weight:900; color:var(--accent); margin-bottom:8px;">COMBINED STAR INFORMATION</div>
+          <div class="grid">
+            <div class="item"><div class="k">Named For</div><div class="v"><em>Carter Vinton Kimball</em> (shipboard inscription)</div></div>
+            <div class="item"><div class="k">Dedication Date</div><div class="v">January 22, 2018</div></div>
+            <div class="item"><div class="k">Constellation</div><div class="v">Pegasus</div></div>
+            <div class="item"><div class="k">Catalog (original)</div><div class="v">88607527 (UCAC3)</div></div>
+            <div class="item"><div class="k">Notes</div><div class="v">Private shipboard inscription — not formally registered</div></div>
+          </div>
         </div>
-        <div class="dedication-meta-item">
-          <div class="info-label">Dedication Date</div>
-          <div class="info-value">January 22, 2026</div>
+      </article>
+
+      <!-- right: attachments area -->
+      <aside class="attachments" role="complementary" aria-label="Attachments / images">
+        <div class="att-card" role="figure" aria-label="Pegasus attachment">
+          <div class="att-label">Attachment: Pegasus constellation</div>
+          <img src="images/pegasus-constellation.jpg" alt="Pegasus constellation (placeholder)">
+          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">images/pegasus-constellation.jpg</div>
         </div>
-        <div class="dedication-meta-item">
-          <div class="info-label">Registry ID</div>
-          <div class="info-value">OB-CS-2026-001</div>
+
+        <div class="att-card" role="figure" aria-label="Star map">
+          <div class="att-label">Attachment: Star map</div>
+          <img src="images/star-map.jpg" alt="Star map (placeholder)">
+          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">images/star-map.jpg</div>
         </div>
-      </div>
+      </aside>
     </section>
 
-    <!-- Certificate Section -->
-    <section class="certificate-section">
-      <h2>Official Star Registry Certificate</h2>
-      <div class="certificate-placeholder">
-        <div class="certificate-icon">📜</div>
-        <p style="font-size: 1.1rem; margin: 0;">
-          Your official star registry certificate will be available here.
-        </p>
-        <p style="font-size: 0.9rem; margin: 1rem 0 0 0; opacity: 0.8;">
-          Certificate includes official coordinates, dedication text, and registry seal.
-        </p>
-      </div>
-
-      <div class="certificate-actions">
-        <button class="btn-certificate" onclick="alert('Certificate download feature coming soon!')">
-          📥 Download Certificate
-        </button>
-        <button class="btn-certificate secondary" onclick="window.print()">
-          🖨️ Print Certificate
-        </button>
-      </div>
-    </section>
-
-    <!-- Additional Notes Section -->
-    <section class="notes-section">
-      <h3>About This Star</h3>
-      <div class="notes-content">
-        <p>
-          Carter's Star is a G-type main-sequence star (G2V), similar in spectral class to our own Sun. 
-          Located in the constellation Cygnus, this star represents hope, exploration, and the eternal quest for knowledge.
-        </p>
-        <p>
-          While this star cannot be seen with the naked eye due to its distance and magnitude, 
-          it shines brightly in the hearts of those who gaze upon the night sky with wonder and imagination.
-        </p>
-        <p>
-          <strong>Special Note:</strong> This star dedication is a symbolic gesture honoring the spirit of exploration 
-          and the boundless curiosity that drives us to reach for the stars.
-        </p>
-      </div>
-    </section>
-
+    <footer style="margin-top:18px; color:var(--muted); font-family:var(--mono); font-size:0.82rem; display:flex; justify-content:space-between; align-items:center;">
+      <div>TRANSMISSION LOG • OB-BAS • LOCAL</div>
+      <div>END OF PACKET</div>
+    </footer>
   </div>
-
-  <footer style="text-align: center; color: var(--text-muted); padding: 2rem 1rem; margin-top: 3rem; border-top: 1px solid var(--border); font-size: 0.9rem;">
-    <p style="margin: 0;">"To the stars we sail — curiosity is our compass."</p>
-    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem;">Obsidian Bastian — Star Registry Division</p>
-  </footer>
-
 </body>
 </html>
