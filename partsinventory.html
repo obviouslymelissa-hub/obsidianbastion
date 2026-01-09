@@ -85,19 +85,22 @@
             </div>
           </div>
 
-          <div class="col-12">
-            <div class="card p-3">
-              <h5 class="card-title">Incoming & Recent Orders</h5>
-              <div id="incomingSummary" class="muted small">Recent deliveries and expected arrivals will appear here.</div>
-            </div>
-          </div>
-
-          <!-- Restock Suggestions moved to left column, below Incoming & Recent Orders -->
+          <!-- Restock Suggestions moved to left column, below the charts -->
           <div class="col-12">
             <div class="card p-3">
               <h6 class="card-title">Restock Suggestions</h6>
               <ul id="restockList" class="list-group list-group-flush mt-2">
                 <!-- dynamic suggestions -->
+              </ul>
+            </div>
+          </div>
+
+          <!-- Outgoing supplies & maintenance usage log (shows 5 most recent) moved to left column -->
+          <div class="col-12">
+            <div class="card p-3">
+              <h6 class="card-title">Outgoing Usage Log</h6>
+              <ul id="usageLog" class="list-group list-group-flush mt-2">
+                <!-- dynamic usage entries (most recent 5) -->
               </ul>
             </div>
           </div>
@@ -156,14 +159,6 @@
           <h6 class="card-title">Order Log</h6>
           <ul id="orderLog" class="list-group list-group-flush mt-2">
             <!-- dynamic entries -->
-          </ul>
-        </div>
-
-        <!-- Outgoing supplies usage log -->
-        <div class="card p-3 sidebar mt-3">
-          <h6 class="card-title">Outgoing Supplies Log</h6>
-          <ul id="usageLog" class="list-group list-group-flush mt-2">
-            <!-- dynamic usage entries -->
           </ul>
         </div>
 
@@ -289,7 +284,7 @@
     // --- Application state ---
     let inventory = loadInventory();
     let orders = loadOrders();
-    let usage = loadUsage(); // outgoing supplies usage log
+    let usage = loadUsage(); // outgoing supplies & maintenance usage log
 
     // If the session hasn't been randomized yet, initialize with random values within ITEM_RANGES
     function randomBetween(min, max) {
@@ -372,7 +367,6 @@
     // --- UI: Log rendering ---
     const orderLogEl = document.getElementById('orderLog');
     const restockListEl = document.getElementById('restockList');
-    const incomingSummaryEl = document.getElementById('incomingSummary');
     const usageLogEl = document.getElementById('usageLog');
 
     function formatTime(ts) {
@@ -403,14 +397,16 @@
       });
     }
 
-    // --- Usage log rendering (outgoing supplies) ---
+    // --- Usage log rendering (outgoing supplies & maintenance) ---
     function renderUsageLog() {
       usageLogEl.innerHTML = '';
       if (!usage.length) {
-        usageLogEl.innerHTML = '<li class="list-group-item bg-transparent muted">No outgoing supplies recorded.</li>';
+        usageLogEl.innerHTML = '<li class="list-group-item bg-transparent muted">No outgoing usage recorded.</li>';
         return;
       }
-      usage.slice().reverse().forEach(u => {
+      // show only the most recent 5 entries on screen
+      const recent = usage.slice().reverse().slice(0, 5);
+      recent.forEach(u => {
         const li = document.createElement('li');
         li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-start log-entry';
         li.innerHTML = `
@@ -419,7 +415,7 @@
             <div class="muted small">${formatTime(u.ts)}</div>
           </div>
           <div class="text-end">
-            <small class="muted">${u.source || ''}</small>
+            <small class="muted">${escapeHtml(u.source || '')}</small>
           </div>
         `;
         usageLogEl.appendChild(li);
@@ -433,7 +429,6 @@
       const low = keys.filter(k => (inventory[k] || 0) <= RESTOCK_THRESHOLDS[k]);
       if (!low.length) {
         restockListEl.innerHTML = '<li class="list-group-item bg-transparent muted">All systems sufficiently stocked.</li>';
-        incomingSummaryEl.textContent = 'No immediate restock required.';
         return;
       }
 
@@ -453,7 +448,6 @@
         restockListEl.appendChild(li);
       });
 
-      incomingSummaryEl.textContent = `${low.length} items need attention.`;
       // attach listeners
       restockListEl.querySelectorAll('.restock-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -620,6 +614,9 @@
     // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
     const USAGE_TICK_MS = 8000; // every 8s
     const SUPPLIES_KEYS = new Set(['food rations', 'water pack', 'medical kit']);
+    // maintenance keys are everything else listed in ITEM_RANGES (excluding supplies)
+    const MAINTENANCE_KEYS = new Set(Object.keys(ITEM_RANGES).filter(k => !SUPPLIES_KEYS.has(k)));
+
     setInterval(() => {
       let changed = false;
       const now = Date.now();
@@ -634,17 +631,18 @@
             inventory[k] = next;
             changed = true;
 
-            // If this is a supply (food, water, medical), log outgoing usage
-            if (SUPPLIES_KEYS.has(k)) {
+            // If this is a supply or maintenance part, log outgoing usage
+            if (SUPPLIES_KEYS.has(k) || MAINTENANCE_KEYS.has(k)) {
               const entry = {
                 id: 'u' + now + Math.floor(Math.random() * 999),
                 item: k,
                 qty: Math.min(dec, old),
                 ts: now,
-                source: 'auto-usage'
+                // use 'crew' for supplies, 'maintenance' for parts
+                source: SUPPLIES_KEYS.has(k) ? 'crew' : 'maintenance'
               };
               usage.push(entry);
-              // keep usage log to a reasonable size
+              // keep usage log to a reasonable size in storage, but show only last 5 on screen
               if (usage.length > 300) usage.splice(0, usage.length - 300);
             }
           }
