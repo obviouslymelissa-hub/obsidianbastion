@@ -2,115 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Ship Communications — Obsidian Bastian</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Parts Inventory & Orders — Obsidian Bastian</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
   <link rel="stylesheet" href="app.css">
   <style>
-    :root{
-      --bg:#0b1220;
-      --panel:#0f1724;
-      --accent:#6ee7b7;
-      --muted:#9aa6b2;
-      --out:#143f2e;
-      --in:#102240;
-      --sys:#112;
-      color-scheme: dark;
-    }
+    /* Page styles (fallback/background) */
     body {
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      color: #cfe7e0;
       padding: 0;
+      color: #e6eef8;
+      /* fallback background in case app.css or external assets fail to load */
+      background: radial-gradient(ellipse at center, rgba(6,30,46,0.6) 0%, rgba(0,6,12,0.8) 60%), linear-gradient(180deg, #021826 0%, #00121a 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
     }
-
-    .page-content {
-      padding: 18px;
-    }
-
-    .shell {
-      max-width: 980px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 18px;
-    }
-    .panel {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      border: 1px solid rgba(255,255,255,0.03);
-      padding: 14px;
-      border-radius: 10px;
-    }
-    /* larger header to match other pages */
-    h1 { margin: 0 0 10px 0; font-size: 20px; font-weight:700; }
-    h2 { margin: 0 0 10px 0; font-size: 18px; font-weight:700; }
-    .status-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-    .indicator {
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      width:100%;
-    }
-    .stat { display:flex; justify-content:space-between; font-size:13px; color:var(--muted); }
-    .big {
-      font-weight:700;
-      color:var(--accent);
-      font-size:20px;
-    }
-    .controls { display:flex; gap:8px; margin-top:10px; align-items:center; }
-    button {
-      background: rgba(255,255,255,0.03);
-      color: inherit;
-      border: 1px solid rgba(255,255,255,0.04);
-      padding: 8px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight:600;
-    }
-    button.critical { background:#4c2424; color:#ffd6d6; border-color:#7a3333; }
-    .small { padding:6px 8px; font-size:13px; }
-    .toggle { display:flex; align-items:center; gap:6px; }
-    input[type="range"] { width:100%; }
-    #log {
-      height: 66vh;
-      overflow:auto;
-      padding: 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.02);
-      font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, "Roboto Mono", monospace;
-      font-size:13px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-    .entry {
-      padding:8px;
-      border-radius:8px;
-      max-width:86%;
-      display:inline-block;
-      white-space:pre-wrap;
-    }
-    .entry.outbound { background: linear-gradient(180deg,var(--out), rgba(20,63,46,0.85)); margin-left:auto; text-align:right; }
-    .entry.inbound { background: linear-gradient(180deg,var(--in), rgba(10,30,80,0.85)); margin-right:auto; text-align:left; }
-    .meta { font-size:11px; color:var(--muted); margin-bottom:6px; display:block; }
-    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-    .composer { display:flex; gap:8px; }
-    .composer input[type="text"] {
-      flex:1;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,0.02);
-      background: rgba(255,255,255,0.01);
-      color:inherit;
-      font-size:14px;
-    }
-    .controls-right { display:flex; gap:8px; align-items:center; margin-left:auto; }
-    .muted-note { color:var(--muted); font-size:13px; margin-top:8px; }
-    footer { margin-top:10px; color:var(--muted); font-size:12px; }
-    .row { display:flex; gap:8px; align-items:center; }
-    .pill { padding:6px 8px; border-radius:999px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.02); font-size:12px; color:var(--muted); }
-    .flex { display:flex; gap:8px; align-items:center; }
-    .select { padding:8px; border-radius:8px; background: rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.02); color:inherit; }
-    .small-muted { font-size:12px; color:var(--muted); }
+    .page-content { padding: 1.5rem; }
+    .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+    .sidebar { max-height: calc(100vh - 4rem); overflow-y: auto; }
+    .toast-container { position: fixed; right: 1rem; bottom: 1rem; z-index: 1200; }
+    .chart-wrap { min-height: 240px; }
+    .log-entry { font-size: .95rem; }
+    .muted { color: rgba(230,238,248,0.6); }
+    .low-stock { color: #ffb4a2; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -123,7 +42,7 @@
         </div>
         <div class="header-text" aria-label="Site title">
           <h1>Obsidian Bastian</h1>
-          <h2>Ship Communications</h2>
+          <h2>Parts Inventory & Orders</h2>
         </div>
       </div>
       <div class="header-right">
@@ -133,459 +52,556 @@
   </header>
 
   <div class="page-content">
-    <div class="shell">
-    <aside class="panel" aria-labelledby="status-heading">
-      <h2 id="status-heading">Communications Status</h2>
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h4 mb-0">Inventory & Parts Ordering Dashboard</h1>
+      <div class="d-flex align-items-center gap-3">
+        <small class="muted">Simulated ordering + delivery demo</small>
+      </div>
+    </div>
 
-      <div class="status-row">
-        <div style="flex:1">
-          <div class="stat"><span>Power</span><span id="powerState" class="big">OFF</span></div>
-          <div class="controls">
-            <div class="toggle">
-              <button id="btnPower" class="small">Power ON</button>
+    <div class="row g-3">
+      <!-- Left: Charts -->
+      <div class="col-lg-8">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5 class="card-title">Ship Systems Inventory</h5>
+              <div class="chart-wrap">
+                <canvas id="partsChart"></canvas>
+              </div>
+              <p class="mt-2 mb-0 muted">Critical parts like engines, thrusters, power cells and sensor modules.</p>
             </div>
-            <div class="toggle">
-              <label class="small-muted">Encryption</label>
-              <select id="encryption" class="select">
-                <option value="none">None</option>
-                <option value="link">Link-layer</option>
-                <option value="e2e">End-to-end</option>
-              </select>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5 class="card-title">Supplies</h5>
+              <div class="chart-wrap">
+                <canvas id="suppliesChart"></canvas>
+              </div>
+              <p class="mt-2 mb-0 muted">Food & Water levels (simulated).</p>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card p-3">
+              <h5 class="card-title">Incoming & Recent Orders</h5>
+              <div id="incomingSummary" class="muted small">Recent deliveries and expected arrivals will appear here.</div>
+            </div>
+          </div>
+
+          <!-- Restock Suggestions moved to left column, below Incoming & Recent Orders -->
+          <div class="col-12">
+            <div class="card p-3">
+              <h6 class="card-title">Restock Suggestions</h6>
+              <ul id="restockList" class="list-group list-group-flush mt-2">
+                <!-- dynamic suggestions -->
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: Order form + Log -->
+      <div class="col-lg-4">
+        <div class="card p-3 mb-3">
+          <h5 class="card-title">Order Part / Supply</h5>
+          <form id="orderForm" class="row g-2">
+            <div class="col-12">
+              <label for="itemInput" class="form-label small">Item</label>
+              <input list="suggestions" id="itemInput" class="form-control form-control-sm" placeholder="e.g. engine, thruster, power cell" required>
+              <datalist id="suggestions">
+                <option value="engine">
+                <option value="thruster">
+                <option value="power cell">
+                <option value="coolant pump">
+                <option value="sensor module">
+                <option value="antenna">
+                <option value="hull plate">
+                <option value="navigation computer">
+                <option value="solar panel">
+                <option value="battery">
+                <option value="oxygen filter">
+                <option value="medical kit">
+                <option value="food rations">
+                <option value="water pack">
+              </datalist>
+            </div>
+
+            <div class="col-6">
+              <label for="qtyInput" class="form-label small">Quantity</label>
+              <input type="number" id="qtyInput" class="form-control form-control-sm" value="1" min="1" required>
+            </div>
+
+            <div class="col-6 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary btn-sm w-100">Order</button>
+            </div>
+          </form>
+
+          <hr class="my-3">
+
+          <div>
+            <p class="mb-1 small muted">Quick Controls</p>
+            <div class="d-flex gap-2">
+              <button id="clearLogBtn" class="btn btn-outline-danger btn-sm">Clear Log</button>
+              <button id="resetInventoryBtn" class="btn btn-outline-warning btn-sm">Reset Inventory</button>
             </div>
           </div>
         </div>
-      </div>
 
-      <div style="margin-top:10px;">
-        <div class="stat"><span>Signal Strength</span><span id="sigVal">0%</span></div>
-        <input id="sigRange" type="range" min="0" max="100" value="0" />
-      </div>
-
-      <div style="margin-top:12px;">
-        <div class="stat"><span>Active Channel</span><span id="channelDisplay">—</span></div>
-        <div style="margin-top:8px;" class="row">
-          <input id="channel" class="select" style="width:100%" placeholder="e.g. 14.7MHz / deep-space" />
+        <div class="card p-3 sidebar">
+          <h6 class="card-title">Order Log</h6>
+          <ul id="orderLog" class="list-group list-group-flush mt-2">
+            <!-- dynamic entries -->
+          </ul>
         </div>
-      </div>
-
-      <div style="margin-top:12px;">
-        <div class="stat"><span>Last Contact</span><span id="lastContact">never</span></div>
-        <div class="stat"><span>Queued Outbound</span><span id="queuedCount">0</span></div>
-      </div>
-
-      <div class="muted-note">Local-only demo: message log saved to your browser's storage.</div>
-
-      <footer>
-        <div class="small-muted">Ship ID: <span id="shipId">Obsidian Bastian</span></div>
-      </footer>
-    </aside>
-
-    <main class="panel" aria-labelledby="log-heading">
-      <div class="toolbar">
-        <div>
-          <h2 id="log-heading" style="margin:0">Message Log</h2>
-          <div class="small-muted">Log shows outbound and inbound messages, persisted locally.</div>
-        </div>
-
-        <div class="controls-right" style="margin-left:auto">
-          <button id="btnExport" class="small">Export JSON</button>
-          <button id="btnClear" class="small critical">Clear Log</button>
-        </div>
-      </div>
-
-      <div id="log" role="log" aria-live="polite" aria-relevant="additions">
-        <!-- log entries inserted here -->
-      </div>
-
-      <div style="margin-top:12px" class="composer" role="form" aria-label="Compose message">
-        <input id="to" type="text" placeholder="Destination (e.g. New Planet / Relay-7)" />
-        <input id="msg" type="text" placeholder='Compose: "hello new planet can anybody hear me?"' />
-        <button id="btnSend">Send</button>
-        <!-- incoming indicator: hidden until incoming signal is available -->
-        <span id="incomingIndicator" class="pill" style="display:none">Incoming signal detected</span>
-        <button id="btnReceiveGreeting" title="Simulate an incoming transmission" class="small">Receive Transmission</button>
-      </div>
-
-      <div id="composeStatus" class="muted-note" style="margin-top:8px">
-        <!-- Populated by script: power-off messaging / incoming blocked -->
-      </div>
-
-      <div class="muted-note" style="margin-top:8px">
-        Tip: Use "Receive Transmission" to simulate an incoming reply. When power is off messages will be queued.
       </div>
     </div>
   </div>
 
+  <!-- Modal: Order confirmation -->
+  <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Order Placed</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="orderModalText" class="mb-0"></p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Bootstrap 5 JS (bundle includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    // Ship communications page: local-only message log with status controls
-    (function(){
-      const storageKey = 'ship-comms-log-v1';
-      const queuedKey = 'ship-comms-queued-v1';
+    // --- Data & Persistence ---
+    const defaultInventory = {
+      engine: 2,
+      thruster: 6,
+      'power cell': 20,
+      'sensor module': 8,
+      'hull plate': 10,
+      'coolant pump': 4,
+      antenna: 2,
+      'food rations': 200,
+      'water pack': 150,
+      'oxygen filter': 8,
+      'medical kit': 2
+    };
 
-      // Elements
-      const btnPower = document.getElementById('btnPower');
-      const powerStateEl = document.getElementById('powerState');
-      const sigRange = document.getElementById('sigRange');
-      const sigVal = document.getElementById('sigVal');
-      const channelInput = document.getElementById('channel');
-      const channelDisplay = document.getElementById('channelDisplay');
-      const lastContact = document.getElementById('lastContact');
-      const queuedCount = document.getElementById('queuedCount');
-      const encryption = document.getElementById('encryption');
-      const logEl = document.getElementById('log');
-      const btnSend = document.getElementById('btnSend');
-      const btnReceiveGreeting = document.getElementById('btnReceiveGreeting');
-      const inputMsg = document.getElementById('msg');
-      const inputTo = document.getElementById('to');
-      const btnClear = document.getElementById('btnClear');
-      const btnExport = document.getElementById('btnExport');
-      const shipId = document.getElementById('shipId');
-      const composeStatus = document.getElementById('composeStatus');
-      const incomingIndicator = document.getElementById('incomingIndicator');
+    // For random initialization and consumption tuning per item
+    const ITEM_RANGES = {
+      engine:         { min: 1,  max: 3,   perTickProb: 0.01, maxDecrease: 1 },
+      thruster:       { min: 2,  max: 12,  perTickProb: 0.02, maxDecrease: 1 },
+      'power cell':   { min: 12, max: 40,  perTickProb: 0.05, maxDecrease: 2 },
+      'sensor module':{ min: 4,  max: 12,  perTickProb: 0.02, maxDecrease: 1 },
+      'hull plate':   { min: 6,  max: 18,  perTickProb: 0.005, maxDecrease: 1 },
+      'coolant pump': { min: 2,  max: 6,   perTickProb: 0.01, maxDecrease: 1 },
+      antenna:        { min: 1,  max: 4,   perTickProb: 0.005, maxDecrease: 1 },
+      'food rations': { min: 150,max: 400, perTickProb: 0.85, maxDecrease: 4 },
+      'water pack':   { min: 120,max: 300, perTickProb: 0.7,  maxDecrease: 3 },
+      'oxygen filter':{ min: 4,  max: 12,  perTickProb: 0.02, maxDecrease: 1 },
+      'medical kit':  { min: 1,  max: 6,   perTickProb: 0.01, maxDecrease: 1 }
+    };
 
-      // State
-      let power = false;
-      let signal = Number(sigRange.value);
-      let messages = loadMessages();
-      let queued = loadQueued();
+    const RESTOCK_THRESHOLDS = {
+      engine: 1,
+      thruster: 2,
+      'power cell': 8,
+      'sensor module': 3,
+      'hull plate': 4,
+      'coolant pump': 2,
+      antenna: 1,
+      'food rations': 80,
+      'water pack': 60,
+      'oxygen filter': 3,
+      'medical kit': 1
+    };
 
-      // Incoming-signal scheduling state
-      let incomingAvailable = false;
-      let incomingTimerId = null;
+    const STORAGE_KEYS = {
+      INVENTORY: 'ship.inventory.v1',
+      ORDERS: 'ship.orders.v1'
+    };
 
-      function loadMessages(){ try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch(e){return [];} }
-      function saveMessages(){ localStorage.setItem(storageKey, JSON.stringify(messages)); }
-      function loadQueued(){ try { return JSON.parse(localStorage.getItem(queuedKey) || '[]'); } catch(e){ return []; } }
-      function saveQueued(){ localStorage.setItem(queuedKey, JSON.stringify(queued)); }
+    const SESSION_RANDOM_KEY = 'ship.inventory.randomized.v1';
 
-      function fmtTime(ts){ return new Date(ts).toLocaleString(); }
-      function newId(){ return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
-
-      function setPower(on){
-        power = !!on;
-        powerStateEl.textContent = power ? 'ONLINE' : 'OFF';
-        btnPower.textContent = power ? 'Power OFF' : 'Power ON';
-        btnPower.classList.toggle('small', true);
-        // Allow composing even when power is OFF; show composer status instead
-        if (power) {
-          // attempt to flush queue if we have any queued messages
-          flushQueue();
-        }
-        renderStatus();
+    function loadInventory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        // Merge parsed (saved) values into defaults so new keys are present even if old saves exist
+        return { ...defaultInventory, ...parsed };
+      } catch (e) {
+        return { ...defaultInventory };
       }
+    }
+    function saveInventory(inv) {
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inv));
+    }
 
-      function renderStatus(){
-        sigVal.textContent = signal + '%';
-        channelDisplay.textContent = channelInput.value ? channelInput.value : '—';
-        queuedCount.textContent = queued.length;
-        lastContact.textContent = (messages.length ? fmtTime(messages[messages.length-1].ts) : 'never');
+    function loadOrders() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    function saveOrders(orders) {
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    }
 
-        // composer status messaging for power state
-        if (!power) {
-          composeStatus.textContent = 'Power OFF — outgoing messages will be queued. Incoming messages are blocked until power is ON.';
+    // --- Application state ---
+    let inventory = loadInventory();
+    let orders = loadOrders();
+
+    // If the session hasn't been randomized yet, initialize with random values within ITEM_RANGES
+    function randomBetween(min, max) {
+      return min + Math.floor(Math.random() * (max - min + 1));
+    }
+    function generateRandomInventory() {
+      const inv = { ...inventory }; // start from merged defaults (so unknown keys kept)
+      for (const k of Object.keys(ITEM_RANGES)) {
+        const r = ITEM_RANGES[k];
+        inv[k] = randomBetween(r.min, r.max);
+      }
+      return inv;
+    }
+    function randomizeInventoryIfNeeded() {
+      try {
+        if (!sessionStorage.getItem(SESSION_RANDOM_KEY)) {
+          inventory = generateRandomInventory();
+          saveInventory(inventory);
+          sessionStorage.setItem(SESSION_RANDOM_KEY, '1');
         } else {
-          // if incoming available, mention it here as well
-          if (incomingAvailable) {
-            composeStatus.textContent = 'Power ONLINE — incoming signal detected. Click "Receive Transmission" to accept.';
-          } else {
-            composeStatus.textContent = 'Power ONLINE — outgoing messages will be sent when signal permits. Incoming messages accepted.';
+          // ensure keys from ITEM_RANGES exist even if saved inventory misses them
+          for (const k of Object.keys(ITEM_RANGES)) {
+            if (inventory[k] == null) inventory[k] = ITEM_RANGES[k].min;
           }
+          saveInventory(inventory);
         }
-
-        // update receive button enabled/disabled based on incomingAvailable and power
-        btnReceiveGreeting.disabled = !incomingAvailable || !power;
-        incomingIndicator.style.display = incomingAvailable && power ? 'inline-block' : 'none';
+      } catch (e) {
+        // ignore
       }
+    }
+    randomizeInventoryIfNeeded();
 
-      function pushMessage(entry){
-        messages.push(entry);
-        saveMessages();
-        renderEntry(entry);
-        renderStatus();
+    // --- Charts setup ---
+    const partsCtx = document.getElementById('partsChart');
+    const suppliesCtx = document.getElementById('suppliesChart');
+
+    const PARTS_ORDER = ['engine', 'thruster', 'power cell', 'sensor module', 'hull plate', 'coolant pump', 'antenna'];
+
+    const partsChart = new Chart(partsCtx, {
+      type: 'doughnut',
+      data: {
+        labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
+        datasets: [{
+          data: PARTS_ORDER.map(k => inventory[k] || 0),
+          backgroundColor: ['#ff6b6b','#ffd166','#8ecae6','#06d6a0','#4cc9f0','#a8dadc','#f4a261'],
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { labels: { color: '#e6eef8' } } }
       }
+    });
 
-      function renderEntry(m){
-        const el = document.createElement('div');
-        el.className = 'entry ' + (m.direction === 'outbound' ? 'outbound' : 'inbound');
-        const meta = document.createElement('div');
-        meta.className = 'meta';
-        meta.textContent = `${m.direction.toUpperCase()} • ${m.from} → ${m.to} • ${fmtTime(m.ts)} • ${m.status || 'sent'}`;
-        const body = document.createElement('div');
-        body.textContent = m.text;
-        el.appendChild(meta);
-        el.appendChild(body);
-        // add small click to show raw JSON (for debugging)
-        el.title = 'Click to view details';
-        el.addEventListener('click', () => alert(JSON.stringify(m, null, 2)));
-        logEl.appendChild(el);
-        logEl.scrollTop = logEl.scrollHeight;
-      }
+    const suppliesChart = new Chart(suppliesCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Food Rations', 'Water Packs'],
+        datasets: [{
+          data: [
+            inventory['food rations'] || 0,
+            inventory['water pack'] || 0
+          ],
+          backgroundColor: ['#06d6a0', '#4cc9f0'],
+          hoverOffset: 6
+        }]
+      },
+      options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
+    });
 
-      function renderAll(){
-        logEl.innerHTML = '';
-        for (const m of messages) renderEntry(m);
-      }
+    function refreshCharts() {
+      partsChart.data.datasets[0].data = PARTS_ORDER.map(k => inventory[k] || 0);
+      partsChart.update();
 
-      // return the created entry so caller can decide (e.g., schedule incoming)
-      function sendMessage(text, to){
-        const entry = {
-          id: newId(),
-          ts: Date.now(),
-          direction: 'outbound',
-          from: shipId.textContent,
-          to: to || 'Unknown',
-          text: String(text || ''),
-          encryption: encryption.value,
-          channel: channelInput.value || '',
-          signal: signal,
-          status: power && signal > 5 ? 'sent' : 'queued' // simple policy
-        };
-        if (entry.status === 'queued') {
-          queued.push(entry);
-          saveQueued();
-        } else {
-          pushMessage(entry);
-        }
-        renderStatus();
-        return entry;
-      }
-
-      function receiveMessage(text, from){
-        // Block inbound messages while power is off
-        if (!power) {
-          alert('Power is OFF — cannot receive incoming messages. Turn power ON to accept inbound transmissions.');
-          return;
-        }
-        const entry = {
-          id: newId(),
-          ts: Date.now(),
-          direction: 'inbound',
-          from: from || 'Unknown',
-          to: shipId.textContent,
-          text: String(text || ''),
-          channel: channelInput.value || '',
-          status: 'received'
-        };
-        pushMessage(entry);
-      }
-
-      function flushQueue(){
-        if (!power) return;
-        if (!queued.length) return;
-        // try to send queued messages depending on signal
-        const stillQueued = [];
-        for (const q of queued) {
-          if (signal > 5) {
-            q.status = 'sent (flushed)';
-            q.ts = Date.now();
-            messages.push(q);
-          } else {
-            q.status = 'queued';
-            stillQueued.push(q);
-          }
-        }
-        queued = stillQueued;
-        saveQueued();
-        saveMessages();
-        renderAll();
-      }
-
-      // Simulated greeting responses with more names and templates.
-      // Produces 1-3 inbound messages (small delay between them) and may reference last outbound text.
-      const responderPool = [
-        'Relay-7',
-        'Deep Echo',
-        'New Planet Authority',
-        'Voyager Relay',
-        'AI-Node 42',
-        'Sirius Station',
-        'Haven Outpost',
-        'Orchid Relay',
-        'Atlas Beacon'
+      suppliesChart.data.datasets[0].data = [
+        inventory['food rations'] || 0,
+        inventory['water pack'] || 0
       ];
+      suppliesChart.update();
+    }
 
-      const templates = [
-        "Hello {ship}, this is {responder}. We read you loud and clear.",
-        "Greetings from {responder}. Acknowledged: we received your transmission.",
-        "Hi {ship}! {responder} here. Good to hear from you — please repeat if transmission is broken.",
-        "{responder} reporting. Signal stable. Welcome, {ship}.",
-        "Message received by {responder}. Stand by for further instructions.",
-        "👋 Hello {ship} — {responder} here. Nice to connect.",
-        "This is {responder}. We copy your last message. Over.",
-        "{responder} here: we received: \"{snippet}\" — confirm intent.",
-        "Attention {ship}: your transmission was faint but readable. Respond when able. — {responder}",
-        "This is {responder}. Friendly reminder: transmissions may be delayed in this sector.",
-        "Incoming to {ship}: all systems nominal on our end. — {responder}",
-        "{responder} to {ship}: we will relay your message to nearby units.",
-        "Unknown origin acknowledged. Hello {ship} — {responder} signing on."
-      ];
+    function capitalizeLabel(s) {
+      return s.split(' ').map(p => p[0].toUpperCase() + p.slice(1)).join(' ');
+    }
 
-      function pickResponder(lastOutbound) {
-        // Prefer last outbound's destination if it looks like a named station (not 'Unknown')
-        if (lastOutbound && lastOutbound.to && lastOutbound.to !== 'Unknown') {
-          return lastOutbound.to;
-        }
-        // otherwise pick random from pool
-        return responderPool[Math.floor(Math.random() * responderPool.length)];
+    // --- UI: Log rendering ---
+    const orderLogEl = document.getElementById('orderLog');
+    const restockListEl = document.getElementById('restockList');
+    const incomingSummaryEl = document.getElementById('incomingSummary');
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString();
+    }
+
+    function renderLog() {
+      orderLogEl.innerHTML = '';
+      if (!orders.length) {
+        orderLogEl.innerHTML = '<li class="list-group-item bg-transparent muted">No orders yet.</li>';
+        return;
+      }
+      orders.slice().reverse().forEach(o => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-start log-entry';
+        li.innerHTML = `
+          <div>
+            <div class="fw-semibold">${escapeHtml(o.item)} <small class="text-muted">×${o.qty}</small></div>
+            <div class="muted small">${formatTime(o.orderedAt)}</div>
+          </div>
+          <div class="text-end">
+            <span class="badge ${o.status === 'Delivered' ? 'bg-success' : 'bg-warning'}">${o.status}</span>
+            <div class="muted small mt-1">${o.status === 'Delivered' ? formatTime(o.deliveredAt) : ''}</div>
+          </div>
+        `;
+        orderLogEl.appendChild(li);
+      });
+    }
+
+    // --- Restock suggestions ---
+    function renderRestockSuggestions() {
+      restockListEl.innerHTML = '';
+      const keys = Object.keys(RESTOCK_THRESHOLDS);
+      const low = keys.filter(k => (inventory[k] || 0) <= RESTOCK_THRESHOLDS[k]);
+      if (!low.length) {
+        restockListEl.innerHTML = '<li class="list-group-item bg-transparent muted">All systems sufficiently stocked.</li>';
+        incomingSummaryEl.textContent = 'No immediate restock required.';
+        return;
       }
 
-      function snippetFrom(text, maxLen = 60) {
-        if (!text) return '';
-        const s = String(text).trim().replace(/\s+/g, ' ');
-        if (s.length <= maxLen) return s;
-        return s.slice(0, maxLen - 1) + '…';
-      }
-
-      function simulateGreeting(){
-        // Block simulation if power off
-        if (!power) {
-          alert('Power is OFF — cannot receive incoming messages. Turn power ON to accept inbound transmissions.');
-          return;
-        }
-
-        const lastOutbound = [...messages].reverse().find(m => m.direction === 'outbound');
-        const responder = pickResponder(lastOutbound);
-        const shipName = shipId.textContent || 'your ship';
-        const outboundSnippet = lastOutbound ? snippetFrom(lastOutbound.text, 80) : '';
-
-        // generate 1-3 messages (random) to feel a bit more natural
-        const count = 1 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < count; i++) {
-          // choose template and fill placeholders
-          const template = templates[Math.floor(Math.random() * templates.length)];
-          const text = template
-            .replace(/\{ship\}/g, shipName)
-            .replace(/\{responder\}/g, responder)
-            .replace(/\{snippet\}/g, outboundSnippet);
-
-          // stagger arrival slightly
-          setTimeout(() => receiveMessage(text, responder), 200 * i);
-        }
-      }
-
-      // Incoming signal scheduling helpers
-      function scheduleIncomingForLastOutbound() {
-        // Only schedule one incoming at a time
-        if (incomingAvailable || incomingTimerId) return;
-        // pick a random delay between 3s and 12s
-        const delay = 3000 + Math.floor(Math.random() * 9000);
-        incomingTimerId = setTimeout(() => {
-          incomingTimerId = null;
-          incomingAvailable = true;
-          renderStatus();
-        }, delay);
-      }
-
-      function clearIncomingNotification() {
-        incomingAvailable = false;
-        if (incomingTimerId) {
-          clearTimeout(incomingTimerId);
-          incomingTimerId = null;
-        }
-        renderStatus();
-      }
-
-      // UI hooks
-      btnPower.addEventListener('click', () => setPower(!power));
-      sigRange.addEventListener('input', (e) => {
-        signal = Number(e.target.value);
-        renderStatus();
-      });
-      channelInput.addEventListener('change', renderStatus);
-      btnSend.addEventListener('click', () => {
-        const txt = inputMsg.value.trim();
-        const to = inputTo.value.trim() || 'Unknown';
-        if (!txt) return alert('Enter a message to send.');
-        if (!power) {
-          // still allow queueing but show notice
-          if (!confirm('Communications power is OFF. Do you want to queue the message?')) return;
-        }
-        // sendMessage now returns the entry so we can decide whether to schedule incoming
-        const entry = sendMessage(txt, to);
-        // show outbound immediately in UI if queued or sent
-        if (power && signal > 5) {
-          // message already pushed via pushMessage
-          // schedule incoming signal for received reply
-          scheduleIncomingForLastOutbound();
-        } else {
-          // show queued notice in the log as queued
-          const notice = {
-            id: newId(),
-            ts: Date.now(),
-            direction: 'outbound',
-            from: shipId.textContent,
-            to: to,
-            text: txt + (power ? ' (signal weak — queued)' : ' (power off — queued)'),
-            status: 'queued'
-          };
-          renderEntry(notice);
-        }
-        inputMsg.value = '';
+      low.forEach(k => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-center';
+        const qtyNeed = Math.max(1, Math.ceil((RESTOCK_THRESHOLDS[k] * 2) - (inventory[k] || 0)));
+        li.innerHTML = `
+          <div>
+            <div class="${inventory[k] <= Math.max(1, Math.floor(RESTOCK_THRESHOLDS[k] / 2)) ? 'low-stock' : ''}">${capitalizeLabel(k)}</div>
+            <div class="muted small">Current: ${inventory[k] || 0} • Recommend: ${qtyNeed}</div>
+          </div>
+          <div>
+            <button class="btn btn-sm btn-outline-primary me-1 restock-btn" data-item="${escapeHtml(k)}" data-qty="${qtyNeed}">Order ${qtyNeed}</button>
+          </div>
+        `;
+        restockListEl.appendChild(li);
       });
 
-      // Receive Transmission button hook (keeps internal name)
-      btnReceiveGreeting.addEventListener('click', () => {
-        // If there's no incoming available, do nothing (button is disabled but guard here too)
-        if (!incomingAvailable || !power) return;
-        // clear the incoming notice and then simulate the greeting
-        clearIncomingNotification();
-        simulateGreeting();
+      incomingSummaryEl.textContent = `${low.length} items need attention.`;
+      // attach listeners
+      restockListEl.querySelectorAll('.restock-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = btn.getAttribute('data-item');
+          const qty = parseInt(btn.getAttribute('data-qty'), 10) || 1;
+          placeOrder(item, qty);
+        });
       });
+    }
 
-      // initialize receive button disabled state
-      btnReceiveGreeting.disabled = true;
+    // --- Utilities ---
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
 
-      btnClear.addEventListener('click', () => {
-        if (!confirm('Clear full message log? This cannot be undone.')) return;
-        messages = [];
-        queued = [];
-        saveMessages();
-        saveQueued();
-        renderAll();
-        renderStatus();
-      });
+    // --- Toast notifications (Bootstrap) ---
+    const toastContainer = document.getElementById('toastContainer');
 
-      btnExport.addEventListener('click', () => {
-        const payload = { exportedAt: new Date().toISOString(), messages, queued };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'ship-communications-log.json';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      });
+    function showToast(title, body, options = {}) {
+      const id = 't' + Date.now();
+      const el = document.createElement('div');
+      el.className = 'toast align-items-center text-bg-dark border';
+      el.role = 'alert';
+      el.ariaLive = 'polite';
+      el.ariaAtomic = 'true';
+      el.id = id;
 
-      // initial rendering
-      renderAll();
-      renderStatus();
-      setPower(false); // default off
+      el.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <strong>${escapeHtml(title)}</strong> — <span class="muted">${escapeHtml(body)}</span>
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
 
-      // Optional: accept keyboard shortcut Ctrl+Enter to send
-      inputMsg.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          btnSend.click();
-        }
-      });
+      toastContainer.appendChild(el);
+      const toast = new bootstrap.Toast(el, { delay: options.delay || 4000 });
+      toast.show();
+      el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
 
-      // Expose small API on window for convenience/testing
-      window.shipComms = {
-        send: (text, to) => {
-          const entry = sendMessage(text, to);
-          if (entry.status !== 'queued') scheduleIncomingForLastOutbound();
-          return entry;
-        },
-        receive: (text, from) => {
-          if (!power) return false;
-          receiveMessage(text, from);
-          return true;
-        },
-        setPower: (p) => setPower(p),
-        messages: () => messages.slice(),
-        queued: () => queued.slice(),
-        simulateGreeting: simulateGreeting
+    // --- Ordering flow ---
+    const orderForm = document.getElementById('orderForm');
+    const itemInput = document.getElementById('itemInput');
+    const qtyInput = document.getElementById('qtyInput');
+    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    const orderModalText = document.getElementById('orderModalText');
+
+    function placeOrder(itemRaw, qtyRaw) {
+      const item = String(itemRaw).trim().toLowerCase();
+      const qty = Math.max(1, parseInt(qtyRaw, 10) || 1);
+      const orderedAt = Date.now();
+
+      const order = {
+        id: 'o' + orderedAt + Math.floor(Math.random() * 999),
+        item,
+        qty,
+        status: 'Ordered',
+        orderedAt,
+        deliveredAt: null
       };
-    })();
+
+      orders.push(order);
+      saveOrders(orders);
+      renderLog();
+      renderRestockSuggestions();
+      // Show modal + toast
+      orderModalText.textContent = `Ordered ${qty} × ${item}.`;
+      orderModal.show();
+      showToast('Order placed', `${qty} × ${item}`, { delay: 2500 });
+
+      // Simulate delivery delay (random 3–9 seconds)
+      const delayMs = 3000 + Math.floor(Math.random() * 7000);
+      setTimeout(() => deliverOrder(order.id), delayMs);
+    }
+
+    function deliverOrder(orderId) {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return;
+      const o = orders[idx];
+      if (o.status === 'Delivered') return;
+      o.status = 'Delivered';
+      o.deliveredAt = Date.now();
+
+      // Update inventory for known items (if unknown, add it)
+      const key = normalizeKey(o.item);
+      if (inventory[key] == null) inventory[key] = 0;
+      inventory[key] += o.qty;
+      saveInventory(inventory);
+
+      saveOrders(orders);
+      refreshCharts();
+      renderLog();
+      renderRestockSuggestions();
+
+      showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
+    }
+
+    function normalizeKey(item) {
+      const k = item.toLowerCase().trim();
+      if (k.includes('food') || k.includes('ration')) return 'food rations';
+      if (k.includes('water')) return 'water pack';
+      if (k.includes('engine')) return 'engine';
+      if (k.includes('thruster')) return 'thruster';
+      if (k.includes('power')) return 'power cell';
+      if (k.includes('sensor')) return 'sensor module';
+      if (k.includes('coolant')) return 'coolant pump';
+      if (k.includes('antenna')) return 'antenna';
+      if (k.includes('hull')) return 'hull plate';
+      if (k.includes('oxygen')) return 'oxygen filter';
+      if (k.includes('medical')) return 'medical kit';
+      if (k.includes('solar')) return 'solar panel';
+      if (k.includes('battery')) return 'battery';
+      return k; // general fallback
+    }
+
+    // --- Form handling ---
+    orderForm.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const item = itemInput.value.trim();
+      const qty = qtyInput.value;
+      if (!item) {
+        itemInput.classList.add('is-invalid');
+        setTimeout(() => itemInput.classList.remove('is-invalid'), 1200);
+        return;
+      }
+      placeOrder(item, qty);
+      // clear the input but keep suggestions
+      itemInput.value = '';
+      qtyInput.value = 1;
+    });
+
+    // --- Buttons: clear log, reset inventory ---
+    document.getElementById('clearLogBtn').addEventListener('click', () => {
+      if (!confirm('Clear order log? This cannot be undone.')) return;
+      orders = [];
+      saveOrders(orders);
+      renderLog();
+      showToast('Order log cleared', '', { delay: 2000 });
+    });
+
+    document.getElementById('resetInventoryBtn').addEventListener('click', () => {
+      if (!confirm('Reset inventory to defaults?')) return;
+      inventory = { ...defaultInventory };
+      saveInventory(inventory);
+      refreshCharts();
+      renderLog();
+      renderRestockSuggestions();
+      // clear session random flag so next session randomizes again
+      try { sessionStorage.removeItem(SESSION_RANDOM_KEY); } catch(e){}
+      showToast('Inventory reset', '', { delay: 2000 });
+    });
+
+    // Initial render
+    renderLog();
+    refreshCharts();
+    renderRestockSuggestions();
+
+    // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
+    const USAGE_TICK_MS = 8000; // every 8s
+    setInterval(() => {
+      let changed = false;
+      for (const k of Object.keys(ITEM_RANGES)) {
+        const cfg = ITEM_RANGES[k];
+        if (Math.random() < cfg.perTickProb) {
+          // choose a decrement from 1..maxDecrease (but not larger than available)
+          const dec = 1 + Math.floor(Math.random() * cfg.maxDecrease);
+          const old = inventory[k] || 0;
+          const next = Math.max(0, old - dec);
+          if (next !== old) {
+            inventory[k] = next;
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        saveInventory(inventory);
+        refreshCharts();
+        renderRestockSuggestions();
+      }
+    }, USAGE_TICK_MS);
+
+    // Expose small helper to console for testing
+    window.shipInventory = {
+      inventory, orders, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
+    };
   </script>
+  </div>
 </body>
 </html>
