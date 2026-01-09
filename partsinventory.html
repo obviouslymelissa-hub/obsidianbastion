@@ -30,6 +30,7 @@
     .log-entry { font-size: .95rem; }
     .muted { color: rgba(230,238,248,0.6); }
     .low-stock { color: #ffb4a2; font-weight: 600; }
+    .usage-item { font-weight: 600; }
   </style>
 </head>
 <body>
@@ -80,7 +81,7 @@
               <div class="chart-wrap">
                 <canvas id="suppliesChart"></canvas>
               </div>
-              <p class="mt-2 mb-0 muted">Food & Water levels (simulated).</p>
+              <p class="mt-2 mb-0 muted">Food, Water and Medical Kits (simulated usage).</p>
             </div>
           </div>
 
@@ -104,7 +105,7 @@
         </div>
       </div>
 
-      <!-- Right: Order form + Log -->
+      <!-- Right: Order form + Logs -->
       <div class="col-lg-4">
         <div class="card p-3 mb-3">
           <h5 class="card-title">Order Part / Supply</h5>
@@ -157,6 +158,15 @@
             <!-- dynamic entries -->
           </ul>
         </div>
+
+        <!-- Outgoing supplies usage log -->
+        <div class="card p-3 sidebar mt-3">
+          <h6 class="card-title">Outgoing Supplies Log</h6>
+          <ul id="usageLog" class="list-group list-group-flush mt-2">
+            <!-- dynamic usage entries -->
+          </ul>
+        </div>
+
       </div>
     </div>
   </div>
@@ -213,7 +223,7 @@
       'food rations': { min: 150,max: 400, perTickProb: 0.85, maxDecrease: 4 },
       'water pack':   { min: 120,max: 300, perTickProb: 0.7,  maxDecrease: 3 },
       'oxygen filter':{ min: 4,  max: 12,  perTickProb: 0.02, maxDecrease: 1 },
-      'medical kit':  { min: 1,  max: 6,   perTickProb: 0.01, maxDecrease: 1 }
+      'medical kit':  { min: 1,  max: 6,   perTickProb: 0.12, maxDecrease: 1 }
     };
 
     const RESTOCK_THRESHOLDS = {
@@ -232,7 +242,8 @@
 
     const STORAGE_KEYS = {
       INVENTORY: 'ship.inventory.v1',
-      ORDERS: 'ship.orders.v1'
+      ORDERS: 'ship.orders.v1',
+      USAGE: 'ship.usage.v1'
     };
 
     const SESSION_RANDOM_KEY = 'ship.inventory.randomized.v1';
@@ -263,9 +274,22 @@
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
     }
 
+    function loadUsage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.USAGE);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    function saveUsage(log) {
+      localStorage.setItem(STORAGE_KEYS.USAGE, JSON.stringify(log));
+    }
+
     // --- Application state ---
     let inventory = loadInventory();
     let orders = loadOrders();
+    let usage = loadUsage(); // outgoing supplies usage log
 
     // If the session hasn't been randomized yet, initialize with random values within ITEM_RANGES
     function randomBetween(min, max) {
@@ -303,6 +327,7 @@
     const suppliesCtx = document.getElementById('suppliesChart');
 
     const PARTS_ORDER = ['engine', 'thruster', 'power cell', 'sensor module', 'hull plate', 'coolant pump', 'antenna'];
+    const SUPPLIES_ORDER = ['food rations', 'water pack', 'medical kit'];
 
     const partsChart = new Chart(partsCtx, {
       type: 'doughnut',
@@ -322,13 +347,10 @@
     const suppliesChart = new Chart(suppliesCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Food Rations', 'Water Packs'],
+        labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
         datasets: [{
-          data: [
-            inventory['food rations'] || 0,
-            inventory['water pack'] || 0
-          ],
-          backgroundColor: ['#06d6a0', '#4cc9f0'],
+          data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
+          backgroundColor: ['#06d6a0', '#4cc9f0', '#ffb4a2'],
           hoverOffset: 6
         }]
       },
@@ -339,10 +361,7 @@
       partsChart.data.datasets[0].data = PARTS_ORDER.map(k => inventory[k] || 0);
       partsChart.update();
 
-      suppliesChart.data.datasets[0].data = [
-        inventory['food rations'] || 0,
-        inventory['water pack'] || 0
-      ];
+      suppliesChart.data.datasets[0].data = SUPPLIES_ORDER.map(k => inventory[k] || 0);
       suppliesChart.update();
     }
 
@@ -354,6 +373,7 @@
     const orderLogEl = document.getElementById('orderLog');
     const restockListEl = document.getElementById('restockList');
     const incomingSummaryEl = document.getElementById('incomingSummary');
+    const usageLogEl = document.getElementById('usageLog');
 
     function formatTime(ts) {
       const d = new Date(ts);
@@ -380,6 +400,29 @@
           </div>
         `;
         orderLogEl.appendChild(li);
+      });
+    }
+
+    // --- Usage log rendering (outgoing supplies) ---
+    function renderUsageLog() {
+      usageLogEl.innerHTML = '';
+      if (!usage.length) {
+        usageLogEl.innerHTML = '<li class="list-group-item bg-transparent muted">No outgoing supplies recorded.</li>';
+        return;
+      }
+      usage.slice().reverse().forEach(u => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item bg-transparent d-flex justify-content-between align-items-start log-entry';
+        li.innerHTML = `
+          <div>
+            <div class="usage-item">${capitalizeLabel(u.item)} <small class="text-muted">−${u.qty}</small></div>
+            <div class="muted small">${formatTime(u.ts)}</div>
+          </div>
+          <div class="text-end">
+            <small class="muted">${u.source || ''}</small>
+          </div>
+        `;
+        usageLogEl.appendChild(li);
       });
     }
 
@@ -572,11 +615,14 @@
     renderLog();
     refreshCharts();
     renderRestockSuggestions();
+    renderUsageLog();
 
     // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
     const USAGE_TICK_MS = 8000; // every 8s
+    const SUPPLIES_KEYS = new Set(['food rations', 'water pack', 'medical kit']);
     setInterval(() => {
       let changed = false;
+      const now = Date.now();
       for (const k of Object.keys(ITEM_RANGES)) {
         const cfg = ITEM_RANGES[k];
         if (Math.random() < cfg.perTickProb) {
@@ -587,19 +633,35 @@
           if (next !== old) {
             inventory[k] = next;
             changed = true;
+
+            // If this is a supply (food, water, medical), log outgoing usage
+            if (SUPPLIES_KEYS.has(k)) {
+              const entry = {
+                id: 'u' + now + Math.floor(Math.random() * 999),
+                item: k,
+                qty: Math.min(dec, old),
+                ts: now,
+                source: 'auto-usage'
+              };
+              usage.push(entry);
+              // keep usage log to a reasonable size
+              if (usage.length > 300) usage.splice(0, usage.length - 300);
+            }
           }
         }
       }
       if (changed) {
         saveInventory(inventory);
+        saveUsage(usage);
         refreshCharts();
         renderRestockSuggestions();
+        renderUsageLog();
       }
     }, USAGE_TICK_MS);
 
     // Expose small helper to console for testing
     window.shipInventory = {
-      inventory, orders, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
+      inventory, orders, usage, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
     };
   </script>
   </div>
