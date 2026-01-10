@@ -46,8 +46,8 @@ Obsidian Bastion is a fictional spaceship management interface that simulates th
 
 1. Clone or download this repository:
    ```bash
-   git clone https://github.com/obviouslymelissa-hub/obsidianbastian.git
-   cd obsidianbastian
+   git clone https://github.com/obviouslymelissa-hub/obsidianbastion.git
+   cd obsidianbastion
    ```
 
 2. Open `index.html` in your web browser:
@@ -72,7 +72,7 @@ curl -L https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js -o lib
 ## Project Structure
 
 ```
-obsidianbastian/
+obsidianbastion/
 ├── index.html              # Main dashboard
 ├── app.js                  # Core application logic
 ├── app.css                 # Main stylesheet

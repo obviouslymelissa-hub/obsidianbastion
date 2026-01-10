@@ -8,7 +8,7 @@ Expected filenames (case-sensitive):
 - ship-2.jpg
 - ship-3.jpg
 
-Place your image files here and commit them to the same branch that GitHub Pages uses (commonly `main` or `gh-pages`). After pushing, the images will be available at `https://obviouslymelissa-hub.github.io/obsidianbastian/images/<filename>`.
+Place your image files here and commit them to the same branch that GitHub Pages uses (commonly `main` or `gh-pages`). After pushing, the images will be available at `https://obviouslymelissa-hub.github.io/obsidianbastion/images/<filename>`.
 
 Tips:
 - Use the exact filenames and letter case used in index.html.
