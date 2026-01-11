@@ -1,71 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strategic Operations Board</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-            background-color: #f4f4f9;
-        }
-
-        header {
-            background: #35424a;
-            color: #ffffff;
-            padding: 10px 0;
-            text-align: center;
-        }
-
-        section {
-            padding: 20px;
-            margin: 10px;
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        h1, h2 {
-            color: #35424a;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: auto;
-            overflow: hidden;
-            padding: 0 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <header>
-        <h1>Strategic Operations Board</h1>
-    </header>
-
-    <div class="container">
-        <!-- Description Section -->
-        <section id="description">
-            <h2>Description</h2>
-            <p>
-                The Strategic Operations Board serves as the Fleet’s top command authority. It’s where major decisions are made — mission approvals, star designations, and the overall direction for the ships operating under our banner. Some of those ships are well-known. Others remain intentionally out of sight, mentioned only in secure channels.
-                The Board is presented as a council of senior officers, but its guidance ultimately reflects the leadership of the presiding General, who ensures every vessel — including the Obsidian Bastian — stays aligned with the Fleet’s goals and standards.
-            </p>
-        </section>
-
-        <!-- Announcements & Recognitions Section -->
-        <section id="announcements">
-            <h2>Special Announcements and Recognitions</h2>
-            <p>
-                <!-- Placeholder for announcements and recognitions. -->
-                Stay tuned for important updates, team acknowledgments, and special recognitions.
-            </p>
-        </section>
+    <div class="panel">
+        <h1 class="panel-heading">Strategic Operations Board</h1>
+        <div class="panel-body">
+            <section class="overview">
+                <h2>Overview</h2>
+                <p>Welcome to the Strategic Operations Board. Here you can track and manage operations efficiently.</p>
+            </section>
+            <section class="operations">
+                <h2>Current Operations</h2>
+                <ul class="operations-list">
+                    <li class="operation-item">
+                        <span class="item-name">Operation Alpha</span>
+                        <button class="btn highlight">Details</button>
+                    </li>
+                    <li class="operation-item">
+                        <span class="item-name">Operation Beta</span>
+                        <button class="btn highlight">Details</button>
+                    </li>
+                </ul>
+            </section>
+        </div>
     </div>
 </body>
-
 </html>
