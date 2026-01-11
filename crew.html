@@ -70,12 +70,26 @@
       text-align: center;
     }
 
+    /* Ensure the picture element provides the rounded frame & background,
+       and hide any overflow so images can't show page background edges. */
+    .role-header picture {
+      display: inline-block;
+      background: var(--bg-dark);
+      border-radius: 14px;
+      overflow: hidden;
+      line-height: 0; /* prevent inline whitespace below images */
+    }
+
+    /* Make the image a block-level element so there's no baseline gap
+       and let the picture element handle the rounding. Also keep a dark
+       background so any tiny uncovered pixels are dark rather than white. */
     .crew-photo {
+      display: block;
       width: 140px;
       height: 140px;
       object-fit: cover;
-      border-radius: 14px;
-      background: rgba(0,0,0,0.06);
+      border-radius: 0; /* rounding handled by picture */
+      background: var(--bg-dark);
       border: 1px solid rgba(255,255,255,0.03);
       flex-shrink: 0;
     }
