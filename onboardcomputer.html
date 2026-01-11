@@ -964,12 +964,11 @@ setGauge(document.getElementById('net-arc'), initialNetPercent, 50,50,34);
 simulateStep();
 setInterval(simulateStep, 900);
 
-/* --- ALERT / SOUND MANAGER (restored evac tone as requested) --- */
+/* --- ALERT / SOUND MANAGER: EVAC uses same beep pattern as RED ALERT --- */
 const SoundManager = (function(){
   let ctx = null;
   let redInterval = null;
-  let evacOsc = null;   // single oscillator for evac tone (restored)
-  let evacGain = null;
+  let evacInterval = null;
   let mute = false;
 
   function ensureCtx(){
@@ -999,47 +998,43 @@ const SoundManager = (function(){
       beep(220, 440, 'sine', 0, 0.12);
       setTimeout(()=> beep(160, 660, 'sine', 120, 0.12), 80);
     }, 420);
-    // visual class
     document.body.classList.add('red-alert');
+    console.log('Red alert started');
   }
 
-  // RESTORED: simple sawtooth evac tone (the tone you liked)
+  // Start EVAC using the same beep pattern as Red Alert
   function startEvac(){
     stopAll();
-    ensureCtx();
-    if (!ctx) return;
-    evacOsc = ctx.createOscillator();
-    evacOsc.type = 'sawtooth';
-    evacOsc.frequency.value = 120;
-    evacGain = ctx.createGain();
-    evacGain.gain.value = mute ? 0 : 0.08;
-    evacOsc.connect(evacGain);
-    evacGain.connect(ctx.destination);
-    evacOsc.start();
-    // visual
+    evacInterval = setInterval(()=> {
+      beep(220, 440, 'sine', 0, 0.12);
+      setTimeout(()=> beep(160, 660, 'sine', 120, 0.12), 80);
+    }, 420);
     document.body.classList.add('evac');
+    console.log('Evac started (using red-alert beep pattern)');
   }
 
   function stopAll(){
     if (redInterval) { clearInterval(redInterval); redInterval = null; }
-    if (evacOsc) { try { evacOsc.stop(); } catch(e){} evacOsc = null; }
-    if (evacGain) { try { evacGain.disconnect(); } catch(e){} evacGain = null; }
+    if (evacInterval) { clearInterval(evacInterval); evacInterval = null; }
     document.body.classList.remove('red-alert','evac');
+    console.log('All alerts stopped');
+  }
+
+  function setMute(v){
+    mute = !!v;
+  }
+
+  function toggleMute(){
+    mute = !mute;
+    return mute;
   }
 
   return {
     startRed: startRedAlert,
     startEvac: startEvac,
     stopAll: stopAll,
-    setMute(v){
-      mute = !!v;
-      if (evacGain) evacGain.gain.value = mute ? 0 : 0.08;
-    },
-    toggleMute(){
-      mute = !mute;
-      if (evacGain) evacGain.gain.value = mute ? 0 : 0.08;
-      return mute;
-    }
+    setMute: setMute,
+    toggleMute: toggleMute
   };
 })();
 
@@ -1053,7 +1048,7 @@ const evacConfirm = document.getElementById('evac-confirm');
 const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
 const btnClearAlert = document.getElementById('btn-clear-alert');
 
-/* Mute behavior - same as Red Alert */
+/* Mute behavior */
 if (btnMute) {
   btnMute.addEventListener('click', ()=>{
     const nowMuted = SoundManager.toggleMute();
@@ -1062,7 +1057,7 @@ if (btnMute) {
   });
 }
 
-/* Red alert (works as before) */
+/* Red alert */
 if (btnRed) btnRed.addEventListener('click', ()=> {
   if (document.body.classList.contains('red-alert')) {
     SoundManager.stopAll();
@@ -1079,27 +1074,25 @@ if (evacCancel) evacCancel.addEventListener('click', ()=> {
   if (evacModal) evacModal.classList.add('hidden');
 });
 
-/* Dispatch confirm: start evac, enable cancel/clear buttons (in-panel) */
+/* Dispatch confirm: start evac, enable cancel/clear buttons */
 if (evacConfirm) evacConfirm.addEventListener('click', ()=> {
   if (evacModal) evacModal.classList.add('hidden');
   SoundManager.startEvac();
   if (btnCancelDispatch) { btnCancelDispatch.disabled = false; }
   if (btnClearAlert) { btnClearAlert.disabled = false; }
-  // dispatch pods
   const count = parseInt(document.getElementById('evac-count').value || '6',10);
   dispatchPods(count);
 });
 
-/* Cancel dispatch — ensure the *existing* in-panel button works */
+/* Cancel dispatch */
 function handleCancelDispatch() {
-  // stop audio/visual evac state
   SoundManager.stopAll();
   if (btnCancelDispatch) btnCancelDispatch.disabled = true;
   pushTelemetryLine('Evacuation dispatch cancelled');
 }
 if (btnCancelDispatch) btnCancelDispatch.addEventListener('click', handleCancelDispatch);
 
-/* Clear alert — existing in-panel button */
+/* Clear alert */
 function handleClearAlert() {
   SoundManager.stopAll();
   pushTelemetryLine('Alert cleared by operator');
@@ -1116,7 +1109,6 @@ function dispatchPods(count){
     if (pods) pods.appendChild(pod);
   }
   pushTelemetryLine(`Dispatched ${count} pods`);
-  // after some time mark them docked
   setTimeout(()=> {
     const children = document.querySelectorAll('#evac-pods .pod');
     children.forEach((p, idx) => {
@@ -1128,8 +1120,7 @@ function dispatchPods(count){
   }, 8000);
 }
 
-/* Defensive: if overlay or other stacking context still blocks clicks in some environments,
-   un-hide pointer-events specifically for the in-panel buttons during EVAC. */
+/* Defensive: ensure in-panel buttons stay interactive during EVAC */
 const ensureInteractiveDuringEvac = () => {
   const selectors = ['#btn-mute', '#btn-cancel-dispatch', '#btn-clear-alert', '.page-header .controls'];
   selectors.forEach(sel => {
@@ -1141,10 +1132,7 @@ const ensureInteractiveDuringEvac = () => {
     }
   });
 };
-/* run once in case EVAC is already on load */
 if (document.body.classList.contains('evac')) ensureInteractiveDuringEvac();
-
-/* observe body class changes so we can re-apply the interactive lift when EVAC starts */
 const bodyObserver = new MutationObserver((mutations) => {
   mutations.forEach(m => {
     if (m.attributeName === 'class') {
