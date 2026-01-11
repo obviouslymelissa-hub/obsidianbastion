@@ -23,6 +23,7 @@
     /* Page basics */
     html,body{height:100%;margin:0;font-family:var(--font-family);background:var(--bg-dark);color:var(--text-main)}
     a { color: inherit; text-decoration: none; }
+
     /* Header hero */
     header {
       background:
@@ -77,8 +78,8 @@
       border:1px solid rgba(127,240,223,0.08);
       box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 30px rgba(79,209,197,0.02) inset;
     }
-    .emblem svg { width:52px;height:52px;display:block; }
-    .emblem img { width:52px; height:52px; display:block; object-fit:contain; background:transparent; }
+    .emblem svg { width:56px;height:56px;display:block; }
+    .emblem img { width:56px; height:56px; display:block; object-fit:contain; background:transparent; }
 
     .ship-img-wrap {
       width:96px;
@@ -538,41 +539,8 @@
     <!-- Sidebar -->
     <aside aria-label="Right sidebar">
       <div class="side-stack">
-        <div class="panel" aria-labelledby="systems-title">
-          <h3 id="systems-title">System Access - RESTRICTED: Authorized Personnel Use</h3>
-          <div class="systems-dock" role="list">
-            <div class="tile main" role="listitem" aria-label="Onboard Computer">
-              <div style="display:flex;gap:14px;align-items:center;">
-                <div class="tile-icon" aria-hidden="true">💻</div>
-                <div>
-                  <div class="tile-title">Onboard Computer</div>
-                  <div class="tile-desc">Primary control interface — main console and mission controls.</div>
-                </div>
-              </div>
-              <div class="tile-actions">
-                <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastion/onboardcomputer.html" aria-label="Open Onboard Computer">Open</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="panel" aria-labelledby="alerts-title">
           <h3 id="alerts-title">Notifications &amp; Events</h3>
-
-          <div class="systems-dock" role="list" style="margin-bottom:16px">
-            <div class="tile main" role="listitem" aria-label="Strategic Operations Board">
-              <div style="display:flex;gap:14px;align-items:center;">
-                <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="Strategic Operations Board" style="width:48px;height:48px;border-radius:10px;object-fit:cover;" aria-hidden="true">
-                <div>
-                  <div class="tile-title">Strategic Operations Board</div>
-                  <div class="tile-desc">Special honors and recognitions.</div>
-                </div>
-              </div>
-              <div class="tile-actions">
-                <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" aria-label="Open Strategic Operations Board">Open</a>
-              </div>
-            </div>
-          </div>
 
           <h4 style="margin:0 0 8px 0;color:var(--text-main)">Upcoming Events</h4>
           <ul class="small-list" style="margin-top:10px">
@@ -595,6 +563,25 @@
               </div>
             </li>
           </ul>
+        </div>
+
+        <!-- Strategic Operations Board Panel -->
+        <div class="panel" aria-labelledby="sop-title">
+          <h3 id="sop-title">Strategic Operations Board</h3>
+          <div class="systems-dock" role="list" style="margin-bottom:16px">
+            <div class="tile main" role="listitem" aria-label="Strategic Operations Board">
+              <div style="display:flex;gap:14px;align-items:center;">
+                <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="Strategic Operations Board" style="width:46px;height:46px;border-radius:8px;object-fit:contain">
+                <div>
+                  <div class="tile-title">Strategic Operations Board</div>
+                  <div class="tile-desc">Special honors and recognitions.</div>
+                </div>
+              </div>
+              <div class="tile-actions">
+                <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" aria-label="Open Strategic Operations Board">Open</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </aside>
