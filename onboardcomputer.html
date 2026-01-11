@@ -32,6 +32,9 @@
       background:rgba(255,255,255,0.02);
       backdrop-filter: blur(4px);
       border-bottom:1px solid rgba(255,255,255,0.03);
+      /* ensure header (and its controls) sits above overlays */
+      position: relative;
+      z-index: 10005;
     }
     .page-header h1{margin:0;font-size:18px;letter-spacing:0.6px}
     .page-header .controls{display:flex;gap:8px;align-items:center}
@@ -216,6 +219,9 @@
       justify-content: center;
       align-items: center;
       margin-top: 12px;
+      /* ensure emergency controls are above overlays */
+      position: relative;
+      z-index: 10005;
     }
     .emergency-controls button {
       flex: 0 1 auto;
@@ -261,27 +267,19 @@
       pointer-events: none;
     }
 
+    /* EVAC: keep visual overlay but do NOT let it intercept pointer events so header & in-panel controls remain clickable */
     body.evac #alert-overlay {
       background: rgba(255,10,10,0.18);
       opacity: 1;
       animation: pulse-alert 0.6s linear infinite;
-      pointer-events: auto;
+      pointer-events: none;
     }
 
-    body.evac .controls,
-    body.evac .controls *,
-    body.evac #btn-cancel-dispatch,
-    body.evac #btn-clear-alert,
-    body.evac #btn-mute {
-      position: relative;
-      z-index: 10002;
-      pointer-events: auto;
-    }
-
+    /* Ensure the mute-toggle variant is interactive when flagged */
     body.evac .mute-toggle,
     body.red-alert .mute-toggle {
       position: relative;
-      z-index: 10002;
+      z-index: 10006;
       pointer-events: auto;
     }
 
@@ -886,7 +884,7 @@ function simulateStep() {
     `${ts} Power: ${telemetry.power.toFixed(0)}%`,
     `${ts} CO2: ${Math.round(telemetry.co2)} ppm`,
     `${ts} Temp: ${Math.round(cToF(telemetry.tempC))}°F`,
-    `${ts} Humidity: ${telemetry.humidity.toFixed(0)}%`,
+    `${ts} Humidity: ${Math.round(telemetry.humidity)}%`,
     `${ts} Reactor: ${Math.round(cToF(telemetry.reactorTemp))}°F • Fuel: ${Math.round(telemetry.fuelLevel)}% • Net: ${Math.round(telemetry.netLatency)}ms`,
     `${ts} Scrubber: ${Math.round(telemetry.scrubberEfficiency)}% eff • ${Math.round(telemetry.scrubberEtaHours)}h`
   ];
@@ -966,11 +964,11 @@ setGauge(document.getElementById('net-arc'), initialNetPercent, 50,50,34);
 simulateStep();
 setInterval(simulateStep, 900);
 
-/* --- ALERT / SOUND MANAGER --- */
+/* --- ALERT / SOUND MANAGER (restored evac tone as requested) --- */
 const SoundManager = (function(){
   let ctx = null;
   let redInterval = null;
-  let evacOsc = null;
+  let evacOsc = null;   // single oscillator for evac tone (restored)
   let evacGain = null;
   let mute = false;
 
@@ -998,238 +996,165 @@ const SoundManager = (function(){
   function startRedAlert(){
     stopAll();
     redInterval = setInterval(()=> {
-      beep(120, 880);
-      setTimeout(()=> beep(120, 660), 160);
-    }, 900);
+      beep(220, 440, 'sine', 0, 0.12);
+      setTimeout(()=> beep(160, 660, 'sine', 120, 0.12), 80);
+    }, 420);
+    // visual class
+    document.body.classList.add('red-alert');
   }
 
+  // RESTORED: simple sawtooth evac tone (the tone you liked)
   function startEvac(){
     stopAll();
     ensureCtx();
     if (!ctx) return;
     evacOsc = ctx.createOscillator();
+    evacOsc.type = 'sawtooth';
+    evacOsc.frequency.value = 120;
     evacGain = ctx.createGain();
-    evacOsc.type = 'sine';
-    evacGain.gain.value = mute ? 0 : 0.22;
+    evacGain.gain.value = mute ? 0 : 0.08;
     evacOsc.connect(evacGain);
     evacGain.connect(ctx.destination);
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.6;
-    lfoGain.gain.value = 220;
-    lfo.connect(lfoGain);
-    lfoGain.connect(evacOsc.frequency);
-    evacOsc.frequency.value = 440;
     evacOsc.start();
-    lfo.start();
-    evacOsc._lfo = lfo;
+    // visual
+    document.body.classList.add('evac');
   }
 
   function stopAll(){
     if (redInterval) { clearInterval(redInterval); redInterval = null; }
-    if (evacOsc) {
-      try { if (evacOsc._lfo) evacOsc._lfo.stop(); } catch(e){}
-      try { evacOsc.stop(); } catch(e){}
-      try { evacOsc.disconnect(); } catch(e){}
-      evacOsc = null;
-      evacGain = null;
-    }
-  }
-
-  function setMute(val){
-    mute = !!val;
-    if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
-  }
-
-  function toggleMute(){
-    setMute(!mute);
+    if (evacOsc) { try { evacOsc.stop(); } catch(e){} evacOsc = null; }
+    if (evacGain) { try { evacGain.disconnect(); } catch(e){} evacGain = null; }
+    document.body.classList.remove('red-alert','evac');
   }
 
   return {
-    startRed(){ startRedAlert(); },
-    startEvac(){ startEvac(); },
-    stop(){ stopAll(); },
-    setMute,
-    toggleMute,
-    isMuted(){ return mute; }
+    startRed: startRedAlert,
+    startEvac: startEvac,
+    stopAll: stopAll,
+    setMute(v){
+      mute = !!v;
+      if (evacGain) evacGain.gain.value = mute ? 0 : 0.08;
+    },
+    toggleMute(){
+      mute = !mute;
+      if (evacGain) evacGain.gain.value = mute ? 0 : 0.08;
+      return mute;
+    }
   };
 })();
 
-/* Wire up some controls (mute / red alert / evacuate) */
+/* UI wiring */
 const btnMute = document.getElementById('btn-mute');
-if (btnMute) {
-  btnMute.addEventListener('click', () => {
-    SoundManager.toggleMute();
-    const isMuted = SoundManager.isMuted();
-    btnMute.setAttribute('aria-pressed', isMuted.toString());
-    btnMute.textContent = isMuted ? '🔇 Unmute' : '🔈 Mute';
-  });
-}
-
 const btnRed = document.getElementById('btn-red-alert');
-if (btnRed) {
-  btnRed.addEventListener('click', () => {
-    const active = document.body.classList.toggle('red-alert');
-    if (active) SoundManager.startRed(); else SoundManager.stop();
-  });
-}
-
 const btnEvac = document.getElementById('btn-evacuate');
 const evacModal = document.getElementById('evac-modal');
 const evacCancel = document.getElementById('evac-cancel');
 const evacConfirm = document.getElementById('evac-confirm');
-if (btnEvac) {
-  btnEvac.addEventListener('click', () => {
-    evacModal.classList.remove('hidden');
-  });
-}
-if (evacCancel) evacCancel.addEventListener('click', () => evacModal.classList.add('hidden'));
-
-/* --- Evac pod dispatching (restores "call ships in" behavior) --- */
 const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
-const evacPodsEl = document.getElementById('evac-pods');
-const commMsgEl = document.getElementById('comm-msg');
+const btnClearAlert = document.getElementById('btn-clear-alert');
 
-let evacDispatch = {
-  active: false,
-  pods: [] // { id, el, timerId, state }
+/* Mute behavior - same as Red Alert */
+if (btnMute) {
+  btnMute.addEventListener('click', ()=>{
+    const nowMuted = SoundManager.toggleMute();
+    btnMute.setAttribute('aria-pressed', nowMuted ? 'true' : 'false');
+    btnMute.textContent = nowMuted ? '🔇 Muted' : '🔈 Mute';
+  });
+}
+
+/* Red alert (works as before) */
+if (btnRed) btnRed.addEventListener('click', ()=> {
+  if (document.body.classList.contains('red-alert')) {
+    SoundManager.stopAll();
+  } else {
+    SoundManager.startRed();
+  }
+});
+
+/* Evacuation modal open/close */
+if (btnEvac) btnEvac.addEventListener('click', ()=> {
+  if (evacModal) evacModal.classList.remove('hidden');
+});
+if (evacCancel) evacCancel.addEventListener('click', ()=> {
+  if (evacModal) evacModal.classList.add('hidden');
+});
+
+/* Dispatch confirm: start evac, enable cancel/clear buttons (in-panel) */
+if (evacConfirm) evacConfirm.addEventListener('click', ()=> {
+  if (evacModal) evacModal.classList.add('hidden');
+  SoundManager.startEvac();
+  if (btnCancelDispatch) { btnCancelDispatch.disabled = false; }
+  if (btnClearAlert) { btnClearAlert.disabled = false; }
+  // dispatch pods
+  const count = parseInt(document.getElementById('evac-count').value || '6',10);
+  dispatchPods(count);
+});
+
+/* Cancel dispatch — ensure the *existing* in-panel button works */
+function handleCancelDispatch() {
+  // stop audio/visual evac state
+  SoundManager.stopAll();
+  if (btnCancelDispatch) btnCancelDispatch.disabled = true;
+  pushTelemetryLine('Evacuation dispatch cancelled');
+}
+if (btnCancelDispatch) btnCancelDispatch.addEventListener('click', handleCancelDispatch);
+
+/* Clear alert — existing in-panel button */
+function handleClearAlert() {
+  SoundManager.stopAll();
+  pushTelemetryLine('Alert cleared by operator');
+}
+if (btnClearAlert) btnClearAlert.addEventListener('click', handleClearAlert);
+
+/* Pod dispatch simulation */
+function dispatchPods(count){
+  const pods = document.getElementById('evac-pods');
+  for (let i=0;i<count;i++){
+    const pod = document.createElement('div');
+    pod.className = 'pod enroute';
+    pod.innerHTML = `<div>Pod ${i+1}</div><div class="status">EN ROUTE</div>`;
+    if (pods) pods.appendChild(pod);
+  }
+  pushTelemetryLine(`Dispatched ${count} pods`);
+  // after some time mark them docked
+  setTimeout(()=> {
+    const children = document.querySelectorAll('#evac-pods .pod');
+    children.forEach((p, idx) => {
+      p.className = 'pod docked';
+      const st = p.querySelector('.status');
+      if (st) st.textContent = 'DOCKED';
+      setTimeout(()=> { if (p.parentNode) p.parentNode.removeChild(p); }, 11000 + (idx*400));
+    });
+  }, 8000);
+}
+
+/* Defensive: if overlay or other stacking context still blocks clicks in some environments,
+   un-hide pointer-events specifically for the in-panel buttons during EVAC. */
+const ensureInteractiveDuringEvac = () => {
+  const selectors = ['#btn-mute', '#btn-cancel-dispatch', '#btn-clear-alert', '.page-header .controls'];
+  selectors.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) {
+      el.style.pointerEvents = 'auto';
+      el.style.position = 'relative';
+      el.style.zIndex = '10006';
+    }
+  });
 };
+/* run once in case EVAC is already on load */
+if (document.body.classList.contains('evac')) ensureInteractiveDuringEvac();
 
-function mkPodEl(id) {
-  const pod = document.createElement('div');
-  pod.className = 'pod enroute';
-  pod.dataset.podId = id;
-  pod.innerHTML = `<div>Pod ${id}</div><div class="status">ENROUTE</div>`;
-  return pod;
-}
-
-function setPodState(podObj, state, note) {
-  podObj.state = state;
-  const el = podObj.el;
-  el.classList.remove('enroute','docked','failed','aborted');
-  if (state === 'enroute') el.classList.add('enroute');
-  else if (state === 'docked') el.classList.add('docked');
-  else if (state === 'failed') el.classList.add('failed');
-  else if (state === 'aborted') el.classList.add('aborted');
-
-  const statusEl = el.querySelector('.status');
-  statusEl.textContent = (state === 'enroute' ? 'ENROUTE' :
-                          state === 'docked' ? 'DOCKED' :
-                          state === 'failed' ? 'FAILED' :
-                          state === 'aborted' ? 'ABORTED' : state);
-  if (note) statusEl.textContent += ' • ' + note;
-}
-
-function pushComm(text) {
-  if (!commMsgEl) return;
-  commMsgEl.textContent = text;
-  pushTelemetryLine('[COMMS] ' + text);
-}
-
-function dispatchPods(count) {
-  // cleanup any previous
-  if (evacPodsEl) evacPodsEl.innerHTML = '';
-  evacDispatch.pods.forEach(p => { if (p.timerId) clearTimeout(p.timerId); });
-  evacDispatch.pods = [];
-
-  if (count <= 0) return;
-
-  evacDispatch.active = true;
-  pushComm(`Dispatching ${count} pod${count>1?'s':''} — ETA incoming`);
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Dispatching';
-
-  // enable cancel button
-  if (btnCancelDispatch) {
-    btnCancelDispatch.disabled = false;
-  }
-
-  for (let i = 1; i <= count; i++) {
-    const podEl = mkPodEl(i);
-    if (evacPodsEl) evacPodsEl.appendChild(podEl);
-
-    const podObj = { id: i, el: podEl, state: 'enroute', timerId: null };
-    evacDispatch.pods.push(podObj);
-
-    // simulate transit time (6–16 seconds) and small failure chance
-    const transit = 6000 + Math.round(Math.random() * 10000);
-    podObj.timerId = setTimeout(() => {
-      // if aborted meanwhile, skip
-      if (podObj.state !== 'enroute') return;
-
-      const failed = Math.random() < 0.06; // 6% chance to fail
-      if (failed) {
-        setPodState(podObj, 'failed', 'systems fault');
-        pushComm(`Pod ${podObj.id} failed to dock — investigating`);
-      } else {
-        setPodState(podObj, 'docked');
-        pushComm(`Pod ${podObj.id} docked successfully`);
-      }
-
-      // clear timer reference
-      podObj.timerId = null;
-
-      // when all pods are finished (no enroute timers), finalize
-      const stillEnroute = evacDispatch.pods.some(p => p.state === 'enroute' && p.timerId);
-      if (!stillEnroute) finishDispatch();
-    }, transit);
-  }
-}
-
-function finishDispatch() {
-  evacDispatch.active = false;
-  if (btnCancelDispatch) btnCancelDispatch.disabled = true;
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Standby';
-  pushTelemetryLine('Evac dispatch completed');
-  // leave body.evac until operator clears with Clear Alert button
-}
-
-// cancel/abort handler
-function cancelDispatch() {
-  if (!evacDispatch.active) return;
-  evacDispatch.pods.forEach(podObj => {
-    if (podObj.timerId) {
-      clearTimeout(podObj.timerId);
-      podObj.timerId = null;
-      setPodState(podObj, 'aborted');
+/* observe body class changes so we can re-apply the interactive lift when EVAC starts */
+const bodyObserver = new MutationObserver((mutations) => {
+  mutations.forEach(m => {
+    if (m.attributeName === 'class') {
+      if (document.body.classList.contains('evac')) ensureInteractiveDuringEvac();
     }
   });
-  evacDispatch.active = false;
-  if (btnCancelDispatch) btnCancelDispatch.disabled = true;
-  if (document.getElementById('comm-status')) document.getElementById('comm-status').textContent = 'Standby';
-  pushComm('Dispatch cancelled — pods aborted');
-  pushTelemetryLine('Evac dispatch cancelled by operator');
-}
+});
+bodyObserver.observe(document.body, { attributes: true });
 
-// wire up the cancel button (it exists in markup, initially disabled)
-if (btnCancelDispatch) {
-  btnCancelDispatch.addEventListener('click', () => {
-    if (!confirm('Abort active evacuation dispatch?')) return;
-    cancelDispatch();
-  });
-}
-
-// Replace the simple evacConfirm handler with one that dispatches pods:
-if (evacConfirm) {
-  evacConfirm.addEventListener('click', () => {
-    const countInput = document.getElementById('evac-count');
-    let count = 6;
-    if (countInput) {
-      const v = parseInt(countInput.value, 10);
-      if (!isNaN(v) && v > 0) count = Math.min(50, v);
-    }
-
-    evacModal.classList.add('hidden');
-    document.body.classList.add('evac');       // show overlay/state
-    SoundManager.startEvac();                  // start evac alarm
-    dispatchPods(count);
-    pushTelemetryLine(`EVAC initiated — ${count} pods dispatched`);
-  });
-}
-
-const clearBtn = document.getElementById('btn-clear-alert');
-if (clearBtn) clearBtn.addEventListener('click', () => { document.body.classList.remove('red-alert','evac'); SoundManager.stop(); });
-
+/* end script */
 </script>
 </body>
 </html>
