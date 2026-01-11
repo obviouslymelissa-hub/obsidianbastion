@@ -519,6 +519,7 @@
 
         <div class="about-actions" aria-hidden="false">
           <a class="btn" href="https://obviouslymelissa-hub.github.io/obsidianbastion/crew.html" aria-label="Meet our crew">Meet our crew</a>
+          <a class="btn ghost" href="https://obviouslymelissa-hub.github.io/obsidianbastion/achievements.html" aria-label="View achievements">View achievements</a>
         </div>
       </section>
 
@@ -585,11 +586,14 @@
           </ul>
         </div>
 
-        <!-- Strategic Operations Board: single tile only (no surrounding panel/header) -->
+        <!-- Strategic Operations Board: single tile formatted to match Onboard Computer -->
         <div class="systems-dock" role="list" style="margin:0">
           <div class="tile main" role="listitem" aria-label="Strategic Operations Board">
             <div style="display:flex;gap:14px;align-items:center;">
-              <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="Strategic Operations Board" style="width:46px;height:46px;border-radius:8px;object-fit:contain">
+              <div class="tile-icon" aria-hidden="true" style="padding:0;">
+                <!-- small image centered inside the same tile-icon container so alignment matches -->
+                <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="" style="width:28px;height:28px;object-fit:contain;display:block;">
+              </div>
               <div>
                 <div class="tile-title">Strategic Operations Board</div>
                 <div class="tile-desc">Special honors and recognitions.</div>
