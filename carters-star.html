@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRANSMISSION — Enif (ε Pegasi) — Obsidian Bastion</title>
+  <title>TRANSMISSION — Sirius (α Canis Majoris) — Obsidian Bastion</title>
   <link rel="stylesheet" href="app.css">
   <style>
     /*
@@ -205,31 +205,31 @@
     .kv .k{ color:var(--muted); font-family:var(--mono); font-weight:800; font-size:0.80rem; text-transform:uppercase; }
     .kv .v{ color:#bfffe9; font-weight:700; font-size:0.95rem; }
 
-    /* Formal inscription block (styled as official payload within transmission) */
+    /* Formal inscription block — simplified so it reads inline with the rest of the packet */
     .inscription{
       margin-top:12px;
-      border-radius:6px;
-      padding:12px;
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0));
-      border:1px dashed rgba(87,240,201,0.06);
+      padding:0;
+      background:transparent;
+      border:none;
     }
 
     .inscription .quote{
       font-family:var(--mono);
-      font-weight:800;
-      color:var(--accent-2);
-      font-size:1.05rem;
-      margin-bottom:8px;
-      line-height:1.2;
+      font-weight:700;
+      color:#dffbf2; /* match normal packet text */
+      font-size:0.95rem;
+      margin-bottom:6px;
+      line-height:1.4;
     }
 
     .inscription .signed{
-      margin-top:12px;
-      display:flex;
-      justify-content:flex-end;
-      color:var(--muted);
-      font-weight:800;
+      margin-top:6px;
+      display:block;
+      color:#dffbf2; /* keep signature inline with packet text */
+      font-weight:700;
       font-family:var(--mono);
+      text-align:right;
+      font-size:0.95rem;
     }
 
     /* Attachments / right column */
@@ -296,7 +296,7 @@
       <div class="comms-left">
         <div class="badge" aria-hidden="true">
           <!-- Replace with your seal/logo if desired -->
-          <img src="images/ship-seal-placeholder.png" alt="">
+          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/ship-seal-placeholder.png" alt="Ship seal placeholder">
         </div>
         <div class="comms-title" aria-hidden="false">
           <div class="trans-label">TRANSMISSION</div>
@@ -317,9 +317,9 @@
         <div class="payload-head">
           <div>
             <div id="payload-title" class="payload-meta">PAYLOAD — STAR INSCRIPTION / CHART ENTRY</div>
-            <div class="payload-sub">Enif (ε Pegasi) — shipboard marking</div>
+            <div class="payload-sub">Sirius (α Canis Majoris) — shipboard marking</div>
           </div>
-          <div class="payload-sub" style="color:var(--muted); font-family:var(--mono);">Packet ID: OB-BAS/ENIF/001</div>
+          <div class="payload-sub" style="color:var(--muted); font-family:var(--mono);">Packet ID: OB-BAS/SIRIUS/001</div>
         </div>
 
         <div class="packet" aria-label="Transmission packet">
@@ -333,15 +333,15 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
           </div>
 
           <div class="kv" aria-hidden="false" role="list">
-            <div class="k">Honored star</div><div class="v">Enif (Epsilon Pegasi)</div>
-            <div class="k">Location (RA)</div><div class="v">2h 44m 11.6s</div>
-            <div class="k">Location (Dec)</div><div class="v">+09° 52' 30"</div>
-            <div class="k">Apparent brightness</div><div class="v">~+2.4</div>
-            <div class="k">Spectral type</div><div class="v">K2 Ib (orange supergiant)</div>
-            <div class="k">Distance</div><div class="v">~650–700 ly</div>
-            <div class="k">Radius</div><div class="v">~150–185 × R☉</div>
-            <div class="k">Luminosity</div><div class="v">~3,900–12,250 × L☉</div>
-            <div class="k">Surface temp</div><div class="v">~4,100–4,460 K</div>
+            <div class="k">Honored star</div><div class="v">Sirius (Alpha Canis Majoris)</div>
+            <div class="k">Location (RA)</div><div class="v">06h 45m 08.917s (J2000)</div>
+            <div class="k">Location (Dec)</div><div class="v">−16° 42' 58.02" (J2000)</div>
+            <div class="k">Apparent brightness</div><div class="v">−1.46</div>
+            <div class="k">Spectral type</div><div class="v">A1V (main-sequence) — primary (Sirius A)</div>
+            <div class="k">Distance</div><div class="v">~8.6 ly (2.64 pc)</div>
+            <div class="k">Radius</div><div class="v">~1.71 × R☉</div>
+            <div class="k">Luminosity</div><div class="v">~25.4 × L☉</div>
+            <div class="k">Surface temp</div><div class="v">~9,940 K</div>
           </div>
 
           <div class="inscription" aria-label="Inscription text">
@@ -356,25 +356,25 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
           <div class="grid">
             <div class="item"><div class="k">Named For</div><div class="v"><em>Carter Vinton Kimball</em> (shipboard inscription)</div></div>
             <div class="item"><div class="k">Dedication Date</div><div class="v">January 22, 2018</div></div>
-            <div class="item"><div class="k">Constellation</div><div class="v">Pegasus</div></div>
-            <div class="item"><div class="k">Catalog (original)</div><div class="v">88607527 (UCAC3)</div></div>
-            <div class="item"><div class="k">Notes</div><div class="v">Private shipboard inscription — not formally registered</div></div>
+            <div class="item"><div class="k">Constellation</div><div class="v">Canis Major</div></div>
+            <div class="item"><div class="k">Catalog (original)</div><div class="v">HD 48915 (HIP 32349)</div></div>
+            <div class="item"><div class="k">Notes</div><div class="v">Brightest star in the night sky; private shipboard inscription — not formally registered</div></div>
           </div>
         </div>
       </article>
 
       <!-- right: attachments area -->
       <aside class="attachments" role="complementary" aria-label="Attachments / images">
-        <div class="att-card" role="figure" aria-label="Pegasus attachment">
-          <div class="att-label">Attachment: Pegasus constellation</div>
-          <img src="images/pegasus-constellation.jpg" alt="Pegasus constellation (placeholder)">
-          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">images/pegasus-constellation.jpg</div>
+        <div class="att-card" role="figure" aria-label="Canis Major attachment">
+          <div class="att-label">Attachment: Canis Major constellation</div>
+          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius2.jpg" alt="Canis Major / Sirius region (placeholder)">
+          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius2.jpg</div>
         </div>
 
         <div class="att-card" role="figure" aria-label="Star map">
           <div class="att-label">Attachment: Star map</div>
-          <img src="images/star-map.jpg" alt="Star map (placeholder)">
-          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">images/star-map.jpg</div>
+          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius.jpg" alt="Sirius star map">
+          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius.jpg</div>
         </div>
       </aside>
     </section>
