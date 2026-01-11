@@ -1,138 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Diagnostics — Obsidian Bastion</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="app.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="app.css" />
   <style>
     :root {
-      --bg-dark: #181c24;
-      --bg-panel: #23283a;
+      --bg-dark: #0f1116;
+      --bg-panel: #151722;
       --accent: #4fd1c5;
-      --text-main: #e2e8f0;
-      --text-muted: #a0aec0;
-      --border: #2d3748;
-      --danger: #e53e3e;
-      --success: #38a169;
-      --warning: #ecc94b;
+      --accent-2: #6ee7d7;
+      --text-main: #e6eef3;
+      --text-muted: #9aa6b4;
+      --border: #222734;
+      --danger: #ff6b6b;
+      --success: #4ade80;
+      --warning: #f6c94d;
       --font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      --glass: rgba(255,255,255,0.03);
     }
+
+    /* Base layout */
     body {
-      color: var(--text-main);
-      font-family: var(--font-family);
       margin: 0;
-      padding: 0;
+      font-family: var(--font-family);
+      color: var(--text-main);
+      background: linear-gradient(180deg, #07080b 0%, #0b0f14 100%);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      min-height: 100vh;
     }
+    header.site-header {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      display:flex;
+      justify-content:center;
+      background: linear-gradient(90deg, rgba(79,209,197,0.02), transparent);
+    }
+    .header-inner {
+      max-width: 980px;
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:1rem;
+    }
+    .header-left { display:flex; gap:0.8rem; align-items:center; }
+    .site-emblem img { width:56px; height:56px; border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
+    .header-text h1 { margin:0; font-size:1.05rem; color:var(--accent); }
+    .header-text h2 { margin:0; font-size:0.9rem; color:var(--text-muted); font-weight:400; }
+
     main {
-      max-width: 600px;
-      margin: 2rem auto;
-      background: var(--bg-panel);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px #0003;
-      padding: 2rem;
-      border: 1px solid var(--border);
-    }
-    .diagnostics-select {
-      display: flex;
+      max-width: 960px;
+      margin: 1.75rem auto;
+      padding: 1.25rem;
+      display: grid;
+      grid-template-columns: 320px 1fr;
       gap: 1rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: start;
+    }
+
+    /* Left column (controls) */
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    }
+
+    .diagnostics-select {
+      display:flex;
+      flex-direction:column;
+      gap:0.55rem;
+      margin-bottom: 0.85rem;
     }
     .diagnostics-select button {
-      background: var(--accent);
-      color: var(--bg-dark);
-      border: none;
-      border-radius: 6px;
-      padding: 0.7rem 1.2rem;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
+      display:flex;
+      align-items:center;
+      gap:0.6rem;
+      background:var(--glass);
+      color:var(--text-main);
+      border:1px solid rgba(255,255,255,0.03);
+      padding:0.6rem 0.8rem;
+      border-radius:8px;
+      font-size:0.98rem;
+      cursor:pointer;
+      transition: transform 0.12s ease, background 0.12s ease;
+      text-align:left;
     }
-    .diagnostics-select button.selected,
-    .diagnostics-select button:hover {
-      background: #38b2ac;
-    }
-    .diagnostics-area {
-      margin-bottom: 1.5rem;
-      font-size: 1.1rem;
-      color: var(--accent);
-      text-align: center;
-    }
-    .diagnostics-error {
-      background: #1a202c;
-      color: var(--danger);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-size: 1.05rem;
-      border: 1px solid var(--danger);
-      min-height: 2.5em;
-      transition: background 0.2s;
-    }
-    .diagnostics-status {
-      text-align: center;
-      font-size: 1.05rem;
-      margin-bottom: 1rem;
-      color: var(--success);
-      min-height: 2em;
-    }
-    .diagnostics-fix-btn {
-      display: block;
-      margin: 1rem auto 0 auto;
-      background: var(--success);
-      color: var(--bg-dark);
-      border: none;
-      border-radius: 6px;
-      padding: 0.7rem 1.5rem;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .diagnostics-fix-btn:hover {
-      background: #2f855a;
-    }
-    .recommendations {
-      margin-top: 1.25rem;
-      background: #0f1724;
+    .diagnostics-select button:focus { outline: 2px solid rgba(79,209,197,0.18); outline-offset:2px; }
+    .diagnostics-select button:hover { transform: translateY(-2px); }
+    .diagnostics-select button.selected {
+      background: linear-gradient(90deg, rgba(79,209,197,0.06), rgba(79,209,197,0.02));
       border: 1px solid rgba(79,209,197,0.12);
-      padding: 1rem;
-      border-radius: 8px;
-      color: var(--text-main);
+      box-shadow: 0 6px 18px rgba(79,209,197,0.02);
     }
-    .recommendations h3 {
-      margin: 0 0 0.5rem 0;
-      color: var(--accent);
-      font-size: 1.05rem;
-      text-align: center;
+    .btn-icon {
+      width:12px; height:12px; border-radius:50%; background:var(--warning); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35);
     }
-    .recommendation-list {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: var(--text-muted);
-      font-size: 0.98rem;
+
+    /* Right column (details) */
+    .details {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+      border-radius:12px;
+      padding:1rem;
+      border:1px solid var(--border);
+      min-height:240px;
     }
-    .recommendation-list li {
-      margin-bottom: 0.4rem;
+
+    .header-row {
+      display:flex;
+      gap:1rem;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:0.8rem;
     }
-    .return-link {
-      display: block;
-      text-align: center;
-      margin-top: 2rem;
-      color: var(--accent);
-      text-decoration: none;
-      font-size: 1rem;
+    .diagnostics-area { font-size:1.1rem; color:var(--accent-2); text-align:left; margin:0; }
+    .diagnostics-error {
+      background:#0b0e13;
+      color:var(--danger);
+      border-radius:8px;
+      padding:0.75rem;
+      margin-bottom:0.7rem;
+      font-size:1rem;
+      border:1px solid rgba(255,0,0,0.06);
+      min-height:2.2em;
     }
-    .return-link:hover {
-      text-decoration: underline;
+    .diagnostics-nominal {
+      color:var(--success);
+      border-color: rgba(74,222,128,0.08);
     }
-    /* small screens */
-    @media (max-width: 480px) {
-      .diagnostics-select button { padding: 0.5rem 0.8rem; font-size: .95rem; }
-      main { padding: 1rem; margin: 1rem; }
+    .diagnostics-status { font-size:0.98rem; margin-bottom:0.6rem; min-height:1.4em; color:var(--success); }
+
+    .status-row { display:flex; gap:0.75rem; align-items:center; }
+    .status-led { width:12px; height:12px; border-radius:50%; background:#2b2f34; box-shadow:0 2px 6px rgba(0,0,0,0.6) inset; transition: background 220ms, box-shadow 220ms; }
+    .status-label { font-size:0.95rem; color:var(--text-muted); }
+
+    .diagnostics-fix-btn {
+      background:var(--accent);
+      color:var(--bg-dark);
+      border:none;
+      border-radius:8px;
+      padding:0.55rem 0.9rem;
+      cursor:pointer;
+      font-weight:600;
+      margin-left:auto;
     }
+    .secondary-btn {
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--text-muted);
+      padding:0.45rem 0.65rem;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:0.9rem;
+      margin-left:0.4rem;
+    }
+
+    .recommendations {
+      margin-top:0.8rem;
+      background:#07080b;
+      border:1px solid rgba(79,209,197,0.08);
+      padding:0.8rem;
+      border-radius:8px;
+      color:var(--text-main);
+    }
+    .recommendations h3 { margin:0 0 0.45rem 0; color:var(--accent); font-size:0.98rem; text-align:left; }
+    .recommendation-list { margin:0; padding-left:1.05rem; color:var(--text-muted); font-size:0.95rem; }
+    .recommendation-list li { margin-bottom:0.35rem; }
+
+    .controls-row { display:flex; gap:0.5rem; align-items:center; margin-top:0.6rem; }
+
+    /* Telemetry sparkline */
+    .telemetry {
+      margin-top:0.6rem;
+      display:flex;
+      gap:0.6rem;
+      align-items:center;
+    }
+    #telemetryCanvas { background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent); border-radius:6px; border:1px solid rgba(255,255,255,0.02); }
+
+    /* History list */
+    .history {
+      margin-top:0.8rem;
+      color:var(--text-muted);
+      font-size:0.92rem;
+    }
+    .history-item { padding:0.45rem 0.5rem; border-radius:6px; cursor:pointer; border:1px solid transparent; }
+    .history-item:hover { background:rgba(255,255,255,0.01); border-color:rgba(255,255,255,0.02); }
+
+    /* Verbose log */
+    .log {
+      margin-top:0.6rem;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      color:var(--text-muted);
+      font-family: monospace;
+      font-size:0.82rem;
+      padding:0.6rem;
+      border-radius:8px;
+      max-height:140px;
+      overflow:auto;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    /* responsive */
+    @media (max-width:880px) {
+      main { grid-template-columns: 1fr; padding:1rem; margin:1rem; }
+    }
+
+    /* confetti canvas overlay */
+    #confettiCanvas { position: fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999; }
   </style>
 </head>
 <body>
@@ -155,29 +234,69 @@
   </header>
 
   <main>
-    <div class="diagnostics-select" role="tablist" aria-label="Subsystems">
-      <button data-area="Life Support">Life Support</button>
-      <button data-area="Power">Power</button>
-      <button data-area="Shields">Shields</button>
-      <button data-area="Navigation">Navigation</button>
-      <button data-area="Communications">Communications</button>
-    </div>
+    <section class="panel" aria-labelledby="subsystemsHeading">
+      <h3 id="subsystemsHeading" style="margin:0 0 0.6rem 0; color:var(--accent)">Subsystems</h3>
 
-    <div class="diagnostics-area" id="diagnosticsArea">Select a subsystem to diagnose.</div>
-    <div class="diagnostics-error" id="diagnosticsError" aria-live="polite"></div>
-    <div class="diagnostics-status" id="diagnosticsStatus" aria-live="polite"></div>
+      <div class="diagnostics-select" role="tablist" aria-label="Subsystems">
+        <button data-area="Life Support" aria-selected="false"> <span class="btn-icon" style="background: #f6c94d;"></span> Life Support</button>
+        <button data-area="Power" aria-selected="false"> <span class="btn-icon" style="background: #ffd166;"></span> Power</button>
+        <button data-area="Shields" aria-selected="false"> <span class="btn-icon" style="background: #a0e9ff;"></span> Shields</button>
+        <button data-area="Navigation" aria-selected="false"> <span class="btn-icon" style="background: #bdb2ff;"></span> Navigation</button>
+        <button data-area="Communications" aria-selected="false"> <span class="btn-icon" style="background: #9be7c6;"></span> Communications</button>
+      </div>
 
-    <!-- New recommended actions section -->
-    <div class="recommendations" id="recommendationsSection" style="display:none;" aria-live="polite">
-      <h3>Recommended Actions</h3>
-      <ul class="recommendation-list" id="recommendationList"></ul>
-    </div>
+      <div class="controls-row">
+        <button id="fixBtn" class="diagnostics-fix-btn" style="display:none;">Attempt Fix</button>
+        <button id="downloadBtn" class="secondary-btn" style="display:none;">Download Report</button>
+        <button id="toggleVerbose" class="secondary-btn" aria-pressed="false">Verbose logs</button>
+      </div>
 
-    <button class="diagnostics-fix-btn" id="fixBtn" style="display:none;">Attempt Fix</button>
-    <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" class="return-link">← Back to Command Hub</a>
+      <div class="history" id="historySection" aria-live="polite">
+        <h4 style="margin:0.65rem 0 0.35rem 0; color:var(--accent); font-size:0.9rem;">Recent Diagnostics</h4>
+        <div id="historyList" style="display:block;"></div>
+        <div id="historyControls" style="margin-top:0.5rem;"></div>
+      </div>
+    </section>
+
+    <section class="details panel" aria-labelledby="detailsHeading">
+      <div class="header-row">
+        <div>
+          <div class="diagnostics-area" id="diagnosticsArea">Select a subsystem to diagnose.</div>
+          <div class="diagnostics-error" id="diagnosticsError" aria-live="polite"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.6rem;">
+          <div class="status-row">
+            <div class="status-led" id="statusLed" title="status LED" aria-hidden="true"></div>
+            <div class="status-label" id="statusLabel">Idle</div>
+          </div>
+
+          <canvas id="telemetryCanvas" width="200" height="50" aria-hidden="true"></canvas>
+        </div>
+      </div>
+
+      <div class="diagnostics-status" id="diagnosticsStatus" aria-live="polite"></div>
+
+      <!-- New recommended actions section -->
+      <div class="recommendations" id="recommendationsSection" style="display:none;" aria-live="polite">
+        <h3>Recommended Actions</h3>
+        <ul class="recommendation-list" id="recommendationList"></ul>
+      </div>
+
+      <div id="logsWrapper" style="display:none;">
+        <h4 style="margin:0.6rem 0 0.35rem 0; color:var(--accent); font-size:0.9rem;">Verbose Log</h4>
+        <div class="log" id="verboseLog" aria-live="polite"></div>
+      </div>
+
+      <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" class="return-link" style="display:block; margin-top:0.9rem; color:var(--accent); text-decoration:none;">← Back to Command Hub</a>
+    </section>
   </main>
+
+  <!-- Confetti canvas overlay -->
+  <canvas id="confettiCanvas"></canvas>
+
   <script>
-    // Vague error messages for each subsystem
+    // Original errors & recommendations objects preserved from the original file
     const errors = {
       "Life Support": [
         "O2 sensor readings inconsistent.",
@@ -211,7 +330,6 @@
       ]
     };
 
-    // Mapping from specific error messages to recommended actions
     const recommendations = {
       // Life Support
       "O2 sensor readings inconsistent.": [
@@ -320,34 +438,253 @@
       ]
     };
 
-    const areaButtons = document.querySelectorAll('.diagnostics-select button');
+    // UI elements
+    const areaButtons = Array.from(document.querySelectorAll('.diagnostics-select button'));
     const diagnosticsArea = document.getElementById('diagnosticsArea');
     const diagnosticsError = document.getElementById('diagnosticsError');
     const diagnosticsStatus = document.getElementById('diagnosticsStatus');
     const fixBtn = document.getElementById('fixBtn');
     const recommendationsSection = document.getElementById('recommendationsSection');
     const recommendationList = document.getElementById('recommendationList');
+    const statusLed = document.getElementById('statusLed');
+    const statusLabel = document.getElementById('statusLabel');
+    const telemetryCanvas = document.getElementById('telemetryCanvas');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const toggleVerbose = document.getElementById('toggleVerbose');
+    const logsWrapper = document.getElementById('logsWrapper');
+    const verboseLog = document.getElementById('verboseLog');
+    const historyList = document.getElementById('historyList');
+    const historyControls = document.getElementById('historyControls');
+    const confettiCanvas = document.getElementById('confettiCanvas');
 
     let selectedArea = null;
     let currentError = null;
     let issueResolved = false;
+    let escalationAdded = false;
+    const HISTORY_KEY = 'obsidian_diag_history_v1';
+    const LAST_SELECTED_KEY = 'obsidian_diag_last_selected';
+
+    // New: how many history entries to show by default
+    const HISTORY_DISPLAY_LIMIT = 5;
+    let showAllHistory = false;
+
+    // Simple beep generator using WebAudio
+    function beep(duration = 120, freq = 440, type = 'sine', volume = 0.03) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = type;
+        o.frequency.value = freq;
+        g.gain.value = volume;
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start();
+        setTimeout(() => { o.stop(); ctx.close(); }, duration);
+      } catch (e) { /* ignore if audio not allowed */ }
+    }
+
+    // Telemetry sparkline renderer (simple simulated data)
+    function drawTelemetry(seed = 50) {
+      const c = telemetryCanvas;
+      const ctx = c.getContext('2d');
+      const w = c.width, h = c.height;
+      ctx.clearRect(0,0,w,h);
+
+      // generate small series
+      const pts = [];
+      let val = seed + (Math.random()*6 - 3);
+      for (let i=0;i<22;i++){
+        val += (Math.random()*4 - 2);
+        val = Math.max(6, Math.min(94, val));
+        pts.push(val);
+      }
+
+      // background gradient
+      const g = ctx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0, 'rgba(79,209,197,0.06)');
+      g.addColorStop(1, 'rgba(79,209,197,0.01)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // sparkline
+      ctx.beginPath();
+      for (let i=0;i<pts.length;i++){
+        const x = (i/(pts.length-1)) * (w-6) + 3;
+        const y = h - (pts[i]/100 * (h-10)) - 5;
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = 'rgba(79,209,197,0.98)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // last dot
+      const lastX = ( (pts.length-1)/(pts.length-1) ) * (w-6) + 3;
+      const lastY = h - (pts[pts.length-1]/100 * (h-10)) - 5;
+      ctx.fillStyle = 'rgba(79,209,197,0.98)';
+      ctx.beginPath();
+      ctx.arc(lastX,lastY,3,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Confetti (lightweight)
+    function triggerConfetti() {
+      const canvas = confettiCanvas;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+      const pieces = [];
+      const count = 60;
+      for (let i=0;i<count;i++){
+        pieces.push({
+          x: Math.random() * canvas.width,
+          y: -Math.random() * 200,
+          size: 6 + Math.random()*8,
+          vx: -2 + Math.random()*4,
+          vy: 2 + Math.random()*4,
+          color: ['#6ee7d7','#4fd1c5','#ffd166','#bdb2ff','#9be7c6'][Math.floor(Math.random()*5)],
+          rot: Math.random()*360,
+          rSpeed: (Math.random()*6-3)
+        });
+      }
+
+      let t0 = performance.now();
+      function step(now){
+        const dt = now - t0;
+        t0 = now;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for (const p of pieces){
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.07;
+          p.rot += p.rSpeed;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot * Math.PI / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+          ctx.restore();
+        }
+        // remove pieces off-screen
+        const alive = pieces.filter(p => p.y < canvas.height + 80);
+        if (alive.length === 0) {
+          ctx.clearRect(0,0,canvas.width,canvas.height);
+          return;
+        } else {
+          requestAnimationFrame(step);
+        }
+      }
+      requestAnimationFrame(step);
+      // clear after a short while
+      setTimeout(() => { ctx.clearRect(0,0,canvas.width,canvas.height); }, 3000);
+    }
+
+    // History management
+    function pushHistory(entry) {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        arr.unshift(entry);
+        while (arr.length > 10) arr.pop();
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+        renderHistory();
+      } catch (e) { /* ignore */ }
+    }
+
+    function renderHistory() {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      historyList.innerHTML = '';
+      historyControls.innerHTML = '';
+
+      if (!arr.length) {
+        historyList.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem;">No previous diagnostics</div>';
+        return;
+      }
+
+      // Choose slice according to showAllHistory and the display limit
+      const toShow = showAllHistory ? arr : arr.slice(0, HISTORY_DISPLAY_LIMIT);
+
+      toShow.forEach((h, idx) => {
+        const el = document.createElement('div');
+        el.className = 'history-item';
+        el.tabIndex = 0;
+        el.innerHTML = `<strong>${h.area}</strong> — <span style="color:var(--text-muted)">${new Date(h.time).toLocaleString()}</span><div style="font-size:0.86rem; color:var(--text-muted); margin-top:3px;">${h.error}</div>`;
+        el.addEventListener('click', () => {
+          restoreHistoryItem(h);
+        });
+        el.addEventListener('keypress', (e) => { if (e.key === 'Enter') restoreHistoryItem(h); });
+        historyList.appendChild(el);
+      });
+
+      // If there are more entries than the display limit, show a toggle control
+      if (arr.length > HISTORY_DISPLAY_LIMIT) {
+        const btn = document.createElement('button');
+        btn.className = 'secondary-btn';
+        btn.style.padding = '0.35rem 0.55rem';
+        btn.textContent = showAllHistory ? 'Show less' : `Show ${Math.min(arr.length, HISTORY_DISPLAY_LIMIT)} of ${arr.length}`;
+        btn.addEventListener('click', () => {
+          showAllHistory = !showAllHistory;
+          renderHistory();
+        });
+        historyControls.appendChild(btn);
+      }
+    }
+
+    function restoreHistoryItem(h) {
+      // find and "click" the area button
+      const btn = areaButtons.find(b => b.getAttribute('data-area') === h.area);
+      if (btn) btn.click();
+      // populate error and recommendations explicitly (preserve timestamp)
+      currentError = h.error;
+      diagnosticsError.textContent = currentError;
+      diagnosticsStatus.textContent = h.statusText || '';
+      showRecommendationsFor(currentError);
+      // log
+      appendLog(`Restored historical diagnostic from ${new Date(h.time).toLocaleString()}`);
+    }
+
+    // Logging helper
+    function appendLog(msg) {
+      const t = new Date().toLocaleTimeString();
+      verboseLog.innerHTML = `<div>[${t}] ${msg}</div>` + verboseLog.innerHTML;
+    }
+
+    // Draw LED based on error text severity
+    function setLedForError(text) {
+      if (!text) {
+        statusLed.style.background = '#2b2f34';
+        statusLabel.textContent = 'Idle';
+        return;
+      }
+      if (text.includes('nominal')) {
+        statusLed.style.background = 'linear-gradient(180deg, var(--success), #2f9c61)';
+        statusLed.style.boxShadow = '0 0 8px rgba(74,222,128,0.18)';
+        statusLabel.textContent = 'Nominal';
+      } else if (text.match(/(minor|backlog|intermittent|fluctuating|drift|attenuation)/i)) {
+        statusLed.style.background = 'linear-gradient(180deg, var(--warning), #d9b600)';
+        statusLed.style.boxShadow = '0 0 8px rgba(246,201,77,0.15)';
+        statusLabel.textContent = 'Degraded';
+      } else {
+        statusLed.style.background = 'linear-gradient(180deg, var(--danger), #d04848)';
+        statusLed.style.boxShadow = '0 0 10px rgba(255,107,107,0.12)';
+        statusLabel.textContent = 'Issue';
+      }
+    }
 
     // Prevent duplicate escalation recommendations being appended repeatedly
-    let escalationAdded = false;
+    escalationAdded = false;
 
     function showRecommendationsFor(errorText) {
-      // If no error text, hide section
       if (!errorText) {
         recommendationsSection.style.display = 'none';
         return;
       }
-
       const recs = recommendations[errorText] || null;
 
       if (recs && recs.length > 0) {
         recommendationList.innerHTML = recs.map(r => `<li>${r}</li>`).join('');
         recommendationsSection.style.display = 'block';
-        // reset escalation flag for a fresh selection
         escalationAdded = false;
       } else {
         recommendationList.innerHTML = `<li>No specific recommended actions available. Run full diagnostics.</li>`;
@@ -356,39 +693,85 @@
       }
     }
 
-    areaButtons.forEach(btn => {
+    // Populate area button behaviors
+    areaButtons.forEach((btn, idx) => {
       btn.addEventListener('click', () => {
-        areaButtons.forEach(b => b.classList.remove('selected'));
+        // update selection visuals and aria
+        areaButtons.forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-selected','false'); });
         btn.classList.add('selected');
+        btn.setAttribute('aria-selected','true');
+
         selectedArea = btn.getAttribute('data-area');
         diagnosticsArea.textContent = `Diagnosing: ${selectedArea}`;
-        // Randomly select an error (sometimes "nominal")
+
+        // select random error
         const errorList = errors[selectedArea];
-        const idx = Math.floor(Math.random() * errorList.length);
-        currentError = errorList[idx];
+        const index = Math.floor(Math.random() * errorList.length);
+        currentError = errorList[index];
         diagnosticsError.textContent = currentError;
         diagnosticsStatus.textContent = '';
         issueResolved = false;
 
-        // reset escalation flag so new error can receive escalation once if needed
         escalationAdded = false;
 
-        // If nominal, hide fix button and show nominal styling/message
+        // style behavior for nominal vs issue
         if (currentError.includes('nominal')) {
           fixBtn.style.display = 'none';
-          diagnosticsError.style.color = 'var(--accent)';
+          diagnosticsError.classList.add('diagnostics-nominal');
         } else {
-          fixBtn.style.display = 'block';
-          diagnosticsError.style.color = 'var(--danger)';
+          fixBtn.style.display = 'inline-block';
+          diagnosticsError.classList.remove('diagnostics-nominal');
         }
 
-        // Show recommended actions for the selected error
+        // Show recommendations
         showRecommendationsFor(currentError);
+
+        // telemetry & LED
+        drawTelemetry(50 + Math.random()*20);
+        setLedForError(currentError);
+
+        // enable download/report
+        downloadBtn.style.display = 'inline-block';
+
+        // Save to history (lightweight)
+        pushHistory({
+          area: selectedArea,
+          error: currentError,
+          status: 'detected',
+          statusText: '',
+          recommendations: recommendations[currentError] || [],
+          time: Date.now()
+        });
+
+        // persist last-selected
+        try { localStorage.setItem(LAST_SELECTED_KEY, selectedArea); } catch(e){}
+
+        appendLog(`Selected ${selectedArea} — ${currentError}`);
+        beep(80, 880, 'triangle', 0.02);
+      });
+
+      // keyboard: allow Up/Down to move, Enter to click
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          const next = areaButtons[(idx+1)%areaButtons.length];
+          next.focus();
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prev = areaButtons[(idx-1+areaButtons.length)%areaButtons.length];
+          prev.focus();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
       });
     });
 
+    // Fix button behavior (preserved original randomness)
     fixBtn.addEventListener('click', () => {
-      // Randomly resolve or persist the issue
+      appendLog(`Attempting fix for ${selectedArea}: ${currentError}`);
+      beep(60, 520, 'sine', 0.02);
+
       if (Math.random() < 0.5) {
         diagnosticsStatus.textContent = "Issue persists. Further diagnostics required.";
         diagnosticsStatus.style.color = "var(--danger)";
@@ -400,24 +783,135 @@
             "Run extended diagnostics and capture telemetry.",
             "Escalate to engineering if on-site maintenance is required."
           ];
-          // append escalation as additional list items
           recommendationList.innerHTML = recommendationList.innerHTML + escalation.map(r => `<li>${r}</li>`).join('');
           escalationAdded = true;
+          appendLog('Escalation recommendations added.');
         }
+        pushHistory({
+          area: selectedArea,
+          error: currentError,
+          status: 'attempted_fix_failed',
+          statusText: diagnosticsStatus.textContent,
+          recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
+          time: Date.now()
+        });
       } else {
         diagnosticsStatus.textContent = "Issue resolved. Subsystem nominal.";
         diagnosticsStatus.style.color = "var(--success)";
         fixBtn.style.display = 'none';
         diagnosticsError.textContent = '';
-        // Update recommendations to indicate resolution and monitoring steps
         recommendationList.innerHTML = `<li>Issue appears resolved. Monitor subsystem for recurrence over the next 24 hours.</li>
                                         <li>Log the repair attempt and any actions taken.</li>`;
-        // After resolution we still show the recommendations section (monitoring + log)
         recommendationsSection.style.display = 'block';
-        // reset escalation flag for future checks
         escalationAdded = false;
+
+        // fun feedback: confetti + success beep
+        triggerConfetti();
+        beep(220, 660, 'sine', 0.04);
+        appendLog('Issue resolved.');
+
+        pushHistory({
+          area: selectedArea,
+          error: currentError,
+          status: 'fixed',
+          statusText: diagnosticsStatus.textContent,
+          recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
+          time: Date.now()
+        });
       }
     });
+
+    // Download report button
+    downloadBtn.addEventListener('click', () => {
+      const report = {
+        area: selectedArea,
+        error: currentError,
+        status: diagnosticsStatus.textContent || 'detected',
+        recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
+        timestamp: new Date().toISOString()
+      };
+      const text = `Obsidian Bastion — Diagnostic Report
+Time: ${report.timestamp}
+Subsystem: ${report.area}
+Detected: ${report.error}
+Status: ${report.status}
+
+Recommendations:
+- ${report.recommendations.join('\n- ')}
+
+Generated by Obsidian Bastion diagnostics.
+`;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `diagnostic-${(report.area||'unknown').replace(/\s+/g,'_')}-${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      appendLog('Downloaded diagnostic report.');
+      beep(100, 520, 'sine', 0.02);
+    });
+
+    // Verbose toggle
+    toggleVerbose.addEventListener('click', () => {
+      const active = toggleVerbose.getAttribute('aria-pressed') === 'true';
+      toggleVerbose.setAttribute('aria-pressed', String(!active));
+      logsWrapper.style.display = active ? 'none' : 'block';
+      if (!active) {
+        appendLog('Verbose mode enabled.');
+      } else {
+        appendLog('Verbose mode disabled.');
+      }
+    });
+
+    // Keyboard shortcuts for global navigation: left/right to select previous/next, Enter to attempt fix
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        // find focused index or selected index
+        let idx = areaButtons.findIndex(b => b.classList.contains('selected')) ;
+        if (idx === -1) idx = 0;
+        if (e.key === 'ArrowRight') idx = (idx + 1) % areaButtons.length;
+        else idx = (idx - 1 + areaButtons.length) % areaButtons.length;
+        areaButtons[idx].focus();
+        areaButtons[idx].click();
+      } else if (e.key === 'Enter') {
+        // if fix is visible, attempt a fix (helps keyboard users)
+        if (fixBtn && fixBtn.style.display !== 'none') {
+          fixBtn.click();
+        }
+      }
+    });
+
+    // On load: restore last selected if present
+    window.addEventListener('load', () => {
+      try {
+        renderHistory();
+        const last = localStorage.getItem(LAST_SELECTED_KEY);
+        if (last) {
+          const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
+          if (btn) {
+            // small timeout for nicer visual load
+            setTimeout(() => { btn.click(); }, 120);
+          }
+        }
+      } catch (e) {}
+      // draw default telemetry
+      drawTelemetry(48);
+    });
+
+    // Basic responsive resize handling for telemetry/confetti canvas
+    window.addEventListener('resize', () => {
+      try { telemetryCanvas.width = telemetryCanvas.clientWidth; } catch(e){}
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    });
+    // init confetti canvas size
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
   </script>
 </body>
 </html>
