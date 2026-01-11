@@ -85,7 +85,8 @@
       width:96px;
       height:96px;
       border-radius:12px;
-      background: linear-gradient(180deg, rgba(79,209,197,0.04), rgba(255,255,255,0.01));
+      /* changed to solid black so you don't see the gradient when the image translates */
+      background: #000;
       border: 1px solid rgba(255,255,255,0.04);
       box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 18px rgba(79,209,197,0.04) inset;
       overflow:hidden;
@@ -98,7 +99,7 @@
       transition: transform .18s linear;
       position:relative;
     }
-    .ship-img { width:100%; height:100%; object-fit:cover; display:block; transform-origin:center; transition: transform .28s cubic-bezier(.2,.9,.2,1); }
+    .ship-img { width:100%; height:100%; object-fit:cover; display:block; transform-origin:center; transition: transform .28s cubic-bezier(.2,.9,.2,1); background:#000; }
 
     /* Button styles (fixed) */
     .btn {
