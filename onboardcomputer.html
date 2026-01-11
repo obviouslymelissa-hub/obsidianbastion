@@ -278,6 +278,13 @@
       pointer-events: auto;
     }
 
+    body.evac .mute-toggle,
+    body.red-alert .mute-toggle {
+      position: relative;
+      z-index: 10002;
+      pointer-events: auto;
+    }
+
     @keyframes pulse-alert {
       0% { filter: drop-shadow(0 0 6px rgba(255,0,0,0.06)); transform: scale(1); }
       50% { filter: drop-shadow(0 0 28px rgba(255,0,0,0.18)); }
@@ -1035,11 +1042,16 @@ const SoundManager = (function(){
     if (evacGain) evacGain.gain.value = mute ? 0 : 0.22;
   }
 
+  function toggleMute(){
+    setMute(!mute);
+  }
+
   return {
     startRed(){ startRedAlert(); },
     startEvac(){ startEvac(); },
     stop(){ stopAll(); },
     setMute,
+    toggleMute,
     isMuted(){ return mute; }
   };
 })();
@@ -1048,10 +1060,10 @@ const SoundManager = (function(){
 const btnMute = document.getElementById('btn-mute');
 if (btnMute) {
   btnMute.addEventListener('click', () => {
+    SoundManager.toggleMute();
     const isMuted = SoundManager.isMuted();
-    SoundManager.setMute(!isMuted);
-    btnMute.textContent = isMuted ? '🔈 Mute' : '🔇 Muted';
-    btnMute.setAttribute('aria-pressed', (!isMuted).toString());
+    btnMute.setAttribute('aria-pressed', isMuted.toString());
+    btnMute.textContent = isMuted ? '🔇 Unmute' : '🔈 Mute';
   });
 }
 
