@@ -265,6 +265,45 @@
       border:1px solid rgba(255,255,255,0.02);
     }
 
+    /* Error count box */
+    .error-count-box {
+      display:none;
+      background:rgba(246,201,77,0.08);
+      border:1px solid rgba(246,201,77,0.18);
+      border-radius:8px;
+      padding:0.7rem;
+      margin-bottom:0.8rem;
+    }
+    .error-count-box.visible { display:block; }
+    .error-count-box .count-row {
+      display:flex;
+      align-items:center;
+      gap:0.6rem;
+    }
+    .error-count-box .count-indicator {
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--warning);
+      box-shadow:0 0 8px rgba(246,201,77,0.3);
+    }
+    .error-count-box .count-text {
+      color:var(--warning);
+      font-weight:600;
+      font-size:0.95rem;
+    }
+
+    /* Review tag for buttons */
+    .error-tag {
+      background:var(--warning);
+      color:var(--bg-dark);
+      padding:2px 6px;
+      border-radius:4px;
+      font-size:0.75rem;
+      font-weight:700;
+      margin-left:auto;
+    }
+
     /* responsive */
     @media (max-width:880px) {
       main { grid-template-columns: 1fr; padding:1rem; margin:1rem; }
@@ -423,10 +462,10 @@
 
     <section class="details panel" aria-labelledby="detailsHeading">
       <!-- Error count box -->
-      <div id="errorCountBox" style="display:none; background:rgba(246,201,77,0.08); border:1px solid rgba(246,201,77,0.18); border-radius:8px; padding:0.7rem; margin-bottom:0.8rem;">
-        <div style="display:flex; align-items:center; gap:0.6rem;">
-          <div style="width:10px; height:10px; border-radius:50%; background:var(--warning); box-shadow:0 0 8px rgba(246,201,77,0.3);"></div>
-          <div style="color:var(--warning); font-weight:600; font-size:0.95rem;">
+      <div id="errorCountBox" class="error-count-box">
+        <div class="count-row">
+          <div class="count-indicator"></div>
+          <div class="count-text">
             <span id="errorCountText">0 issues detected</span>
           </div>
         </div>
@@ -1132,10 +1171,10 @@
       
       // Update error count box
       if (errorCount > 0) {
-        errorCountBox.style.display = 'block';
+        errorCountBox.classList.add('visible');
         errorCountText.textContent = errorCount === 1 ? '1 issue detected' : `${errorCount} issues detected`;
       } else {
-        errorCountBox.style.display = 'none';
+        errorCountBox.classList.remove('visible');
       }
       
       // Update button tags
@@ -1151,7 +1190,6 @@
         if (state && !state.includes('nominal')) {
           const tag = document.createElement('span');
           tag.className = 'error-tag';
-          tag.style.cssText = 'background:var(--warning); color:var(--bg-dark); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:auto;';
           tag.textContent = 'REVIEW';
           btn.appendChild(tag);
         }
