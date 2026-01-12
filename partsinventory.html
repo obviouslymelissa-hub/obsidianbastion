@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Parts Inventory & Orders — Obsidian Bastion</title>
+  <title>Parts Inventory & Orders</title>
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -110,24 +110,24 @@
               <div class="chart-wrap">
                 <canvas id="partsChart"></canvas>
               </div>
-              <p class="mt-2 mb-0 muted">Critical parts like engines, thrusters, power cells and sensor modules.</p>
+              <p class="mt-2 mb-0 muted">Critical ship parts</p>
             </div>
           </div>
 
           <div class="col-md-6">
             <div class="card p-3">
-              <h5 class="card-title">Supplies</h5>
+              <h5 class="card-title">Crew Supplies</h5>
               <div class="chart-wrap">
                 <canvas id="suppliesChart"></canvas>
               </div>
-              <p class="mt-2 mb-0 muted">Food, Water and Medical Kits (simulated usage).</p>
+              <p class="mt-2 mb-0 muted">Food, Water and Medical Kits</p>
             </div>
           </div>
 
           <!-- Restock Suggestions moved to left column, below the charts -->
           <div class="col-12">
             <div class="card p-3">
-              <h6 class="card-title">Restock Suggestions</h6>
+              <h6 class="card-title">Restock Recommendations</h6>
               <ul id="restockList" class="list-group list-group-flush mt-2">
                 <!-- dynamic suggestions -->
               </ul>
@@ -150,7 +150,7 @@
       <!-- Right: Order form + Logs -->
       <div class="col-lg-4">
         <div class="card p-3 mb-3">
-          <h5 class="card-title">Order Part / Supply</h5>
+          <h5 class="card-title">Order Parts / Supplies</h5>
           <form id="orderForm" class="row g-2">
             <div class="col-12">
               <label for="itemInput" class="form-label small">Item</label>
