@@ -203,10 +203,11 @@ input#search{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.0
   letter-spacing: 0.6px;
 }
 
-/* Return to Command Hub button */
+/* Return to Command Hub button
+   Updated to use a darker green gradient + white label to match the "Open" buttons */
 .return-command-hub {
-  background: var(--accent-2);
-  color: var(--bg-panel);
+  background: linear-gradient(180deg, #2f7557, #1f5f46); /* darker green gradient */
+  color: #ffffff;
   padding: 10px 16px;
   border-radius: 8px;
   text-decoration: none;
@@ -216,14 +217,19 @@ input#search{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.0
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-  transition: transform .12s ease, box-shadow .12s ease;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,0.45),
+    inset 0 -6px 18px rgba(255,255,255,0.03); /* subtle inset highlight */
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
   font-size: 0.95rem;
 }
 
 .return-command-hub:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.55),
+    inset 0 -8px 22px rgba(255,255,255,0.04);
+  opacity: 1;
 }
 
 .return-command-hub:active {
@@ -231,7 +237,7 @@ input#search{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.0
 }
 
 .return-command-hub:focus {
-  outline: 2px solid rgba(127,240,223,0.18);
+  outline: 2px solid rgba(47,121,86,0.18);
   outline-offset: 2px;
 }
 
