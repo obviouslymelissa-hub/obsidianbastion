@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Diagnostics</title>
+  <title>Diagnostics — Obsidian Bastion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="app.css" />
   <style>
@@ -191,7 +191,8 @@
       color:var(--success);
       border-color: rgba(74,222,128,0.08);
     }
-    .diagnostics-status { font-size:0.98rem; margin-bottom:0.6rem; min-height:1.4em; color:var(--success); }
+    /* default to neutral color; color will be set dynamically based on state */
+    .diagnostics-status { font-size:0.98rem; margin-bottom:0.6rem; min-height:1.4em; color:var(--text-muted); }
 
     .status-row { display:flex; gap:0.75rem; align-items:center; }
     .status-led { width:12px; height:12px; border-radius:50%; background:#2b2f34; box-shadow:0 2px 6px rgba(0,0,0,0.6) inset; transition: background 220ms, box-shadow 220ms; }
@@ -1065,25 +1066,36 @@
       verboseLog.innerHTML = `<div>[${t}] ${msg}</div>` + verboseLog.innerHTML;
     }
 
-    // Draw LED based on error text severity
+    // Draw LED based on error text severity and set diagnosticsStatus color accordingly
     function setLedForError(text) {
+      const root = getComputedStyle(document.documentElement);
+      const danger = root.getPropertyValue('--danger').trim() || '#ff6b6b';
+      const success = root.getPropertyValue('--success').trim() || '#4ade80';
+      const warning = root.getPropertyValue('--warning').trim() || '#f6c94d';
+      const muted = root.getPropertyValue('--text-muted').trim() || '#9aa6b4';
+
       if (!text) {
         statusLed.style.background = '#2b2f34';
+        statusLed.style.boxShadow = '';
         statusLabel.textContent = 'Idle';
+        diagnosticsStatus.style.color = muted;
         return;
       }
       if (text.includes('nominal')) {
         statusLed.style.background = 'linear-gradient(180deg, var(--success), #2f9c61)';
         statusLed.style.boxShadow = '0 0 8px rgba(74,222,128,0.18)';
         statusLabel.textContent = 'Nominal';
+        diagnosticsStatus.style.color = success;
       } else if (text.match(/(minor|backlog|intermittent|fluctuating|drift|attenuation|noisy|skew|micro)/i)) {
         statusLed.style.background = 'linear-gradient(180deg, var(--warning), #d9b600)';
         statusLed.style.boxShadow = '0 0 8px rgba(246,201,77,0.15)';
         statusLabel.textContent = 'Degraded';
+        diagnosticsStatus.style.color = warning;
       } else {
         statusLed.style.background = 'linear-gradient(180deg, var(--danger), #d04848)';
         statusLed.style.boxShadow = '0 0 10px rgba(255,107,107,0.12)';
         statusLabel.textContent = 'Issue';
+        diagnosticsStatus.style.color = danger;
       }
     }
 
@@ -1125,7 +1137,7 @@
         currentError = err;
         diagnosticsError.textContent = currentError || '';
 
-        // update LED & status text
+        // update LED & status text and color
         setLedForError(currentError);
         if (currentError && currentError.includes('nominal')) {
           diagnosticsStatus.textContent = 'All systems within expected parameters.';
@@ -1167,17 +1179,25 @@
       appendLog(`Attempting fix for ${selectedArea} — ${currentError}`);
       // simulate fix success for non-nominal issues
       const success = Math.random() > 0.35;
+      const root = getComputedStyle(document.documentElement);
+      const danger = root.getPropertyValue('--danger').trim() || '#ff6b6b';
+      const successColor = root.getPropertyValue('--success').trim() || '#4ade80';
+
       if (success) {
         diagnosticsError.textContent = `${selectedArea} — issue resolved.`;
         diagnosticsError.classList.add('diagnostics-nominal');
         diagnosticsStatus.textContent = 'Resolved';
+        // update LED + status color to nominal
         setLedForError('nominal');
+        diagnosticsStatus.style.color = successColor;
         pushHistory({ area: selectedArea, error: `${selectedArea} — issue resolved.`, time: Date.now(), statusText: 'Resolved' });
         // celebration (replaced confetti)
         triggerConfetti();
         issueResolved = true;
       } else {
         diagnosticsStatus.textContent = 'Fix attempt failed. Escalating recommended.';
+        // explicitly ensure status color is danger (red)
+        diagnosticsStatus.style.color = danger;
         appendLog('Fix attempt failed; escalation recommended.');
         // append escalation recommendation once
         if (!escalationAdded) {
