@@ -42,6 +42,37 @@
     .list-group-item { color: var(--text-main); }
     .card-title { color: var(--text-main); font-weight: 600; }
     .form-label { color: var(--text-main); font-weight: 500; }
+
+    /* Make form controls match dark theme (remove bright white background)
+       Keep this limited to small form controls used on the page so other
+       Bootstrap forms are unaffected. */
+    #itemInput,
+    #qtyInput,
+    .form-control.form-control-sm {
+      background: transparent;
+      /* make input text slightly brighter for readability */
+      color: #ffffff;
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    /* brighter placeholder so it's readable but still visually muted */
+    #itemInput::placeholder,
+    #qtyInput::placeholder,
+    .form-control.form-control-sm::placeholder {
+      color: rgba(255,255,255,0.70);
+      opacity: 1; /* ensure consistent rendering across browsers */
+    }
+
+    /* subtle focus ring for accessibility */
+    #itemInput:focus,
+    #qtyInput:focus,
+    .form-control.form-control-sm:focus {
+      outline: 2px solid rgba(127, 224, 211, 0.12);
+      outline-offset: 0;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.01);
+    }
   </style>
 </head>
 <body>
@@ -325,51 +356,27 @@
     }
     randomizeInventoryIfNeeded();
 
-    // --- Charts setup ---
-    const partsCtx = document.getElementById('partsChart');
-    const suppliesCtx = document.getElementById('suppliesChart');
+    // --- Charts setup (deferred until DOM is ready to avoid preview timing issues) ---
+    // Chart instances (created on DOMContentLoaded)
+    let partsChart = null;
+    let suppliesChart = null;
 
     const PARTS_ORDER = ['engine', 'thruster', 'power cell', 'sensor module', 'hull plate', 'coolant pump', 'antenna'];
     const SUPPLIES_ORDER = ['food rations', 'water pack', 'medical kit'];
 
-    const partsChart = new Chart(partsCtx, {
-      type: 'doughnut',
-      data: {
-        labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
-        datasets: [{
-          data: PARTS_ORDER.map(k => inventory[k] || 0),
-          backgroundColor: ['#8b6b6b','#b8a574','#6b8b9b','#5b9b85','#5b8ba8','#7b9b9b','#a88b6b'],
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        plugins: { legend: { labels: { color: '#e6eef8' } } }
-      }
-    });
-
-    const suppliesChart = new Chart(suppliesCtx, {
-      type: 'doughnut',
-      data: {
-        labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
-        datasets: [{
-          data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
-          backgroundColor: ['#5b9b85', '#5b8ba8', '#a88b8b'],
-          hoverOffset: 6
-        }]
-      },
-      options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
-    });
-
-    function refreshCharts() {
-      partsChart.data.datasets[0].data = PARTS_ORDER.map(k => inventory[k] || 0);
-      partsChart.update();
-
-      suppliesChart.data.datasets[0].data = SUPPLIES_ORDER.map(k => inventory[k] || 0);
-      suppliesChart.update();
-    }
-
     function capitalizeLabel(s) {
       return s.split(' ').map(p => p[0].toUpperCase() + p.slice(1)).join(' ');
+    }
+
+    function refreshCharts() {
+      if (partsChart) {
+        partsChart.data.datasets[0].data = PARTS_ORDER.map(k => inventory[k] || 0);
+        partsChart.update();
+      }
+      if (suppliesChart) {
+        suppliesChart.data.datasets[0].data = SUPPLIES_ORDER.map(k => inventory[k] || 0);
+        suppliesChart.update();
+      }
     }
 
     // --- UI: Log rendering ---
@@ -613,57 +620,102 @@
       showToast('Inventory reset', '', { delay: 2000 });
     });
 
-    // Initial render
-    renderLog();
-    refreshCharts();
-    renderRestockSuggestions();
-    renderUsageLog();
-
     // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
+    // This interval is started after DOMContentLoaded along with chart creation.
     const USAGE_TICK_MS = 8000; // every 8s
     const SUPPLIES_KEYS = new Set(['food rations', 'water pack', 'medical kit']);
     // maintenance keys are everything else listed in ITEM_RANGES (excluding supplies)
     const MAINTENANCE_KEYS = new Set(Object.keys(ITEM_RANGES).filter(k => !SUPPLIES_KEYS.has(k)));
 
-    setInterval(() => {
-      let changed = false;
-      const now = Date.now();
-      for (const k of Object.keys(ITEM_RANGES)) {
-        const cfg = ITEM_RANGES[k];
-        if (Math.random() < cfg.perTickProb) {
-          // choose a decrement from 1..maxDecrease (but not larger than available)
-          const dec = 1 + Math.floor(Math.random() * cfg.maxDecrease);
-          const old = inventory[k] || 0;
-          const next = Math.max(0, old - dec);
-          if (next !== old) {
-            inventory[k] = next;
-            changed = true;
+    // Defer chart creation and interval start until DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      // basic sanity checks
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded — charts cannot be created.');
+        return;
+      }
 
-            // If this is a supply or maintenance part, log outgoing usage
-            if (SUPPLIES_KEYS.has(k) || MAINTENANCE_KEYS.has(k)) {
-              const entry = {
-                id: 'u' + now + Math.floor(Math.random() * 999),
-                item: k,
-                qty: Math.min(dec, old),
-                ts: now,
-                // use 'crew' for supplies, 'maintenance' for parts
-                source: SUPPLIES_KEYS.has(k) ? 'crew' : 'maintenance'
-              };
-              usage.push(entry);
-              // keep usage log to a reasonable size in storage, but show only last 5 on screen
-              if (usage.length > 300) usage.splice(0, usage.length - 300);
+      const partsCtx = document.getElementById('partsChart');
+      const suppliesCtx = document.getElementById('suppliesChart');
+
+      // create charts
+      partsChart = new Chart(partsCtx, {
+        type: 'doughnut',
+        data: {
+          labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
+          datasets: [{
+            data: PARTS_ORDER.map(k => inventory[k] || 0),
+            // darker, more muted palette (reduced brightness)
+            backgroundColor: ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'],
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          plugins: { legend: { labels: { color: '#e6eef8' } } }
+        }
+      });
+
+      suppliesChart = new Chart(suppliesCtx, {
+        type: 'doughnut',
+        data: {
+          labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
+          datasets: [{
+            data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
+            // darker supplies palette
+            backgroundColor: ['#3e6f59', '#355d78', '#7a5858'],
+            hoverOffset: 6
+          }]
+        },
+        options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
+      });
+
+      // initial render that depends on DOM & charts
+      renderLog();
+      refreshCharts();
+      renderRestockSuggestions();
+      renderUsageLog();
+
+      // start usage simulation interval
+      setInterval(() => {
+        let changed = false;
+        const now = Date.now();
+        for (const k of Object.keys(ITEM_RANGES)) {
+          const cfg = ITEM_RANGES[k];
+          if (Math.random() < cfg.perTickProb) {
+            // choose a decrement from 1..maxDecrease (but not larger than available)
+            const dec = 1 + Math.floor(Math.random() * cfg.maxDecrease);
+            const old = inventory[k] || 0;
+            const next = Math.max(0, old - dec);
+            if (next !== old) {
+              inventory[k] = next;
+              changed = true;
+
+              // If this is a supply or maintenance part, log outgoing usage
+              if (SUPPLIES_KEYS.has(k) || MAINTENANCE_KEYS.has(k)) {
+                const entry = {
+                  id: 'u' + now + Math.floor(Math.random() * 999),
+                  item: k,
+                  qty: Math.min(dec, old),
+                  ts: now,
+                  // use 'crew' for supplies, 'maintenance' for parts
+                  source: SUPPLIES_KEYS.has(k) ? 'crew' : 'maintenance'
+                };
+                usage.push(entry);
+                // keep usage log to a reasonable size in storage, but show only last 5 on screen
+                if (usage.length > 300) usage.splice(0, usage.length - 300);
+              }
             }
           }
         }
-      }
-      if (changed) {
-        saveInventory(inventory);
-        saveUsage(usage);
-        refreshCharts();
-        renderRestockSuggestions();
-        renderUsageLog();
-      }
-    }, USAGE_TICK_MS);
+        if (changed) {
+          saveInventory(inventory);
+          saveUsage(usage);
+          refreshCharts();
+          renderRestockSuggestions();
+          renderUsageLog();
+        }
+      }, USAGE_TICK_MS);
+    });
 
     // Expose small helper to console for testing
     window.shipInventory = {
