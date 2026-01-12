@@ -1170,11 +1170,16 @@ function dispatchPods(count){
   const pods = document.getElementById('evac-pods');
   pushTelemetryLine(`Dispatching ${count} pods`);
 
+  // Timing constants for pod dispatch sequence
+  const POD_DISPATCH_INTERVAL = 1500; // milliseconds between each pod dispatch
+  const POD_TRAVEL_TIME = 8000; // milliseconds for pod to travel and dock
+  const POD_DOCK_DURATION = 11000; // milliseconds pod remains docked before removal
+
   // Dispatch each pod with a stagger delay
   for (let i=0;i<count;i++){
-    const dispatchDelay = i * 1500; // 1.5 seconds between each pod dispatch
-    const travelTime = 8000; // 8 seconds travel time per pod
-    const dockDuration = 11000; // 11 seconds docked before removal
+    const dispatchDelay = i * POD_DISPATCH_INTERVAL;
+    const travelTime = POD_TRAVEL_TIME;
+    const dockDuration = POD_DOCK_DURATION;
     
     const dispatchTimer = setTimeout(() => {
       const pod = document.createElement('div');
