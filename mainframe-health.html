@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>System Health — Obsidian Bastion</title>
+  <title>Bridge Status Console</title>
 
   <!-- Inter is optional; if you prefer a local font, remove the link -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
@@ -289,7 +289,7 @@
   </style>
 </head>
 <body>
-  <!-- Shared site header -->
+  <!-- Restored original site header (unchanged as requested) -->
   <header class="site-header">
     <div class="header-inner" role="banner" aria-label="Obsidian Bastion header">
       <div class="header-left">
@@ -310,46 +310,46 @@
   <div class="page-content">
     <div class="page-header">
       <div class="title">
-        <h1>System Health Dashboard</h1>
-        <div class="muted">Network & Server Observability Dashboard</div>
+        <h1>Bridge Status Console</h1>
+        <div class="muted">Sensor & Systems Telemetry</div>
       </div>
 
       <div class="controls">
-        <div class="seg" role="tablist" aria-label="Time range">
+        <div class="seg" role="tablist" aria-label="Time range (sweep)">
           <button data-range="1h" class="active" role="tab" aria-selected="true">1h</button>
           <button data-range="6h" role="tab" aria-selected="false">6h</button>
           <button data-range="24h" role="tab" aria-selected="false">24h</button>
         </div>
 
-        <button id="exportCsv" class="primary" title="Export visible data as CSV">Export CSV</button>
+        <button id="exportCsv" class="primary" title="Download telemetry manifest">Download Manifest</button>
       </div>
     </div>
 
   <div class="layout">
     <div class="left">
       <div class="card summary" aria-labelledby="overviewHeading">
-        <h2 id="overviewHeading" style="margin:0 0 10px 0;font-size:14px">Overview</h2>
+        <h2 id="overviewHeading" style="margin:0 0 10px 0;font-size:14px">Bridge Summary</h2>
 
-        <div class="stat" title="Current CPU utilization">
+        <div class="stat" title="Current Warp Core load">
           <div>
-            <div class="label">CPU Utilization</div>
-            <div class="small">avg across hosts</div>
+            <div class="label">Warp Core Load</div>
+            <div class="small">avg across cores</div>
           </div>
           <div class="value" id="cpuNow">—%</div>
         </div>
 
-        <div class="stat" title="I/O wait / throughput">
+        <div class="stat" title="Thermal / I/O backpressure">
           <div>
-            <div class="label">IO Wait</div>
+            <div class="label">Thermal Queue</div>
             <div class="small">avg</div>
           </div>
           <div class="value" id="ioNow">— ms</div>
         </div>
 
-        <div class="stat" title="Network latency / errors">
+        <div class="stat" title="Comm link latency / integrity">
           <div>
-            <div class="label">Network Latency</div>
-            <div class="small">p50 / packet loss</div>
+            <div class="label">Comm Link Latency</div>
+            <div class="small">median / integrity</div>
           </div>
           <div class="value" id="netNow">— ms</div>
         </div>
@@ -358,26 +358,26 @@
       </div>
 
       <div class="card" aria-labelledby="incTitle">
-        <h3 id="incTitle" style="margin:0 0 8px 0;font-size:13px">Incident Log</h3>
+        <h3 id="incTitle" style="margin:0 0 8px 0;font-size:13px">Logbook</h3>
 
         <div id="incidentLog" class="incident-log" aria-live="polite">
           <!-- incidents will be injected here -->
         </div>
 
         <div style="margin-top:8px; display:flex; gap:8px;">
-          <button id="addSample" title="View incident reports">Check incident reports</button>
-          <button id="clearResolved" title="Remove resolved incidents">Clear resolved</button>
+          <button id="addSample" title="Log a tactical event">Log Event</button>
+          <button id="clearResolved" title="Archive resolved events">Archive Resolved</button>
         </div>
       </div>
     </div>
 
     <main class="main">
       <div class="card toolbar" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="badge good" id="healthBadge">Health: Good</div>
-        <div class="small" id="lastUpdated">last updated: —</div>
+        <div class="badge good" id="healthBadge">Status: Nominal</div>
+        <div class="small" id="lastUpdated">last sweep: —</div>
         <div style="display: flex; gap: 8px;">
-          <button id="zoomOut">Zoom out</button>
-          <button id="zoomIn">Zoom in</button>
+          <button id="zoomOut">Widen Scan</button>
+          <button id="zoomIn">Focus Scan</button>
         </div>
       </div>
 
@@ -387,11 +387,11 @@
 
       <div class="card chart-wrap" style="display:flex;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:240px">
-          <h4 style="margin:0 0 8px 0;font-size:13px">Service Contention</h4>
+          <h4 style="margin:0 0 8px 0;font-size:13px">Subsystem Contention</h4>
           <canvas id="contentionChart" height="140"></canvas>
         </div>
         <div style="flex:1;min-width:240px">
-          <h4 style="margin:0 0 8px 0;font-size:13px">Packet Loss (last 1h)</h4>
+          <h4 style="margin:0 0 8px 0;font-size:13px">Comms Integrity (last 1h)</h4>
           <canvas id="packetChart" height="140"></canvas>
         </div>
       </div>
@@ -402,10 +402,10 @@
 
   <script>
     /**************************************************************
-     * System Health — interactive demo (trimmed)
+     * Bridge Status Console — interactive demo (trimmed & themed)
      * - Chart.js v4
      * - Runs in simulated mode by default
-     * - Includes a lightweight incident log UI (Runbook button removed)
+     * - Incidents use bridge/logbook phrasing
      **************************************************************/
 
     // state
@@ -423,25 +423,25 @@
       contention: []
     };
 
-    // Simple incident model (in-memory)
+    // Simple incident model (in-memory) — themed wording
     const incidents = [
       {
         id: generateId(),
         time: Date.now() - 1000 * 60 * 45,
-        title: "DB queue backlog spike",
+        title: "Storage Queue Surge",
         severity: "high",
         status: "investigating",
-        owner: "oncall-db",
-        desc: "Increased IO latency on DB nodes causing request queuing. Initial mitigation: throttled batch jobs."
+        owner: "engineering-ops",
+        desc: "Storage arrays reporting elevated queue depths and elongated IO. Diverting noncritical writes to buffer tier."
       },
       {
         id: generateId(),
         time: Date.now() - 1000 * 60 * 120,
-        title: "Packet loss on northbound link",
+        title: "Primary Comm Link Fragmentation",
         severity: "critical",
         status: "mitigated",
-        owner: "network-team",
-        desc: "Intermittent packet drops detected between datacenter A and B. Traffic rerouted to secondary path."
+        owner: "signal-bridge",
+        desc: "Intermittent packet integrity failures on primary uplink; rerouting to secondary comm path."
       }
     ];
 
@@ -488,9 +488,9 @@
       type:'line',
       data:{
         datasets:[
-          {label:'CPU %', data: series.cpu, borderColor:'#66a0ff', backgroundColor: 'rgba(102,160,255,0.06)', yAxisID:'y1', tension:0.3, fill:true},
-          {label:'IO ms', data: series.io, borderColor:'#78e08f', backgroundColor: 'rgba(120,224,143,0.04)', yAxisID:'y2', tension:0.3},
-          {label:'Net ms', data: series.net, borderColor:'#ffb86b', backgroundColor:'rgba(255,184,107,0.02)', yAxisID:'y2', tension:0.3}
+          {label:'Warp Core %', data: series.cpu, borderColor:'#66a0ff', backgroundColor: 'rgba(102,160,255,0.06)', yAxisID:'y1', tension:0.3, fill:true},
+          {label:'Thermal Queue (ms)', data: series.io, borderColor:'#78e08f', backgroundColor: 'rgba(120,224,143,0.04)', yAxisID:'y2', tension:0.3},
+          {label:'Comm Latency (ms)', data: series.net, borderColor:'#ffb86b', backgroundColor:'rgba(255,184,107,0.02)', yAxisID:'y2', tension:0.3}
         ]
       },
       options:{
@@ -507,7 +507,7 @@
               }
             }
           },
-          y1:{ type:'linear', position:'left', min:0, max:100, ticks:{color:'#9fd6e0', callback: v => v+'%'}, title:{display:true,text:'CPU %', color:'#9fd6e0'} },
+          y1:{ type:'linear', position:'left', min:0, max:100, ticks:{color:'#9fd6e0', callback: v => v+'%'}, title:{display:true,text:'Warp Core %', color:'#9fd6e0'} },
           y2:{ type:'linear', position:'right', min:0, ticks:{color:'#9fd6e0'}, title:{display:true,text:'ms', color:'#9fd6e0'}, grid:{drawOnChartArea:false} }
         },
         plugins:{
@@ -545,7 +545,7 @@
     const packetCtx = document.getElementById('packetChart').getContext('2d');
     const packetChart = new Chart(packetCtx, {
       type:'line',
-      data:{datasets:[{label:'Packet Loss %', data: series.packetLoss, borderColor:'#ff7b7b', tension:0.2, pointRadius:2}]},
+      data:{datasets:[{label:'Comms Integrity %', data: series.packetLoss, borderColor:'#ff7b7b', tension:0.2, pointRadius:2}]},
       options:{animation:false, parsing:false, scales:{x:{type:'linear', ticks:{display:false}}, y:{beginAtZero:true, max:15}}, plugins:{legend:{display:false}}}
     });
 
@@ -571,20 +571,20 @@
       // - critical if packet loss > 5% or CPU > 95%
       // - degraded if packet loss > 3% or CPU > 90%
       if (recentLoss > 5 || (lastCpu && lastCpu.y > 95)) {
-        healthBadge.textContent = 'Health: Critical';
+        healthBadge.textContent = 'Status: RED ALERT';
         healthBadge.classList.remove('good','degraded');
         healthBadge.classList.add('critical');
       } else if (recentLoss > 3 || (lastCpu && lastCpu.y > 90)) {
-        healthBadge.textContent = 'Health: Degraded';
+        healthBadge.textContent = 'Status: CAUTION';
         healthBadge.classList.remove('good','critical');
         healthBadge.classList.add('degraded');
       } else {
-        healthBadge.textContent = 'Health: Good';
+        healthBadge.textContent = 'Status: Nominal';
         healthBadge.classList.remove('degraded','critical');
         healthBadge.classList.add('good');
       }
 
-      lastUpdatedEl.textContent = 'last updated: ' + formatTimeISO(Date.now());
+      lastUpdatedEl.textContent = 'last sweep: ' + formatTimeISO(Date.now());
     }
 
     // push a new datapoint into all series and update charts
@@ -617,7 +617,7 @@
       if (incidents.length === 0){
         const p = document.createElement('div');
         p.className = 'small-muted';
-        p.textContent = 'No incidents recorded.';
+        p.textContent = 'Logbook clear. No active tactical events.';
         incidentLogEl.appendChild(p);
         return;
       }
@@ -645,7 +645,7 @@
         main.className = 'main';
         const title = document.createElement('div');
         title.className = 'title';
-        title.textContent = inc.title + (inc.status === 'resolved' ? ' — Resolved' : '');
+        title.textContent = inc.title + (inc.status === 'resolved' ? ' — Archived' : '');
         main.appendChild(title);
 
         const desc = document.createElement('div');
@@ -659,7 +659,11 @@
         if (inc.severity === 'critical') pill.classList.add('sev-critical');
         else if (inc.severity === 'high') pill.classList.add('sev-high');
         else pill.classList.add('sev-ok');
-        pill.textContent = inc.severity.toUpperCase();
+
+        // Map severity to themed label text
+        if (inc.severity === 'critical') pill.textContent = 'RED ALERT';
+        else if (inc.severity === 'high') pill.textContent = 'CAUTION';
+        else pill.textContent = 'NOMINAL';
 
         const metaRow = document.createElement('div');
         metaRow.style.display = 'flex';
@@ -680,7 +684,7 @@
         actions.className = 'actions';
         // resolve / reopen
         const ackBtn = document.createElement('button');
-        ackBtn.textContent = inc.status === 'resolved' ? 'Reopen' : 'Resolve';
+        ackBtn.textContent = inc.status === 'resolved' ? 'Reopen' : 'Archive';
         ackBtn.addEventListener('click', ()=>{
           toggleResolve(inc.id);
         });
@@ -702,17 +706,17 @@
       renderIncidents();
     }
 
-    // Add a simulated incident (for demo)
+    // Add a simulated incident (for demo) — themed wording
     function addSampleIncident(){
       const now = Date.now();
       const candidate = {
         id: generateId(),
         time: now,
-        title: "Service latency spike",
+        title: "Subsystem Latency Spike",
         severity: Math.random() > 0.6 ? 'high' : 'critical',
         status: "investigating",
-        owner: Math.random() > 0.5 ? 'oncall-app' : 'network-team',
-        desc: "Observed elevated p99 latency for API requests. Investigating upstream dependencies and network paths."
+        owner: Math.random() > 0.5 ? 'oncall-engineering' : 'signal-bridge',
+        desc: "Elevated p99 observed for bridge APIs. Initiating upstream relay diagnostics and route verification."
       };
       incidents.push(candidate);
       renderIncidents();
@@ -739,9 +743,9 @@
       if (timer) { clearInterval(timer); timer = null; }
     }
 
-    // Export CSV of visible window (this button is functional)
+    // Export CSV of visible window (themed filename)
     document.getElementById('exportCsv').addEventListener('click', ()=>{
-      const rows = [['timestamp_iso', 'epoch_ms', 'cpu_pct', 'io_ms', 'net_ms', 'packet_loss_pct', 'contention']];
+      const rows = [['timestamp_iso', 'epoch_ms', 'warp_core_pct', 'thermal_queue_ms', 'comm_ms', 'comms_integrity_pct', 'contention']];
       for (let i=0;i<series.cpu.length;i++){
         const t = series.cpu[i].x;
         const cpu = series.cpu[i].y;
@@ -756,7 +760,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `system-health-${new Date().toISOString()}.csv`;
+      a.download = `manifest-bridge-${new Date().toISOString()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -808,7 +812,7 @@
       contentionChart.update(); packetChart.update();
     }
 
-    // Zoom buttons: simple approach — change Y scaling for CPU
+    // Zoom buttons: simple approach — change Y scaling for Warp Core
     document.getElementById('zoomIn').addEventListener('click', ()=>{
       const y1 = mainChart.options.scales.y1;
       if (y1.max > 40) y1.max = Math.max(40, y1.max - 10);
