@@ -14,12 +14,20 @@
   <link rel="stylesheet" href="app.css">
   <style>
     /* Page styles (fallback/background) */
+    :root {
+      --bg-dark: #0f1318;
+      --bg-panel: #151821;
+      --accent: #4fd1c5;
+      --accent-2: #7ef0df;
+      --text-main: #e6eef2;
+      --text-muted: #9fb2bf;
+      --border: #22272f;
+    }
     body {
       padding: 0;
-      color: #e6eef8;
-      /* fallback background in case app.css or external assets fail to load */
-      background: radial-gradient(ellipse at center, rgba(6,30,46,0.6) 0%, rgba(0,6,12,0.8) 60%), linear-gradient(180deg, #021826 0%, #00121a 100%);
-      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      background: var(--bg-dark);
       min-height: 100vh;
     }
     .page-content { padding: 1.5rem; }

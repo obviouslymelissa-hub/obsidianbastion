@@ -22,8 +22,87 @@
     html, body {
       height: 100%;
       margin: 0;
+      font-family: var(--font-family);
+      background: var(--bg-dark);
+      color: var(--text-main);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Site header styles */
+    .site-header {
+      background:
+        radial-gradient(600px 120px at 10% 30%, rgba(127,240,223,0.06), transparent 8%),
+        radial-gradient(500px 100px at 90% 60%, rgba(79,209,197,0.04), transparent 6%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      border-bottom: 2px solid rgba(79,209,197,0.12);
+      padding: 12px 18px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      justify-content: space-between;
+      padding: 8px 6px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .site-emblem {
+      width: 60px;
+      height: 60px;
+      flex: 0 0 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(127,240,223,0.06), rgba(79,209,197,0.02));
+      border: 1px solid rgba(127,240,223,0.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 30px rgba(79,209,197,0.02) inset;
+    }
+    .site-emblem img {
+      width: 42px;
+      height: 42px;
+      display: block;
+      object-fit: contain;
+    }
+    .header-text h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--text-main);
+      letter-spacing: 1.2px;
+      font-weight: 800;
+    }
+    .header-text h2 {
+      margin: 4px 0 0 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .return-command-hub {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .return-command-hub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
     }
 
     .container {
