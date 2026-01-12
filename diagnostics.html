@@ -193,6 +193,7 @@
     }
     /* default to neutral color; color will be set dynamically based on state */
     .diagnostics-status { font-size:0.98rem; margin-bottom:0.6rem; min-height:1.4em; color:var(--text-muted); }
+    .diagnostics-status.warning-text { color:var(--warning); }
 
     .status-row { display:flex; gap:0.75rem; align-items:center; }
     .status-led { width:12px; height:12px; border-radius:50%; background:#2b2f34; box-shadow:0 2px 6px rgba(0,0,0,0.6) inset; transition: background 220ms, box-shadow 220ms; }
@@ -1235,12 +1236,13 @@
         setLedForError(currentError);
         if (currentError && currentError.includes('nominal')) {
           diagnosticsStatus.textContent = 'All systems within expected parameters.';
+          diagnosticsStatus.classList.remove('warning-text');
           diagnosticsError.classList.remove('diagnostics-nominal');
           diagnosticsError.classList.add('diagnostics-nominal');
           subsystemStates[selectedArea] = currentError;
         } else {
           diagnosticsStatus.textContent = 'Anomaly detected — recommended actions available.';
-          diagnosticsStatus.style.color = 'var(--warning)'; // Ensure yellow color for anomaly message
+          diagnosticsStatus.classList.add('warning-text'); // Ensure yellow color for anomaly message
           diagnosticsError.classList.remove('diagnostics-nominal');
           subsystemStates[selectedArea] = currentError;
         }
