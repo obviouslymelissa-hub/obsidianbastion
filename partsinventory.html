@@ -189,7 +189,6 @@
             <p class="mb-1 small muted">Quick Controls</p>
             <div class="d-flex gap-2">
               <button id="clearLogBtn" class="btn btn-outline-danger btn-sm">Clear Log</button>
-              <button id="resetInventoryBtn" class="btn btn-outline-warning btn-sm">Reset Inventory</button>
             </div>
           </div>
         </div>
@@ -608,17 +607,7 @@
       showToast('Order log cleared', '', { delay: 2000 });
     });
 
-    document.getElementById('resetInventoryBtn').addEventListener('click', () => {
-      if (!confirm('Reset inventory to defaults?')) return;
-      inventory = { ...defaultInventory };
-      saveInventory(inventory);
-      refreshCharts();
-      renderLog();
-      renderRestockSuggestions();
-      // clear session random flag so next session randomizes again
-      try { sessionStorage.removeItem(SESSION_RANDOM_KEY); } catch(e){}
-      showToast('Inventory reset', '', { delay: 2000 });
-    });
+
 
     // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
     // This interval is started after DOMContentLoaded along with chart creation.
