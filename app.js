@@ -59,12 +59,10 @@ function updateOverallStatus(text, progress = null){
   inner.style.width = `${Math.round(progress*100)}%`;
 }
 
-function renderSystems(filter=''){
+function renderSystems(){
   const container = $('systemsList');
   container.innerHTML = '';
-  const q = filter.trim().toLowerCase();
   catalog.systems.forEach(sys=>{
-    if(q && !sys.name.toLowerCase().includes(q) && !sys.planets.some(p=>p.name.toLowerCase().includes(q))) return;
     const el = document.createElement('div');
     el.className = 'item';
     el.innerHTML = `<div><strong>${sys.name}</strong><div class="small-muted">${sys.star.name}</div></div>
@@ -550,7 +548,6 @@ async function start(){
   renderCustomList();
 
   // wire events
-  $('search').addEventListener('input', e => renderSystems(e.target.value));
   $('travelBtn').addEventListener('click', ()=> {
     const mode = $('travelModeSelect')?.value || 'regular';
     travelToCurrent(mode);
