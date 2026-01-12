@@ -979,7 +979,7 @@ function cycleScrubber(){
 }
 function resetScrubber(){
   if (!btnReset) return;
-  if (!confirm('Reset scrubber to factory defaults? This sets efficiency to 100% and resets ETA.')) return;
+  if (!confirm('Replacing scrubber components sets efficiency to 100% and resets ETA.')) return;
   btnReset.disabled = true;
   const original = btnReset.textContent;
   btnReset.textContent = 'Resetting...';
@@ -988,7 +988,7 @@ function resetScrubber(){
     telemetry.scrubberEtaHours = 0;
     btnReset.textContent = original;
     btnReset.disabled = false;
-    pushTelemetryLine('Scrubber reset to factory defaults');
+    pushTelemetryLine('Scrubber reset to maximum efficiency.');
   }, 1200);
 }
 
