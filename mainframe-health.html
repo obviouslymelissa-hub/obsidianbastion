@@ -356,12 +356,11 @@
           <div class="value" id="netNow">— ms</div>
         </div>
 
-        <div style="margin-top:10px" class="note">Top contributors, recent incidents, and quick links live here.</div>
+
       </div>
 
       <div class="card" aria-labelledby="incTitle">
         <h3 id="incTitle" style="margin:0 0 8px 0;font-size:13px">Incident Log</h3>
-        <p class="small">Recent incidents, their current status, severity and owner. Use this as a lightweight timeline for responders.</p>
 
         <div id="incidentLog" class="incident-log" aria-live="polite">
           <!-- incidents will be injected here -->
@@ -377,12 +376,10 @@
     </div>
 
     <main class="main">
-      <div class="card toolbar">
-        <div class="left">
-          <div class="badge good" id="healthBadge">Health: Good</div>
-          <div class="small" style="margin-left:8px" id="lastUpdated">last updated: —</div>
-        </div>
-        <div class="right">
+      <div class="card toolbar" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="badge good" id="healthBadge" style="margin-right: auto;">Health: Good</div>
+        <div class="small" style="margin: 0 auto;" id="lastUpdated">last updated: —</div>
+        <div style="display: flex; gap: 8px;">
           <button id="zoomOut">Zoom out</button>
           <button id="zoomIn">Zoom in</button>
         </div>
@@ -403,9 +400,7 @@
         </div>
       </div>
 
-      <footer class="card small">
-        System message: "All hands calm — core systems are humming. If they weren't, you'd be seeing red." This page displays system telemetry — use the Export CSV button to download the visible w[...]
-      </footer>
+
     </main>
   </div>
 
