@@ -20,6 +20,12 @@
       --out:#143f2e;
       --in:#102240;
       --sys:#112;
+      --incoming-glow-light: rgba(79, 209, 197, 0.15);
+      --incoming-glow-medium: rgba(79, 209, 197, 0.25);
+      --incoming-glow-strong: rgba(79, 209, 197, 0.3);
+      --incoming-border-light: rgba(79, 209, 197, 0.4);
+      --incoming-border-medium: rgba(79, 209, 197, 0.5);
+      --incoming-border-strong: rgba(79, 209, 197, 0.6);
       color-scheme: dark;
     }
     body {
@@ -180,20 +186,20 @@
     .row { display:flex; gap:8px; align-items:center; }
     .pill { padding:6px 8px; border-radius:999px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.02); font-size:12px; color:var(--muted); }
     .pill.incoming-active {
-      background: rgba(79, 209, 197, 0.15);
-      border-color: rgba(79, 209, 197, 0.4);
+      background: var(--incoming-glow-light);
+      border-color: var(--incoming-border-light);
       color: var(--accent-2);
       animation: flashGreen 1.5s ease-in-out infinite;
     }
     @keyframes flashGreen {
-      0%, 100% { background: rgba(79, 209, 197, 0.15); border-color: rgba(79, 209, 197, 0.4); }
-      50% { background: rgba(79, 209, 197, 0.3); border-color: rgba(79, 209, 197, 0.6); }
+      0%, 100% { background: var(--incoming-glow-light); border-color: var(--incoming-border-light); }
+      50% { background: var(--incoming-glow-strong); border-color: var(--incoming-border-strong); }
     }
-    .receive-btn-active {
-      background: rgba(79, 209, 197, 0.25) !important;
-      border-color: rgba(79, 209, 197, 0.5) !important;
-      color: var(--accent-2) !important;
-      font-weight: 700 !important;
+    button.receive-btn-active {
+      background: var(--incoming-glow-medium);
+      border-color: var(--incoming-border-medium);
+      color: var(--accent-2);
+      font-weight: 700;
     }
     .flex { display:flex; gap:8px; align-items:center; }
     .select { padding:8px; border-radius:8px; background: rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.02); color:inherit; }
