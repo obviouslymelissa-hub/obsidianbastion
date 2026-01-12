@@ -179,6 +179,22 @@
     footer { margin-top:10px; color:var(--muted); font-size:12px; }
     .row { display:flex; gap:8px; align-items:center; }
     .pill { padding:6px 8px; border-radius:999px; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.02); font-size:12px; color:var(--muted); }
+    .pill.incoming-active {
+      background: rgba(79, 209, 197, 0.15);
+      border-color: rgba(79, 209, 197, 0.4);
+      color: var(--accent-2);
+      animation: flashGreen 1.5s ease-in-out infinite;
+    }
+    @keyframes flashGreen {
+      0%, 100% { background: rgba(79, 209, 197, 0.15); border-color: rgba(79, 209, 197, 0.4); }
+      50% { background: rgba(79, 209, 197, 0.3); border-color: rgba(79, 209, 197, 0.6); }
+    }
+    .receive-btn-active {
+      background: rgba(79, 209, 197, 0.25) !important;
+      border-color: rgba(79, 209, 197, 0.5) !important;
+      color: var(--accent-2) !important;
+      font-weight: 700 !important;
+    }
     .flex { display:flex; gap:8px; align-items:center; }
     .select { padding:8px; border-radius:8px; background: rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.02); color:inherit; }
     .small-muted { font-size:12px; color:var(--muted); }
@@ -362,6 +378,15 @@
         // update receive button enabled/disabled based on incomingAvailable and power
         btnReceiveGreeting.disabled = !incomingAvailable || !power;
         incomingIndicator.style.display = incomingAvailable && power ? 'inline-block' : 'none';
+        
+        // Add/remove CSS classes for visual effects
+        if (incomingAvailable && power) {
+          incomingIndicator.classList.add('incoming-active');
+          btnReceiveGreeting.classList.add('receive-btn-active');
+        } else {
+          incomingIndicator.classList.remove('incoming-active');
+          btnReceiveGreeting.classList.remove('receive-btn-active');
+        }
       }
 
       function pushMessage(entry){
@@ -515,19 +540,14 @@
         const shipName = shipId.textContent || 'your ship';
         const outboundSnippet = lastOutbound ? snippetFrom(lastOutbound.text, 80) : '';
 
-        // generate 1-3 messages (random) to feel a bit more natural
-        const count = 1 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < count; i++) {
-          // choose template and fill placeholders
-          const template = templates[Math.floor(Math.random() * templates.length)];
-          const text = template
-            .replace(/\{ship\}/g, shipName)
-            .replace(/\{responder\}/g, responder)
-            .replace(/\{snippet\}/g, outboundSnippet);
+        // Generate only one message at a time for clarity
+        const template = templates[Math.floor(Math.random() * templates.length)];
+        const text = template
+          .replace(/\{ship\}/g, shipName)
+          .replace(/\{responder\}/g, responder)
+          .replace(/\{snippet\}/g, outboundSnippet);
 
-          // stagger arrival slightly
-          setTimeout(() => receiveMessage(text, responder), 200 * i);
-        }
+        receiveMessage(text, responder);
       }
 
       // Incoming signal scheduling helpers
