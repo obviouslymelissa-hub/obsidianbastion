@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Power Management — Obsidian Bastion</title>
+  <title>Power Management</title>
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -153,7 +153,14 @@
     .battery-svg { width:100%; height:100px; display:block; }
     .battery-wrap { display:flex; flex-direction:column; gap:8px; align-items:center; }
 
-    .logs { max-height:200px; overflow:auto; padding:8px; background: rgba(0,0,0,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-family: monospace; font-size:12px; color:#dbeef0; }
+    .logs { max-height:200px; overflow:auto; padding:8px; background: rgba(0,0,0,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-family: monospace; font-size:12px; color:#dbeef2; }
+
+    /* New fuel info styles */
+    .fuel-chart-wrap { display:flex; gap:10px; width:100%; align-items:center; margin-top:8px; }
+    .fuel-chart-area { flex:1; display:flex; justify-content:center; align-items:center; }
+    .fuel-info { flex:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+    .fuel-info .label { color:var(--muted); font-size:12px; font-weight:600; }
+    .fuel-info .percent { font-size:28px; font-weight:800; color:var(--accent-2); }
 
     @media (max-width:900px){
       main{ grid-template-columns: repeat(6, 1fr); }
@@ -255,31 +262,27 @@
             </defs>
           </svg>
 
-          <div style="display:flex; gap:8px; width:100%; justify-content:space-between; align-items:center;">
-            <div style="flex:1;">
+          <div style="display:flex; gap:8px; width:100%; justify-content:center; align-items:center;">
+            <div style="flex:1; text-align:center;">
               <div style="color:var(--muted); font-size:12px;">Charge</div>
               <div id="batteryValue" style="font-weight:700; font-size:18px;">--%</div>
             </div>
-
-            <div style="flex:1; text-align:right;">
-              <div style="color:var(--muted); font-size:12px;">Fuel</div>
-              <div id="fuelValue" style="font-weight:700; font-size:18px;">--%</div>
-            </div>
+            <!-- fuel percent moved below into the fuel chart area for clearer alignment -->
           </div>
         </div>
 
-        <!-- Fuel: keep the doughnut chart (yellow circle) only -->
+        <!-- Fuel: doughnut with numeric percent beside it -->
         <div style="width:100%; margin-top:8px;">
           <h3 style="margin:0; color:var(--muted); font-size:13px">Fuel Storage</h3>
-          <div style="display:flex; gap:10px; width:100%; align-items:center; margin-top:8px;">
-            <div style="flex:1;">
-              <div class="chart-wrap" style="height:120px; width:120px; margin:0 auto;">
+          <div class="fuel-chart-wrap">
+            <div class="fuel-chart-area">
+              <div class="chart-wrap" style="height:120px; width:120px; margin:0;">
                 <canvas id="fuelChart"></canvas>
               </div>
             </div>
-            <div style="flex:2;">
-              <div style="color:var(--muted); font-size:13px; margin-bottom:6px;">Fuel level (doughnut shows storage)</div>
-              <div style="font-weight:600; font-size:14px;">Yellow circle is quick glance; percent to the right shows numeric level.</div>
+            <div class="fuel-info" aria-hidden="false">
+              <div class="label">Fuel Level</div>
+              <div id="fuelValue" class="percent">--%</div>
             </div>
           </div>
         </div>
@@ -401,7 +404,7 @@
       data: {
         labels,
         datasets:[
-          { label:'Overall Power (kW)', data: overallHistory, borderColor:'rgba(45,212,191,0.95)', backgroundColor:(function(){const g=ctxPower.createLinearGradient(0,0,0,360);g.addColorStop(0,'rgba(45,212,191,0.12)');g.addColorStop(1,'rgba(45,212,191,0.02)');return g;})(), tension:0.18, pointRadius:0, borderWidth:2 },
+          { label:'Overall Power (kW)', data: overallHistory, borderColor:'rgba(45,212,191,0.95)', backgroundColor:(function(){const g=ctxPower.createLinearGradient(0,0,0,360);g.addColorStop(0,'rgba(45,212,191,0.12)');g.addColorStop(1,'rgba(45,212,191,0.02)');return g;})(), tension:0.22, pointRadius:0, borderWidth:2, order:1 },
           { label:'Event', data:eventEmpty.slice(), borderColor:'rgba(255,223,63,0.95)', backgroundColor:'rgba(255,223,63,0.06)', tension:0.18, pointRadius:0, borderWidth:3, order:2 }
         ]
       },
@@ -416,7 +419,7 @@
     const reactorChart = new Chart(ctxReact, {
       type:'line',
       data:{ labels, datasets:[
-        { label:'Reactor Output (kW)', data: reactorHistory, borderColor:'rgba(96,165,250,0.9)', backgroundColor:(function(){const g=ctxReact.createLinearGradient(0,0,0,120);g.addColorStop(0,'rgba(96,165,250,0.12)');g.addColorStop(1,'rgba(96,165,250,0.02)');return g;})(), tension:0.22, pointRadius:0, borderWidth:2 },
+        { label:'Reactor Output (kW)', data: reactorHistory, borderColor:'rgba(96,165,250,0.9)', backgroundColor:(function(){const g=ctxReact.createLinearGradient(0,0,0,120);g.addColorStop(0,'rgba(96,165,250,0.12)');g.addColorStop(1,'rgba(96,165,250,0.02)');return g;})(), tension:0.22, pointRadius:0, borderWidth:2, order:1 },
         { label:'Event', data:eventEmpty.slice(), borderColor:'rgba(255,223,63,0.95)', backgroundColor:'rgba(255,223,63,0.06)', tension:0.22, pointRadius:0, borderWidth:3, order:2 }
       ]},
       options: Object.assign({}, commonOptions, {
@@ -460,7 +463,7 @@
     function updateReads(){
       batteryEl.textContent = Math.max(0, Math.min(100, batteryLevel)).toFixed(0) + '%';
       fuelEl.textContent = Math.max(0, Math.min(100, fuelPercent)).toFixed(0) + '%';
-      loadEl.textContent = Math.max(0, gridLoad).toFixed(0) + ' kW';
+      loadEl.textContent = Math.max(0, Math.min(99999, gridLoad)).toFixed(0) + ' kW';
       tempEl.textContent = reactorTempF.toFixed(0) + ' °F';
       overallPowerEl.textContent = Math.round(calculateOverallPower()) + ' kW';
       updateBatterySVG(batteryLevel);
