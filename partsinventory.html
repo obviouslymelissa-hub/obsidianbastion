@@ -31,14 +31,17 @@
       min-height: 100vh;
     }
     .page-content { padding: 1.5rem; }
-    .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
     .sidebar { max-height: calc(100vh - 4rem); overflow-y: auto; }
     .toast-container { position: fixed; right: 1rem; bottom: 1rem; z-index: 1200; }
     .chart-wrap { min-height: 240px; }
-    .log-entry { font-size: .95rem; }
-    .muted { color: rgba(230,238,248,0.6); }
+    .log-entry { font-size: .95rem; color: var(--text-main); }
+    .muted { color: rgba(230,238,248,0.7); }
     .low-stock { color: #ffb4a2; font-weight: 600; }
-    .usage-item { font-weight: 600; }
+    .usage-item { font-weight: 600; color: var(--text-main); }
+    .list-group-item { color: var(--text-main); }
+    .card-title { color: var(--text-main); font-weight: 600; }
+    .form-label { color: var(--text-main); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -64,9 +67,6 @@
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h1 class="h4 mb-0">Inventory & Parts Ordering Dashboard</h1>
-      <div class="d-flex align-items-center gap-3">
-        <small class="muted">Simulated ordering + delivery demo</small>
-      </div>
     </div>
 
     <div class="row g-3">
@@ -223,10 +223,10 @@
       'hull plate':   { min: 6,  max: 18,  perTickProb: 0.005, maxDecrease: 1 },
       'coolant pump': { min: 2,  max: 6,   perTickProb: 0.01, maxDecrease: 1 },
       antenna:        { min: 1,  max: 4,   perTickProb: 0.005, maxDecrease: 1 },
-      'food rations': { min: 150,max: 400, perTickProb: 0.85, maxDecrease: 4 },
-      'water pack':   { min: 120,max: 300, perTickProb: 0.7,  maxDecrease: 3 },
+      'food rations': { min: 150,max: 400, perTickProb: 0.3, maxDecrease: 2 },
+      'water pack':   { min: 120,max: 300, perTickProb: 0.25,  maxDecrease: 2 },
       'oxygen filter':{ min: 4,  max: 12,  perTickProb: 0.02, maxDecrease: 1 },
-      'medical kit':  { min: 1,  max: 6,   perTickProb: 0.12, maxDecrease: 1 }
+      'medical kit':  { min: 1,  max: 6,   perTickProb: 0.04, maxDecrease: 1 }
     };
 
     const RESTOCK_THRESHOLDS = {
@@ -338,7 +338,7 @@
         labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
         datasets: [{
           data: PARTS_ORDER.map(k => inventory[k] || 0),
-          backgroundColor: ['#ff6b6b','#ffd166','#8ecae6','#06d6a0','#4cc9f0','#a8dadc','#f4a261'],
+          backgroundColor: ['#8b6b6b','#b8a574','#6b8b9b','#5b9b85','#5b8ba8','#7b9b9b','#a88b6b'],
           hoverOffset: 6
         }]
       },
@@ -353,7 +353,7 @@
         labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
         datasets: [{
           data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
-          backgroundColor: ['#06d6a0', '#4cc9f0', '#ffb4a2'],
+          backgroundColor: ['#5b9b85', '#5b8ba8', '#a88b8b'],
           hoverOffset: 6
         }]
       },
