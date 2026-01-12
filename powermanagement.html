@@ -195,6 +195,30 @@
 
     .logs { max-height:200px; overflow:auto; padding:8px; background: rgba(0,0,0,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-family: monospace; font-size:12px; color:#dbeef3; }
 
+    /* Status row for horizontal alignment */
+    .status-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      justify-content: space-around;
+    }
+    .stat {
+      flex: 1;
+      text-align: center;
+    }
+    .stat h3 {
+      margin: 0 0 6px 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .stat p {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent-2);
+    }
+
     @media (max-width:900px){
       main{ grid-template-columns: repeat(6, 1fr); }
       .left{ grid-column: span 6; }
@@ -281,7 +305,6 @@
               <div style="height:48px; background:rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(255,255,255,0.04); overflow:hidden; position:relative;">
                 <div id="batteryFillBg" style="position:absolute; left:0; top:0; bottom:0; right:0; background:transparent;"></div>
                 <div id="batteryFillSimple" class="battery-fill" style="position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#ffda6b,#ffb84d);"></div>
-                <div style="position:absolute; right:6px; top:50%; transform:translateY(-50%); color:rgba(0,0,0,0.5); font-weight:700; font-size:12px; background:rgba(255,255,255,0.08); padding:4px 6px; border-radius:6px;">BATT</div>
               </div>
             </div>
             <div class="battery-percent" id="batteryValue">--%</div>
@@ -308,26 +331,18 @@
             <div style="margin-top:6px; width:100%; display:flex; justify-content:center;">
               <button id="addFuelBtn" class="btn">Add Fuel</button>
             </div>
-
-            <div class="fuel-info" aria-hidden="true" style="margin-top:6px;">
-              <div class="label">Fuel Level</div>
-              <div id="fuelValue" class="percent">--%</div>
-            </div>
           </div>
         </div>
 
         <div style="margin-top:6px;">
           <h3 style="color:var(--muted); font-size:13px; margin:0 0 8px 0;">Controls</h3>
           <div class="controls">
-            <div class="group" style="justify-content:space-between;">
+            <div class="group" style="flex-direction:column; gap:12px;">
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button id="boostBtn" class="btn">Activate Boosters</button>
                 <button id="drainBtn" class="btn">Increase Thrust</button>
-                <button id="shutdownBtn" class="btn danger">Shutdown System</button>
               </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button id="resetBtn" class="btn">Reset</button>
-              </div>
+              <button id="shutdownBtn" class="btn danger" style="width:100%; font-size:15px; padding:12px 10px;">Shutdown System</button>
             </div>
           </div>
         </div>
@@ -471,7 +486,6 @@
     // DOM helpers
     // ---------------------------
     const batteryEl = document.getElementById('batteryValue');
-    const fuelEl = document.getElementById('fuelValue');
     const fuelCenterEl = document.getElementById('fuelCenter');
     const loadEl = document.getElementById('loadValue');
     const tempEl = document.getElementById('tempValue');
@@ -487,13 +501,16 @@
       batteryFillSimple.style.width = w + '%';
     }
     function calculateOverallPower() {
+      // During shutdown, overall power should be 0
+      if (shutdownPhase === 'ramping' || shutdownPhase === 'off') {
+        return 0;
+      }
       const batteryContribution = (batteryLevel/100) * MAX_BATTERY_KW;
       return Math.max(0, Math.round(reactorOutput + batteryContribution));
     }
 
     function updateReads(){
       batteryEl.textContent = Math.max(0, Math.min(100, batteryLevel)).toFixed(0) + '%';
-      fuelEl.textContent = Math.max(0, Math.min(100, fuelPercent)).toFixed(0) + '%';
       fuelCenterEl.textContent = Math.max(0, Math.min(100, fuelPercent)).toFixed(0) + '%';
       loadEl.textContent = Math.max(0, Math.min(99999, gridLoad)).toFixed(0) + ' kW';
       tempEl.textContent = reactorTempF.toFixed(0) + ' °F';
@@ -508,7 +525,6 @@
     const drainBtn = document.getElementById('drainBtn');
     const addFuelBtn = document.getElementById('addFuelBtn');
     const chargeBtn = document.getElementById('chargeBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const shutdownBtn = document.getElementById('shutdownBtn');
 
     let boostActive = false, drainActive = false;
@@ -577,26 +593,6 @@
       fuelChart.data.datasets[0].data[1] = 100 - fuelPercent;
       fuelChart.update();
       addLog(`Battery charged: +${gain}% (fuel used: ${actualFuelUsed}%).`);
-      updateReads();
-    };
-
-    resetBtn.onclick = () => {
-      shutdownPhase = 'none';
-      batteryLevel = 78; fuelPercent = 62; gridLoad = 420; reactorOutput = 480; reactorTempF = 860;
-      boostActive = drainActive = false;
-      boostEventRemaining = drainEventRemaining = fuelEventRemaining = 0;
-      boostBtn.classList.remove('primary'); boostBtn.textContent = 'Activate Boosters';
-      drainBtn.classList.remove('primary'); drainBtn.textContent = 'Increase Thrust';
-      for (let i=0;i<POINTS;i++){
-        powerChart.data.datasets[0].data[i] = reactorOutput + (batteryLevel/100)*MAX_BATTERY_KW + (Math.random()*20-10);
-        powerChart.data.datasets[1].data[i] = null;
-        reactorChart.data.datasets[0].data[i] = reactorOutput + (Math.random()*20-10);
-        reactorChart.data.datasets[1].data[i] = null;
-      }
-      fuelChart.data.datasets[0].data[0] = fuelPercent;
-      fuelChart.data.datasets[0].data[1] = 100 - fuelPercent;
-      powerChart.update(); reactorChart.update(); fuelChart.update();
-      addLog('SYSTEM RESTARTED: operator requested restart.');
       updateReads();
     };
 
