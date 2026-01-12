@@ -59,12 +59,10 @@ function updateOverallStatus(text, progress = null){
   inner.style.width = `${Math.round(progress*100)}%`;
 }
 
-function renderSystems(filter=''){
+function renderSystems(){
   const container = $('systemsList');
   container.innerHTML = '';
-  const q = filter.trim().toLowerCase();
   catalog.systems.forEach(sys=>{
-    if(q && !sys.name.toLowerCase().includes(q) && !sys.planets.some(p=>p.name.toLowerCase().includes(q))) return;
     const el = document.createElement('div');
     el.className = 'item';
     el.innerHTML = `<div><strong>${sys.name}</strong><div class="small-muted">${sys.star.name}</div></div>
@@ -524,27 +522,6 @@ async function goToTypedDestination(rawInput, useMode = null){
   await travelToCurrent(mode);
 }
 
-/* share current selection */
-function shareCurrent(){
-  if(currentCustom==null && (!currentSystem || !currentPlanet)) return updateOverallStatus('Select a destination to share.');
-  try{
-    const u = new URL(location.href);
-    if(currentCustom){
-      u.searchParams.set('system', currentCustom.system);
-      u.searchParams.set('custom', currentCustom.id);
-    } else {
-      u.searchParams.set('system', currentSystem.id);
-      u.searchParams.set('planet', currentPlanet.id);
-    }
-    const urlStr = u.toString();
-    navigator.clipboard?.writeText(urlStr).then(()=> updateOverallStatus('Link copied to clipboard'), ()=> window.prompt('Copy this link', urlStr));
-  }catch(e){
-    const base = location.href.split('?')[0];
-    const urlStr = `${base}?system=${encodeURIComponent(currentSystem?.id||'')}&planet=${encodeURIComponent(currentPlanet?.id||'')}`;
-    try{ navigator.clipboard?.writeText(urlStr).then(()=> updateOverallStatus('Link copied to clipboard')); }catch(_){ window.prompt('Copy this link', urlStr); }
-  }
-}
-
 /* Initialization and event wiring */
 function initFromUrl(){
   const params = new URLSearchParams(location.search);
@@ -571,12 +548,10 @@ async function start(){
   renderCustomList();
 
   // wire events
-  $('search').addEventListener('input', e => renderSystems(e.target.value));
   $('travelBtn').addEventListener('click', ()=> {
     const mode = $('travelModeSelect')?.value || 'regular';
     travelToCurrent(mode);
   });
-  $('shareBtn').addEventListener('click', shareCurrent);
   $('customGotoBtn').addEventListener('click', ()=> goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value));
   $('customGotoInput').addEventListener('keydown', e => { if(e.key === 'Enter') goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value); });
 

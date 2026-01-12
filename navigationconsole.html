@@ -56,7 +56,6 @@
 
     .app-header{ display:flex; align-items:center; margin-bottom:12px; }
     .header-actions{ margin-left:auto; display:flex; gap:8px; align-items:center; }
-    input#search{ padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; min-width:200px; }
 
     .map-large{ background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); border:1px solid rgba(255,255,255,0.03); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(2,6,23,0.6); margin-bottom:12px; overflow:hidden; }
     #mapSvgLarge{ width:100%; height:240px; display:block; }
@@ -120,11 +119,6 @@
   </header>
 
   <div class="app">
-    <div class="app-header">
-      <div class="header-actions" style="margin-left: auto;">
-        <input id="search" placeholder="Search systems or planets…" aria-label="Search systems and planets" />
-      </div>
-    </div>
 
     <!-- Large separate map -->
     <div id="mapLarge" class="map-large panel" aria-label="Navigation Map">
@@ -158,7 +152,6 @@
 
           <div class="controls">
             <button id="travelBtn" class="btn">Travel</button>
-            <button id="shareBtn" class="btn">Share</button>
           </div>
 
           <div id="travelState" class="muted">Idle</div>
