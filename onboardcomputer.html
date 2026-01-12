@@ -1108,6 +1108,7 @@ if (btnRed) btnRed.addEventListener('click', ()=> {
   } else {
     SoundManager.startRed();
   }
+  updateCommMsg();
 });
 
 /* Evacuation modal open/close */
@@ -1126,6 +1127,7 @@ if (evacConfirm) evacConfirm.addEventListener('click', ()=> {
   if (btnClearAlert) { btnClearAlert.disabled = false; }
   const count = parseInt(document.getElementById('evac-count').value || '6',10);
   dispatchPods(count);
+  updateCommMsg();
 });
 
 /* Cancel dispatch */
@@ -1151,6 +1153,7 @@ function handleCancelDispatch() {
 
   if (btnCancelDispatch) btnCancelDispatch.disabled = true;
   pushTelemetryLine('Evacuation dispatch cancelled');
+  updateCommMsg();
 }
 if (btnCancelDispatch) btnCancelDispatch.addEventListener('click', handleCancelDispatch);
 
@@ -1158,6 +1161,7 @@ if (btnCancelDispatch) btnCancelDispatch.addEventListener('click', handleCancelD
 function handleClearAlert() {
   SoundManager.stopAll();
   pushTelemetryLine('Alert cleared by operator');
+  updateCommMsg();
 }
 if (btnClearAlert) btnClearAlert.addEventListener('click', handleClearAlert);
 
@@ -1187,6 +1191,20 @@ function dispatchPods(count){
     });
   }, 8000);
   evacTimers.push(t1);
+}
+
+/* Update comm-msg based on alert state */
+function updateCommMsg() {
+  const commMsg = document.getElementById('comm-msg');
+  if (!commMsg) return;
+  
+  if (document.body.classList.contains('evac')) {
+    commMsg.textContent = 'Evacuation Underway - Use Extreme Caution';
+  } else if (document.body.classList.contains('red-alert')) {
+    commMsg.textContent = 'Red Alert Initiated';
+  } else {
+    commMsg.textContent = 'No active comms events';
+  }
 }
 
 /* Defensive: ensure in-panel buttons stay interactive during EVAC */
