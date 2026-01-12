@@ -285,6 +285,12 @@
               </div>
             </div>
             <div class="battery-percent" id="batteryValue">--%</div>
+
+            <!-- Charge button placed inside battery card -->
+            <div style="margin-top:6px; width:100%; display:flex; justify-content:center;">
+              <button id="chargeBtn" class="btn">Charge Battery</button>
+            </div>
+
             <div style="font-size:12px;color:var(--muted); text-align:center; max-width:220px;">Stored energy from the battery bank. Automatically charges when reactor has surplus power.</div>
           </div>
 
@@ -297,6 +303,12 @@
                 <div class="fuel-center" id="fuelCenter">--%</div>
               </div>
             </div>
+
+            <!-- Add fuel button placed inside fuel card -->
+            <div style="margin-top:6px; width:100%; display:flex; justify-content:center;">
+              <button id="addFuelBtn" class="btn">Add Fuel</button>
+            </div>
+
             <div class="fuel-info" aria-hidden="true" style="margin-top:6px;">
               <div class="label">Fuel Level</div>
               <div id="fuelValue" class="percent">--%</div>
@@ -309,13 +321,11 @@
           <div class="controls">
             <div class="group" style="justify-content:space-between;">
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button id="boostBtn" class="btn">Simulate Boost</button>
-                <button id="drainBtn" class="btn">Simulate Load Spike</button>
+                <button id="boostBtn" class="btn">Activate Boosters</button>
+                <button id="drainBtn" class="btn">Increase Thrust</button>
                 <button id="shutdownBtn" class="btn danger">Shutdown System</button>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button id="addFuelBtn" class="btn">Add Fuel</button>
-                <button id="chargeBtn" class="btn">Charge Battery (use fuel)</button>
                 <button id="resetBtn" class="btn">Reset</button>
               </div>
             </div>
@@ -516,7 +526,7 @@
       boostActive = active;
       boostEventRemaining = active ? 6 : 0;
       boostBtn.classList.toggle('primary', active);
-      boostBtn.textContent = active ? 'Stop Boost' : 'Simulate Boost';
+      boostBtn.textContent = active ? 'Deactivate Boosters' : 'Activate Boosters';
       if (active) {
         injectImmediateOverlay(reactorChart, 1, reactorOutput + 160);
         injectImmediateOverlay(powerChart, 1, calculateOverallPower() + 160);
@@ -527,11 +537,11 @@
     }
 
     function setDrain(active) {
-      if (shutdownPhase !== 'none') { addLog('Cannot simulate spike while shutdown; wait until restart.'); return; }
+      if (shutdownPhase !== 'none') { addLog('Cannot increase thrust while shutdown; wait until restart.'); return; }
       drainActive = active;
       drainEventRemaining = active ? 8 : 0;
       drainBtn.classList.toggle('primary', active);
-      drainBtn.textContent = active ? 'Stop Spike' : 'Simulate Load Spike';
+      drainBtn.textContent = active ? 'Stop Thrust Increase' : 'Increase Thrust';
       if (active) {
         injectImmediateOverlay(reactorChart, 1, reactorOutput + 260);
         injectImmediateOverlay(powerChart, 1, calculateOverallPower() + 260);
@@ -575,8 +585,8 @@
       batteryLevel = 78; fuelPercent = 62; gridLoad = 420; reactorOutput = 480; reactorTempF = 860;
       boostActive = drainActive = false;
       boostEventRemaining = drainEventRemaining = fuelEventRemaining = 0;
-      boostBtn.classList.remove('primary'); boostBtn.textContent = 'Simulate Boost';
-      drainBtn.classList.remove('primary'); drainBtn.textContent = 'Simulate Load Spike';
+      boostBtn.classList.remove('primary'); boostBtn.textContent = 'Activate Boosters';
+      drainBtn.classList.remove('primary'); drainBtn.textContent = 'Increase Thrust';
       for (let i=0;i<POINTS;i++){
         powerChart.data.datasets[0].data[i] = reactorOutput + (batteryLevel/100)*MAX_BATTERY_KW + (Math.random()*20-10);
         powerChart.data.datasets[1].data[i] = null;
@@ -599,8 +609,8 @@
         // make sure events are stopped
         boostActive = drainActive = false;
         boostEventRemaining = drainEventRemaining = fuelEventRemaining = 0;
-        boostBtn.classList.remove('primary'); boostBtn.textContent = 'Simulate Boost';
-        drainBtn.classList.remove('primary'); drainBtn.textContent = 'Simulate Load Spike';
+        boostBtn.classList.remove('primary'); boostBtn.textContent = 'Activate Boosters';
+        drainBtn.classList.remove('primary'); drainBtn.textContent = 'Increase Thrust';
         addLog('SYSTEM SHUTDOWN INITIATED: ramping down reactor, grid and core temperature.');
         injectImmediateOverlay(reactorChart, 1, null);
         injectImmediateOverlay(powerChart, 1, null);
@@ -745,7 +755,7 @@
     // initialize UI
     updateReads();
     fuelChart.update();
-    addLog('Power Management: initialized. Right-hand layout improved for clearer battery and fuel status.');
+    addLog('Power Management: initialized. Right-hand layout updated; buttons placed inside their energy cards.');
 
     // debug accessor
     window._pm = { state: () => ({batteryLevel,fuelPercent,gridLoad,reactorOutput,reactorTempF,shutdownPhase}) };
