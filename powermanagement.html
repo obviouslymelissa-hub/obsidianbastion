@@ -11,19 +11,101 @@
   <link rel="stylesheet" href="app.css">
   <style>
     :root{
+      --bg-dark: #0f1318;
+      --bg-panel: #151821;
+      --accent: #4fd1c5;
+      --accent-2: #7ef0df;
+      --text-main: #e6eef2;
+      --text-muted: #9fb2bf;
+      --border: #22272f;
       --bg: #0b0f14;
       --panel: #0f1720;
       --muted: #93a3b9;
-      --accent: #2dd4bf;
       --danger: #ff6b6b;
       --glass: rgba(255,255,255,0.03);
       --radius: 10px;
     }
 
-    html,body{height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-    body{ color:#e6f0f3; padding:0; box-sizing:border-box; background: var(--bg); }
+    html,body{height:100%; margin:0; font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;}
+    body{ color:var(--text-main); padding:0; box-sizing:border-box; background: var(--bg-dark); }
 
     .page-content { padding: 24px; }
+
+    /* Site header styles */
+    .site-header {
+      background:
+        radial-gradient(600px 120px at 10% 30%, rgba(127,240,223,0.06), transparent 8%),
+        radial-gradient(500px 100px at 90% 60%, rgba(79,209,197,0.04), transparent 6%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      border-bottom: 2px solid rgba(79,209,197,0.12);
+      padding: 12px 18px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      justify-content: space-between;
+      padding: 8px 6px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .site-emblem {
+      width: 60px;
+      height: 60px;
+      flex: 0 0 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(127,240,223,0.06), rgba(79,209,197,0.02));
+      border: 1px solid rgba(127,240,223,0.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 30px rgba(79,209,197,0.02) inset;
+    }
+    .site-emblem img {
+      width: 42px;
+      height: 42px;
+      display: block;
+      object-fit: contain;
+    }
+    .header-text h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--text-main);
+      letter-spacing: 1.2px;
+      font-weight: 800;
+    }
+    .header-text h2 {
+      margin: 4px 0 0 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .return-command-hub {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .return-command-hub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
 
     .page-header{ display:flex; flex-direction:column; gap:12px; margin-bottom:18px; }
     .top-row{ display:flex; align-items:center; gap:16px; }
@@ -62,8 +144,9 @@
     .stat p{margin:0; font-size:18px; font-weight:600;}
 
     .controls{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
-    .btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; color:var(--muted); border-radius:8px; cursor:pointer; font-size:13px; }
-    .btn.primary{ border-color: rgba(45,212,191,0.18); color:var(--accent); box-shadow:0 8px 18px rgba(45,212,191,0.04); }
+    .btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; color:var(--text-muted); border-radius:8px; cursor:pointer; font-size:13px; }
+    .btn.primary{ background:var(--accent); color:var(--bg-panel); border:none; box-shadow:0 6px 20px rgba(0,0,0,0.35); font-weight:700; }
+    .btn.primary:hover{ transform: translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,0.45); }
     .btn.danger{ border-color: rgba(255,107,107,0.18); color:var(--danger); box-shadow:0 8px 18px rgba(255,107,107,0.04); }
 
     /* make battery icon smaller */

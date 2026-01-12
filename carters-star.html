@@ -14,15 +14,22 @@
     */
 
     :root{
+      --bg-dark: #0f1318;
+      --bg-panel: #151821;
+      --accent: #4fd1c5;
+      --accent-2: #7ef0df;
+      --text-main: #e6eef2;
+      --text-muted: #9fb2bf;
+      --border: #22272f;
       --bg: #06070a;
       --panel: #0f1720;
       --muted: #9bb3b0;
-      --accent: #57f0c9;   /* neon cyan */
-      --accent-2: #ffd77a; /* amber for seals */
+      --accent-neon: #57f0c9;   /* neon cyan */
+      --accent-amber: #ffd77a; /* amber for seals */
       --glass: rgba(255,255,255,0.03);
       --glow: 0 6px 28px rgba(87,240,201,0.08);
       --mono: "SFMono-Regular", "Roboto Mono", "Menlo", "Monaco", monospace;
-      --ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --ui: 'Segoe UI', 'Roboto', Arial, sans-serif;
     }
 
     html,body{height:100%;}
@@ -30,10 +37,8 @@
       margin:0;
       min-height:100%;
       font-family:var(--ui);
-      background:
-        radial-gradient(1200px 600px at 10% 20%, rgba(87,240,201,0.02), transparent 6%),
-        linear-gradient(180deg, #020203 0%, var(--bg) 100%);
-      color:#dffbf2;
+      background:var(--bg-dark);
+      color:var(--text-main);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
       padding-bottom:48px;
@@ -98,6 +103,26 @@
       display:flex;
       gap:8px;
       align-items:center;
+    }
+
+    .return-command-hub {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .return-command-hub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
     }
 
     .meta-chip{
@@ -305,7 +330,7 @@
       </div>
 
       <div class="comms-right" aria-hidden="false">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" style="background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:10px 12px;border-radius:8px;font-family:var(--mono);color:var(--muted);font-weight:700;font-size:0.85rem;text-decoration:none;display:inline-block" aria-label="Return to Strategic Operations Board">← Return</a>
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" class="return-command-hub" aria-label="Return to Strategic Operations Board">← Return</a>
         <div class="meta-chip">CLASSIFICATION: PERSONAL</div>
         <div class="meta-chip">STARDATE: —</div>
         <div class="meta-chip">ORIGIN: OBSIDIAN BASTION</div>

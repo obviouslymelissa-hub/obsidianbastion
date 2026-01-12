@@ -7,9 +7,15 @@
   <link rel="stylesheet" href="app.css">
   <style>
     :root{
+      --bg-dark: #0f1318;
+      --bg-panel: #151821;
+      --accent: #4fd1c5;
+      --accent-2: #7ef0df;
+      --text-main: #e6eef2;
+      --text-muted: #9fb2bf;
+      --border: #22272f;
       --bg:#0b1220;
       --panel:#0f1724;
-      --accent:#6ee7b7;
       --muted:#9aa6b2;
       --out:#143f2e;
       --in:#102240;
@@ -17,13 +23,78 @@
       color-scheme: dark;
     }
     body {
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      color: #cfe7e0;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      color: var(--text-main);
       padding: 0;
+      background: var(--bg-dark);
     }
 
     .page-content {
       padding: 18px;
+    }
+
+    /* Site header styles */
+    .site-header {
+      background:
+        radial-gradient(600px 120px at 10% 30%, rgba(127,240,223,0.06), transparent 8%),
+        radial-gradient(500px 100px at 90% 60%, rgba(79,209,197,0.04), transparent 6%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      border-bottom: 2px solid rgba(79,209,197,0.12);
+      padding: 12px 18px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      justify-content: space-between;
+      padding: 8px 6px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .site-emblem img {
+      width: 56px;
+      height: 56px;
+      display: block;
+      border-radius: 8px;
+    }
+    .header-text h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--text-main);
+      letter-spacing: 1.2px;
+      font-weight: 800;
+    }
+    .header-text h2 {
+      margin: 4px 0 0 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .return-command-hub {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .return-command-hub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
     }
 
     .shell {
