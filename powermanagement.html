@@ -132,41 +132,75 @@
 
     /* Layout */
     .left{ grid-column: span 8; display:flex; flex-direction:column; gap:18px; }
-    .right{ grid-column: span 4; display:flex; flex-direction:column; gap:18px; }
+    .right{ grid-column: span 4; display:flex; flex-direction:column; gap:12px; }
 
-    .chart-wrap{ width:100%; height:260px; position: relative; overflow: hidden; border-radius: calc(var(--radius) - 2px); background: transparent; }
-    .chart-wrap.large{ height:360px; }
-    .small-chart{ height:90px; }
+    /* RIGHT: improved grid inside panel */
+    .right .energy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .energy-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.03);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
 
-    .status-row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
-    .stat{ flex:1 1 140px; padding:12px; background: rgba(255,255,255,0.018); border-radius:8px; border:1px solid rgba(255,255,255,0.02); }
-    .stat h3{margin:0 0 6px 0; font-size:12px; color:var(--muted);}
-    .stat p{margin:0; font-size:18px; font-weight:600;}
+    .battery-svg { width:100%; height:140px; display:block; }
+    .battery-wrap { display:flex; flex-direction:column; gap:6px; align-items:center; width:100%; }
+
+    .battery-overlay {
+      position: relative;
+      width:100%;
+      max-width:180px;
+      margin:0 auto;
+    }
+    .battery-overlay .battery-fill {
+      transition: width 600ms ease;
+      height:44px;
+      border-radius:4px;
+    }
+    .battery-percent {
+      margin-top:6px;
+      font-weight:800;
+      font-size:18px;
+      color:var(--accent-2);
+    }
+
+    .fuel-chart-wrap { display:flex; gap:10px; width:100%; align-items:center; margin-top:0; }
+    .fuel-chart-area { flex:1; display:flex; justify-content:center; align-items:center; position:relative; }
+    .fuel-chart-area .chart-wrap { height:120px; width:120px; position:relative; }
+    .fuel-center {
+      position:absolute; left:0; top:0; right:0; bottom:0;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none; font-weight:800; color:var(--accent-2); font-size:20px;
+    }
+    .fuel-info { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+    .fuel-info .label { color:var(--muted); font-size:12px; font-weight:600; }
+    .fuel-info .percent { font-size:22px; font-weight:800; color:var(--accent-2); }
 
     .controls{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .controls .group { display:flex; gap:8px; flex-wrap:wrap; width:100%; }
     .btn{ background:transparent; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; color:var(--text-muted); border-radius:8px; cursor:pointer; font-size:13px; }
     .btn.primary{ background:var(--accent); color:var(--bg-panel); border:none; box-shadow:0 6px 20px rgba(0,0,0,0.35); font-weight:700; }
     .btn.primary:hover{ transform: translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,0.45); }
     .btn.danger{ border-color: rgba(255,107,107,0.18); color:var(--danger); box-shadow:0 8px 18px rgba(255,107,107,0.04); }
 
-    /* make battery icon smaller */
-    .battery-svg { width:100%; height:100px; display:block; }
-    .battery-wrap { display:flex; flex-direction:column; gap:8px; align-items:center; }
-
-    .logs { max-height:200px; overflow:auto; padding:8px; background: rgba(0,0,0,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-family: monospace; font-size:12px; color:#dbeef2; }
-
-    /* New fuel info styles */
-    .fuel-chart-wrap { display:flex; gap:10px; width:100%; align-items:center; margin-top:8px; }
-    .fuel-chart-area { flex:1; display:flex; justify-content:center; align-items:center; }
-    .fuel-info { flex:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
-    .fuel-info .label { color:var(--muted); font-size:12px; font-weight:600; }
-    .fuel-info .percent { font-size:28px; font-weight:800; color:var(--accent-2); }
+    .logs { max-height:200px; overflow:auto; padding:8px; background: rgba(0,0,0,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-family: monospace; font-size:12px; color:#dbeef3; }
 
     @media (max-width:900px){
       main{ grid-template-columns: repeat(6, 1fr); }
       .left{ grid-column: span 6; }
       .right{ grid-column: span 6; }
       .chart-wrap.large{ height:220px; }
+      .right .energy-grid { grid-template-columns: 1fr; }
     }
 
   </style>
@@ -206,7 +240,7 @@
       <section class="panel left">
         <div>
           <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Overall Power (kW)</h3>
-          <div class="chart-wrap large">
+          <div class="chart-wrap large" style="height:360px;">
             <canvas id="powerChart"></canvas>
           </div>
 
@@ -230,77 +264,67 @@
 
         <div style="margin-top:18px;">
           <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Reactor Output (kW)</h3>
-          <div class="chart-wrap small-chart">
+          <div class="chart-wrap small-chart" style="height:90px;">
             <canvas id="reactorChart"></canvas>
           </div>
-                  </div>
+        </div>
       </section>
 
       <!-- RIGHT: Battery, Fuel (doughnut), Controls, Logs -->
       <aside class="panel right">
-        <div class="battery-wrap" style="width:100%;">
-          <h3 style="margin:0; color:var(--muted); font-size:13px">Battery</h3>
-          <!-- Battery SVG visual (smaller now) -->
-          <svg id="batterySvg" class="battery-svg" viewBox="0 0 120 60" preserveAspectRatio="xMidYMid meet" aria-hidden="false">
-            <rect x="4" y="6" width="96" height="48" rx="6" ry="6" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"></rect>
-            <rect x="101" y="20" width="12" height="20" rx="3" ry="3" fill="rgba(255,255,255,0.04)"></rect>
-            <defs>
-              <clipPath id="batteryClip">
-                <rect x="8" y="10" width="88" height="40" rx="4" ry="4"></rect>
-              </clipPath>
-            </defs>
-            <g clip-path="url(#batteryClip)">
-              <rect id="batteryFillBg" x="8" y="10" width="88" height="40" fill="rgba(255,255,255,0.03)"></rect>
-              <rect id="batteryFill" x="8" y="10" width="0" height="40" fill="url(#batteryGrad)"></rect>
-            </g>
-            <defs>
-              <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#ffda6b" stop-opacity="0.95"/>
-                <stop offset="100%" stop-color="#ffb84d" stop-opacity="0.95"/>
-              </linearGradient>
-            </defs>
-          </svg>
-
-          <div style="display:flex; gap:8px; width:100%; justify-content:center; align-items:center;">
-            <div style="flex:1; text-align:center;">
-              <div style="color:var(--muted); font-size:12px;">Charge</div>
-              <div id="batteryValue" style="font-weight:700; font-size:18px;">--%</div>
-            </div>
-            <!-- fuel percent moved below into the fuel chart area for clearer alignment -->
-          </div>
-        </div>
-
-        <!-- Fuel: doughnut with numeric percent beside it -->
-        <div style="width:100%; margin-top:8px;">
-          <h3 style="margin:0; color:var(--muted); font-size:13px">Fuel Storage</h3>
-          <div class="fuel-chart-wrap">
-            <div class="fuel-chart-area">
-              <div class="chart-wrap" style="height:120px; width:120px; margin:0;">
-                <canvas id="fuelChart"></canvas>
+        <div class="energy-grid">
+          <!-- Battery card -->
+          <div class="energy-card battery-wrap" aria-label="Battery status">
+            <h3 style="margin:0; color:var(--muted); font-size:13px; width:100%; text-align:left;">Battery</h3>
+            <div class="battery-overlay" aria-hidden="false">
+              <!-- simplified battery visuals: background + fill -->
+              <div style="height:48px; background:rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(255,255,255,0.04); overflow:hidden; position:relative;">
+                <div id="batteryFillBg" style="position:absolute; left:0; top:0; bottom:0; right:0; background:transparent;"></div>
+                <div id="batteryFillSimple" class="battery-fill" style="position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#ffda6b,#ffb84d);"></div>
+                <div style="position:absolute; right:6px; top:50%; transform:translateY(-50%); color:rgba(0,0,0,0.5); font-weight:700; font-size:12px; background:rgba(255,255,255,0.08); padding:4px 6px; border-radius:6px;">BATT</div>
               </div>
             </div>
-            <div class="fuel-info" aria-hidden="false">
+            <div class="battery-percent" id="batteryValue">--%</div>
+            <div style="font-size:12px;color:var(--muted); text-align:center; max-width:220px;">Stored energy from the battery bank. Automatically charges when reactor has surplus power.</div>
+          </div>
+
+          <!-- Fuel card -->
+          <div class="energy-card" aria-label="Fuel storage">
+            <h3 style="margin:0; color:var(--muted); font-size:13px; width:100%; text-align:left;">Fuel Storage</h3>
+            <div class="fuel-chart-area" style="width:100%; justify-content:center;">
+              <div class="chart-wrap" style="height:120px; width:120px; margin:0;">
+                <canvas id="fuelChart"></canvas>
+                <div class="fuel-center" id="fuelCenter">--%</div>
+              </div>
+            </div>
+            <div class="fuel-info" aria-hidden="true" style="margin-top:6px;">
               <div class="label">Fuel Level</div>
               <div id="fuelValue" class="percent">--%</div>
             </div>
           </div>
         </div>
 
-        <div style="margin-top:12px;">
+        <div style="margin-top:6px;">
           <h3 style="color:var(--muted); font-size:13px; margin:0 0 8px 0;">Controls</h3>
           <div class="controls">
-            <button id="boostBtn" class="btn">Simulate Boost</button>
-            <button id="drainBtn" class="btn">Simulate Load Spike</button>
-            <button id="addFuelBtn" class="btn">Add Fuel</button>
-            <button id="chargeBtn" class="btn">Charge Battery (use fuel)</button>
-            <button id="resetBtn" class="btn">Reset</button>
-            <button id="shutdownBtn" class="btn danger">Shutdown System</button>
+            <div class="group" style="justify-content:space-between;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="boostBtn" class="btn">Simulate Boost</button>
+                <button id="drainBtn" class="btn">Simulate Load Spike</button>
+                <button id="shutdownBtn" class="btn danger">Shutdown System</button>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="addFuelBtn" class="btn">Add Fuel</button>
+                <button id="chargeBtn" class="btn">Charge Battery (use fuel)</button>
+                <button id="resetBtn" class="btn">Reset</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style="margin-top:12px;">
+        <div style="margin-top:8px;">
           <h3 style="margin:0 0 8px 0; color:var(--muted); font-size:13px">Logs</h3>
-          <div id="logs" class="logs"></div>
+          <div id="logs" class="logs" aria-live="polite"></div>
         </div>
       </aside>
     </main>
@@ -317,7 +341,6 @@
     let gridLoad = 420; // kW
     let reactorOutput = 480; // kW
     let reactorTempF = 860; // F
-    let systemShutdown = false;
 
     // shutdownPhase: 'none' (normal), 'ramping' (gradual shutdown), 'off' (fully off)
     let shutdownPhase = 'none';
@@ -352,7 +375,7 @@
     }
 
     // ---------------------------
-    // Chart plugin
+    // Chart plugin (optimal zone highlight)
     // ---------------------------
     const optimalZonePlugin = {
       id: 'optimalZone',
@@ -403,7 +426,7 @@
       data: {
         labels,
         datasets:[
-          { label:'Overall Power (kW)', data: overallHistory, borderColor:'rgba(45,212,191,0.95)', backgroundColor:(function(){const g=ctxPower.createLinearGradient(0,0,0,360);g.addColorStop(0,'rgba(45,212,191,0.12)');g.addColorStop(1,'rgba(45,212,191,0.02)');return g;})(), tension:0.22, pointRadius:0, borderWidth:2, order:1 },
+          { label:'Overall Power (kW)', data: overallHistory, borderColor:'rgba(45,212,191,0.95)', backgroundColor:'rgba(45,212,191,0.06)', tension:0.18, pointRadius:0, fill:true },
           { label:'Event', data:eventEmpty.slice(), borderColor:'rgba(255,223,63,0.95)', backgroundColor:'rgba(255,223,63,0.06)', tension:0.18, pointRadius:0, borderWidth:3, order:2 }
         ]
       },
@@ -418,7 +441,7 @@
     const reactorChart = new Chart(ctxReact, {
       type:'line',
       data:{ labels, datasets:[
-        { label:'Reactor Output (kW)', data: reactorHistory, borderColor:'rgba(96,165,250,0.9)', backgroundColor:(function(){const g=ctxReact.createLinearGradient(0,0,0,120);g.addColorStop(0,'rgba(96,165,250,0.12)');g.addColorStop(1,'rgba(96,165,250,0.02)');return g;})(), tension:0.22, pointRadius:0, borderWidth:2, order:1 },
+        { label:'Reactor Output (kW)', data: reactorHistory, borderColor:'rgba(96,165,250,0.9)', backgroundColor:'rgba(96,165,250,0.06)', tension:0.18, pointRadius:0, fill:true },
         { label:'Event', data:eventEmpty.slice(), borderColor:'rgba(255,223,63,0.95)', backgroundColor:'rgba(255,223,63,0.06)', tension:0.22, pointRadius:0, borderWidth:3, order:2 }
       ]},
       options: Object.assign({}, commonOptions, {
@@ -430,7 +453,7 @@
     const ctxFuel = document.getElementById('fuelChart').getContext('2d');
     const fuelChart = new Chart(ctxFuel, {
       type: 'doughnut',
-      data: { labels: ['Fuel','Empty'], datasets:[{ data: [fuelPercent, 100-fuelPercent], backgroundColor:['rgba(255,193,7,0.95)','rgba(255,255,255,0.04)'], hoverOffset:4, borderWidth:0 }] },
+      data: { labels: ['Fuel','Empty'], datasets:[{ data: [fuelPercent, 100-fuelPercent], backgroundColor:['rgba(255,193,7,0.95)','rgba(255,255,255,0.06)'], hoverOffset:4, borderWidth:0 }] },
       options: { cutout: '70%', responsive:true, maintainAspectRatio:false, plugins:{ tooltip:{ enabled:false }, legend:{ display:false } } }
     });
 
@@ -439,22 +462,21 @@
     // ---------------------------
     const batteryEl = document.getElementById('batteryValue');
     const fuelEl = document.getElementById('fuelValue');
+    const fuelCenterEl = document.getElementById('fuelCenter');
     const loadEl = document.getElementById('loadValue');
     const tempEl = document.getElementById('tempValue');
     const overallPowerEl = document.getElementById('overallPowerValue');
-    const batteryFill = document.getElementById('batteryFill');
+    const batteryFillSimple = document.getElementById('batteryFillSimple');
 
     function nextValue(prev, target, stepFraction=0.12, jitter=1) {
       const diff = target - prev;
       return prev + diff*stepFraction + (Math.random()*2-1)*jitter*0.6;
     }
-    function updateBatterySVG(pct) {
-      const maxWidth = 88;
-      const w = Math.max(0, Math.min(100, pct)) / 100 * maxWidth;
-      batteryFill.setAttribute('width', w);
+    function updateBatterySimple(pct) {
+      const w = Math.max(0, Math.min(100, pct));
+      batteryFillSimple.style.width = w + '%';
     }
     function calculateOverallPower() {
-      if (shutdownPhase === 'off') return 0;
       const batteryContribution = (batteryLevel/100) * MAX_BATTERY_KW;
       return Math.max(0, Math.round(reactorOutput + batteryContribution));
     }
@@ -462,10 +484,11 @@
     function updateReads(){
       batteryEl.textContent = Math.max(0, Math.min(100, batteryLevel)).toFixed(0) + '%';
       fuelEl.textContent = Math.max(0, Math.min(100, fuelPercent)).toFixed(0) + '%';
+      fuelCenterEl.textContent = Math.max(0, Math.min(100, fuelPercent)).toFixed(0) + '%';
       loadEl.textContent = Math.max(0, Math.min(99999, gridLoad)).toFixed(0) + ' kW';
       tempEl.textContent = reactorTempF.toFixed(0) + ' °F';
       overallPowerEl.textContent = Math.round(calculateOverallPower()) + ' kW';
-      updateBatterySVG(batteryLevel);
+      updateBatterySimple(batteryLevel);
     }
 
     // ---------------------------
@@ -526,7 +549,7 @@
       const added = 10 + Math.round(Math.random()*8);
       fuelPercent = Math.min(100, fuelPercent + added);
       fuelChart.data.datasets[0].data[0] = fuelPercent;
-      fuelChart.data.datasets[0].data[1] = 100 - fuelPercent;
+      fuelChart.data.datasets[0].data[1] = 100-fuelPercent;
       fuelChart.update();
       addLog(`Fuel added: +${added}%.`);
       updateReads();
@@ -548,12 +571,7 @@
     };
 
     resetBtn.onclick = () => {
-      if (shutdownPhase !== 'none') {
-        shutdownPhase = 'none';
-        shutdownBtn.classList.remove('primary');
-        shutdownBtn.textContent = 'Shutdown System';
-        addLog('SYSTEM RESTARTED: operator requested restart.');
-      }
+      shutdownPhase = 'none';
       batteryLevel = 78; fuelPercent = 62; gridLoad = 420; reactorOutput = 480; reactorTempF = 860;
       boostActive = drainActive = false;
       boostEventRemaining = drainEventRemaining = fuelEventRemaining = 0;
@@ -568,6 +586,7 @@
       fuelChart.data.datasets[0].data[0] = fuelPercent;
       fuelChart.data.datasets[0].data[1] = 100 - fuelPercent;
       powerChart.update(); reactorChart.update(); fuelChart.update();
+      addLog('SYSTEM RESTARTED: operator requested restart.');
       updateReads();
     };
 
@@ -583,11 +602,9 @@
         boostBtn.classList.remove('primary'); boostBtn.textContent = 'Simulate Boost';
         drainBtn.classList.remove('primary'); drainBtn.textContent = 'Simulate Load Spike';
         addLog('SYSTEM SHUTDOWN INITIATED: ramping down reactor, grid and core temperature.');
-        // clear overlays so ramp looks clean
         injectImmediateOverlay(reactorChart, 1, null);
         injectImmediateOverlay(powerChart, 1, null);
       } else {
-        // restart request: cancel off state and allow simulation to resume
         shutdownPhase = 'none';
         shutdownBtn.classList.remove('primary');
         shutdownBtn.textContent = 'Shutdown System';
@@ -620,14 +637,10 @@
       tick++;
 
       if (shutdownPhase === 'ramping') {
-        // Gradually ramp reactorOutput, gridLoad, and reactorTempF to zero.
-        // Use larger stepFraction so the drop is perceptible but smooth.
         reactorOutput = Math.max(0, nextValue(reactorOutput, 0, 0.28, 2));
         gridLoad = Math.max(0, nextValue(gridLoad, 0, 0.28, 4));
-        // ramp core temperature toward 0 (user requested core temp go to 0)
         reactorTempF = Math.max(0, nextValue(reactorTempF, 0, 0.22, 6));
 
-        // When all values are very close to 0, set exact zeros and mark phase 'off'
         if (reactorOutput < 0.5 && gridLoad < 0.5 && reactorTempF < 0.5) {
           reactorOutput = 0;
           gridLoad = 0;
@@ -636,12 +649,10 @@
           addLog('SYSTEM SHUTDOWN COMPLETE: reactor, grid and core temperature at 0 and held.');
         }
 
-        // During ramping, battery still drifts slowly downward and fuel minor change
         batteryLevel = nextValue(batteryLevel, Math.max(2, batteryLevel - 0.05), 0.04, 0.2);
         fuelPercent = Math.max(0, fuelPercent - 0.001);
 
       } else if (shutdownPhase === 'off') {
-        // fully off: hold exact zeros; allow battery to slowly drain and fuel minimal change
         reactorOutput = 0;
         gridLoad = 0;
         reactorTempF = 0;
@@ -649,7 +660,6 @@
         fuelPercent = Math.max(0, fuelPercent - 0.001);
 
       } else {
-        // Normal simulation
         const surplus = reactorOutput - gridLoad;
         if (surplus >= 40 && !boostActive && !drainActive) {
           batteryLevel = Math.min(100, batteryLevel + (0.08 + Math.random()*0.06));
@@ -734,9 +744,8 @@
 
     // initialize UI
     updateReads();
-    updateBatterySVG(batteryLevel);
     fuelChart.update();
-    addLog('Power Management: initialized. Shutdown now ramps down reactor, grid and core temp smoothly to 0.');
+    addLog('Power Management: initialized. Right-hand layout improved for clearer battery and fuel status.');
 
     // debug accessor
     window._pm = { state: () => ({batteryLevel,fuelPercent,gridLoad,reactorOutput,reactorTempF,shutdownPhase}) };
