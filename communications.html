@@ -26,6 +26,8 @@
       --incoming-border-light: rgba(79, 209, 197, 0.4);
       --incoming-border-medium: rgba(79, 209, 197, 0.5);
       --incoming-border-strong: rgba(79, 209, 197, 0.6);
+      --accent-shadow: rgba(79, 209, 197, 0.3);
+      --accent-shadow-hover: rgba(79, 209, 197, 0.5);
       color-scheme: dark;
     }
     body {
@@ -143,6 +145,25 @@
       font-weight:600;
     }
     button.critical { background:#4c2424; color:#ffd6d6; border-color:#7a3333; }
+    button.power-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: var(--bg-dark);
+      border: 2px solid var(--accent);
+      font-weight: 700;
+      padding: 10px 16px;
+      box-shadow: 0 4px 12px var(--accent-shadow);
+      transition: all 0.2s ease;
+    }
+    button.power-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--accent-shadow-hover);
+    }
+    button.power-btn.power-off {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
     .small { padding:6px 8px; font-size:13px; }
     .toggle { display:flex; align-items:center; gap:6px; }
     input[type="range"] { width:100%; }
@@ -235,7 +256,7 @@
           <div class="stat"><span>Power</span><span id="powerState" class="big">OFF</span></div>
           <div class="controls">
             <div class="toggle">
-              <button id="btnPower" class="small">Power ON</button>
+              <button id="btnPower" class="power-btn power-off">Power ON</button>
             </div>
             <div class="toggle">
               <label class="small-muted">Encryption</label>
@@ -279,7 +300,7 @@
         </div>
 
         <div class="controls-right" style="margin-left:auto">
-          <button id="btnExport" class="small">Export JSON</button>
+          <button id="btnExport" class="small">Download Log</button>
           <button id="btnClear" class="small critical">Clear Log</button>
         </div>
       </div>
@@ -354,8 +375,12 @@
         power = !!on;
         powerStateEl.textContent = power ? 'ONLINE' : 'OFF';
         btnPower.textContent = power ? 'Power OFF' : 'Power ON';
-        btnPower.classList.toggle('small', true);
-        // Allow composing even when power is OFF; show composer status instead
+        // Toggle power button classes for visual effect
+        if (power) {
+          btnPower.classList.remove('power-off');
+        } else {
+          btnPower.classList.add('power-off');
+        }
         if (power) {
           // attempt to flush queue if we have any queued messages
           flushQueue();
@@ -371,13 +396,13 @@
 
         // composer status messaging for power state
         if (!power) {
-          composeStatus.textContent = 'Power OFF — outgoing messages will be queued. Incoming messages are blocked until power is ON.';
+          composeStatus.textContent = 'Power OFF — Turn on the communications system to send or receive messages.';
         } else {
           // if incoming available, mention it here as well
           if (incomingAvailable) {
             composeStatus.textContent = 'Power ONLINE — incoming signal detected. Click "Receive Transmission" to accept.';
           } else {
-            composeStatus.textContent = 'Power ONLINE — outgoing messages will be sent when signal permits. Incoming messages accepted.';
+            composeStatus.textContent = 'Power ONLINE — Communications system active. Ready to send and receive messages.';
           }
         }
 
@@ -590,8 +615,9 @@
         const to = inputTo.value.trim() || 'Unknown';
         if (!txt) return alert('Enter a message to send.');
         if (!power) {
-          // still allow queueing but show notice
-          if (!confirm('Communications power is OFF. Do you want to queue the message?')) return;
+          // Show alert that system must be turned on first
+          alert('Communications system is OFF. Turn on the power to send messages.');
+          return;
         }
         // sendMessage now returns the entry so we can decide whether to schedule incoming
         const entry = sendMessage(txt, to);
