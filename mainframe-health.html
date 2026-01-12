@@ -282,9 +282,6 @@
     .small-muted { font-size:12px; color:var(--muted); }
     .resolved { opacity:0.6; text-decoration:line-through; }
 
-    /* Make the toolbar's badge sit at the very left inside the toolbar card */
-    .card.toolbar { padding-left: 0; } /* overrides .card default left padding for this toolbar only */
-
     /* Optional helper classes for clearer states */
     .badge.good { background: rgba(120,224,143,0.06); color: inherit; }
     .badge.degraded { background: linear-gradient(90deg,var(--warn),#ffd39a40); color: #021219; }
@@ -368,18 +365,16 @@
         </div>
 
         <div style="margin-top:8px; display:flex; gap:8px;">
-          <button id="addSample" title="Add a sample incident">Add sample incident</button>
+          <button id="addSample" title="Check incident reports">Check incident reports</button>
           <button id="clearResolved" title="Remove resolved incidents">Clear resolved</button>
         </div>
-
-        <p class="small" style="margin-top:8px"><a href="https://obviouslymelissa-hub.github.io/obsidianbastion/onboardcomputer.html" style="color:var(--accent)">← Return to Onboard Computer</a></p>
       </div>
     </div>
 
     <main class="main">
       <div class="card toolbar" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="badge good" id="healthBadge" style="margin-right: auto;">Health: Good</div>
-        <div class="small" style="margin: 0 auto;" id="lastUpdated">last updated: —</div>
+        <div class="badge good" id="healthBadge">Health: Good</div>
+        <div class="small" id="lastUpdated">last updated: —</div>
         <div style="display: flex; gap: 8px;">
           <button id="zoomOut">Zoom out</button>
           <button id="zoomIn">Zoom in</button>
