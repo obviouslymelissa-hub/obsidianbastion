@@ -403,13 +403,22 @@
 
     function refreshCharts() {
       if (partsChart) {
-        // Include custom parts in the chart
-        const customPartKeys = Object.keys(customParts).filter(k => !PARTS_ORDER.includes(k) && !SUPPLIES_KEYS.has(k));
+        // Include custom parts in the chart (only those not already in PARTS_ORDER)
+        const customPartKeys = Object.keys(customParts).filter(k => {
+          return !isStandardPart(k) && (inventory[k] || 0) > 0;
+        });
         const allPartsKeys = [...PARTS_ORDER, ...customPartKeys];
-        const allPartsLabels = allPartsKeys.map(k => capitalizeLabel(customParts[k]?.displayName || k));
+        const allPartsLabels = allPartsKeys.map(k => {
+          // For custom parts, use the displayName; for standard parts, just capitalize the key
+          if (customParts[k]) {
+            return capitalizeLabel(customParts[k].displayName);
+          }
+          return capitalizeLabel(k);
+        });
         const allPartsData = allPartsKeys.map(k => inventory[k] || 0);
         
-        // Generate colors for custom parts
+        // Generate colors: use standard colors for standard parts, generate for custom
+        const standardColors = ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'];
         const customColors = customPartKeys.map((_, i) => {
           const hue = (i * 60) % 360;
           return `hsl(${hue}, 35%, 45%)`;
@@ -418,7 +427,7 @@
         partsChart.data.labels = allPartsLabels;
         partsChart.data.datasets[0].data = allPartsData;
         partsChart.data.datasets[0].backgroundColor = [
-          '#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46',
+          ...standardColors.slice(0, PARTS_ORDER.length),
           ...customColors
         ];
         partsChart.update();
@@ -828,7 +837,6 @@
             const next = Math.max(0, old - dec);
             if (next !== old) {
               inventory[k] = next;
-              customParts[k].qty = next;
               changed = true;
 
               // Log custom part usage
@@ -848,7 +856,6 @@
         if (changed) {
           saveInventory(inventory);
           saveUsage(usage);
-          saveCustomParts(customParts);
           refreshCharts();
           renderRestockSuggestions();
           renderUsageLog();
