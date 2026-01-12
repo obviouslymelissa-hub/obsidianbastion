@@ -26,6 +26,8 @@
       --incoming-border-light: rgba(79, 209, 197, 0.4);
       --incoming-border-medium: rgba(79, 209, 197, 0.5);
       --incoming-border-strong: rgba(79, 209, 197, 0.6);
+      --accent-shadow: rgba(79, 209, 197, 0.3);
+      --accent-shadow-hover: rgba(79, 209, 197, 0.5);
       color-scheme: dark;
     }
     body {
@@ -149,12 +151,12 @@
       border: 2px solid var(--accent);
       font-weight: 700;
       padding: 10px 16px;
-      box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+      box-shadow: 0 4px 12px var(--accent-shadow);
       transition: all 0.2s ease;
     }
     button.power-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(79, 209, 197, 0.5);
+      box-shadow: 0 6px 20px var(--accent-shadow-hover);
     }
     button.power-btn.power-off {
       background: rgba(255,255,255,0.05);
