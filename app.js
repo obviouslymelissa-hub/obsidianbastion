@@ -104,14 +104,7 @@ function renderDetails(sysId, planetId){
   $('planetType').textContent = p.type;
   $('planetOrbit').textContent = p.orbitalAU + ' AU';
   $('planetRadius').textContent = p.radiusEarth + ' R⊕';
-  updateLocationBadge();
   renderMapLarge(sys, p, null);
-}
-
-function updateLocationBadge(){
-  const loc = loadLocation();
-  const badge = $('locationBadge');
-  badge.innerHTML = 'Location: ' + (loc ? `<span class="location-chip">${loc.system}/${loc.planet}</span>` : '—');
 }
 
 /* Selection handlers */
@@ -434,18 +427,31 @@ async function travelToCurrent(mode = 'regular'){
   updateOverallStatus('Arrived', 1);
   setTimeout(()=> updateOverallStatus('Idle'), 900);
   renderMapLarge(currentSystem || catalog.systems[0], currentPlanet, currentCustom);
-  updateLocationBadge();
 }
 
 /* Custom locations UI */
 function renderCustomList(){
   const container = $('customList');
   const arr = loadCustoms();
+  
+  // Also load pb_favorites to integrate both systems
+  let pbFavorites = [];
+  try {
+    const raw = localStorage.getItem('pb_favorites') || '[]';
+    pbFavorites = JSON.parse(raw);
+  } catch(e) {
+    pbFavorites = [];
+  }
+  
   container.innerHTML = '';
-  if(arr.length === 0){
+  
+  // Check if we have any items from either source
+  if(arr.length === 0 && pbFavorites.length === 0){
     container.innerHTML = '<div class="small-muted">No custom locations yet — create one with the Go button.</div>';
     return;
   }
+  
+  // Render nav:customs_v1 items (newly created custom locations)
   arr.forEach(c => {
     const el = document.createElement('div');
     el.className = 'custom-item';
@@ -476,6 +482,86 @@ function renderCustomList(){
       if(currentCustom && currentCustom.id === c.id){ currentCustom = null; renderMapLarge(currentSystem, currentPlanet, null); }
     });
   });
+  
+  // Render pb_favorites items (favorites from other pages)
+  if(pbFavorites.length > 0){
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fav-list';
+    wrapper.style.marginTop = arr.length > 0 ? '12px' : '0';
+    
+    pbFavorites.slice().reverse().slice(0,8).forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'fav-item';
+      
+      const thumb = document.createElement('div');
+      thumb.className = 'fav-thumb';
+      if(item.thumbnail){
+        const img = document.createElement('img');
+        img.src = item.thumbnail;
+        img.alt = item.name || (item.planet && item.planet.planetCode) || 'saved';
+        thumb.appendChild(img);
+      } else {
+        thumb.textContent = '🔭';
+        thumb.style.fontSize = '18px';
+        thumb.style.display = 'flex';
+        thumb.style.alignItems = 'center';
+        thumb.style.justifyContent = 'center';
+        thumb.style.color = 'rgba(191,230,255,0.6)';
+      }
+      
+      const meta = document.createElement('div');
+      meta.className = 'fav-meta';
+      const title = document.createElement('div');
+      title.className = 'fav-title';
+      title.textContent = item.name || (item.planet && item.planet.planetCode) || 'Saved Location';
+      const sub = document.createElement('div');
+      sub.className = 'fav-sub';
+      const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
+      const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
+      sub.textContent = `${sys} ${pcode}`.trim();
+      
+      meta.appendChild(title);
+      meta.appendChild(sub);
+      
+      const actions = document.createElement('div');
+      actions.className = 'fav-actions';
+      
+      const loadBtn = document.createElement('button');
+      loadBtn.type = 'button';
+      loadBtn.textContent = 'Load';
+      loadBtn.title = 'Load into the custom location input';
+      loadBtn.addEventListener('click', () => {
+        const input = $('customGotoInput');
+        if(!input) return;
+        input.value = item.name || (item.planet && item.planet.planetCode) || '';
+        input.focus();
+      });
+      
+      const goBtn = document.createElement('button');
+      goBtn.type = 'button';
+      goBtn.className = 'primary';
+      goBtn.textContent = 'Go';
+      goBtn.title = 'Go to this saved location';
+      goBtn.addEventListener('click', () => {
+        const input = $('customGotoInput');
+        const btn = $('customGotoBtn');
+        if(!input || !btn) return;
+        input.value = item.name || (item.planet && item.planet.planetCode) || '';
+        btn.click();
+      });
+      
+      actions.appendChild(loadBtn);
+      actions.appendChild(goBtn);
+      
+      row.appendChild(thumb);
+      row.appendChild(meta);
+      row.appendChild(actions);
+      
+      wrapper.appendChild(row);
+    });
+    
+    container.appendChild(wrapper);
+  }
 }
 
 /* Creating/updating a custom location (stored separately) */
@@ -591,7 +677,6 @@ async function start(){
     const first = catalog.systems[0];
     if(first) selectSystem(first.id);
   }
-  updateLocationBadge();
   updateOverallStatus('Idle');
 }
 

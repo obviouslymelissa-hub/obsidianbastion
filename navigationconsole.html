@@ -140,7 +140,6 @@
       </section>
 
       <aside class="panel details" aria-label="Details">
-        <div id="locationBadge">Location: —</div>
         <div id="detailsCard">
           <h3 id="planetName">—</h3>
           <div id="planetSummary">—</div>
@@ -253,107 +252,8 @@
 
   <!-- Favorites integration (reads pb_favorites from localStorage and shows quick access) -->
   <script>
-    (function(){
-      function qs(id){ return document.getElementById(id); }
-
-      function renderFavorites(){
-        const raw = localStorage.getItem('pb_favorites') || '[]';
-        let list;
-        try{ list = JSON.parse(raw); } catch(e){ list = []; }
-        const container = qs('customList');
-        if(!container) return;
-        container.innerHTML = '';
-        if(!list || !list.length){
-          container.textContent = 'No custom locations yet — create one with the Go button.';
-          return;
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'fav-list';
-        list.slice().reverse().slice(0,8).forEach(item=>{
-          const row = document.createElement('div');
-          row.className = 'fav-item';
-
-          const thumb = document.createElement('div');
-          thumb.className = 'fav-thumb';
-          if(item.thumbnail){
-            const img = document.createElement('img');
-            img.src = item.thumbnail;
-            img.alt = item.name || (item.planet && item.planet.planetCode) || 'saved';
-            thumb.appendChild(img);
-          } else {
-            thumb.textContent = '🔭';
-            thumb.style.fontSize = '18px';
-            thumb.style.display = 'flex';
-            thumb.style.alignItems = 'center';
-            thumb.style.justifyContent = 'center';
-            thumb.style.color = 'rgba(191,230,255,0.6)';
-          }
-
-          const meta = document.createElement('div');
-          meta.className = 'fav-meta';
-          const title = document.createElement('div');
-          title.className = 'fav-title';
-          title.textContent = item.name || (item.planet && item.planet.planetCode) || 'Saved Location';
-          const sub = document.createElement('div');
-          sub.className = 'fav-sub';
-          const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
-          const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
-          sub.textContent = `${sys} ${pcode}`.trim();
-
-          meta.appendChild(title);
-          meta.appendChild(sub);
-
-          const actions = document.createElement('div');
-          actions.className = 'fav-actions';
-
-          const loadBtn = document.createElement('button');
-          loadBtn.type = 'button';
-          loadBtn.textContent = 'Load';
-          loadBtn.title = 'Load into the custom location input';
-          loadBtn.addEventListener('click', () => {
-            const input = qs('customGotoInput');
-            if(!input) return;
-            input.value = item.name || (item.planet && item.planet.planetCode) || '';
-            input.focus();
-          });
-
-          const goBtn = document.createElement('button');
-          goBtn.type = 'button';
-          goBtn.className = 'primary';
-          goBtn.textContent = 'Go';
-          goBtn.title = 'Go to this saved location';
-          goBtn.addEventListener('click', () => {
-            const input = qs('customGotoInput');
-            const btn = qs('customGotoBtn');
-            if(!input || !btn) return;
-            input.value = item.name || (item.planet && item.planet.planetCode) || '';
-            btn.click();
-          });
-
-          actions.appendChild(loadBtn);
-          actions.appendChild(goBtn);
-
-          row.appendChild(thumb);
-          row.appendChild(meta);
-          row.appendChild(actions);
-
-          wrapper.appendChild(row);
-        });
-
-        container.appendChild(wrapper);
-      }
-
-      window.addEventListener('storage', (ev) => {
-        if(ev.key === 'pb_favorites') renderFavorites();
-      });
-
-      if(document.readyState === 'loading'){
-        document.addEventListener('DOMContentLoaded', renderFavorites);
-      } else {
-        renderFavorites();
-      }
-    })();
+    // Favorites rendering is now handled by app.js renderCustomList() function
+    // This keeps the favorites list persistent even after traveling
   </script>
 
   <!-- keep the module script for the existing interactive behaviour -->
