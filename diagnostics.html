@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Diagnostics — Obsidian Bastion</title>
+  <title>Diagnostics</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="app.css" />
   <style>
@@ -269,8 +269,100 @@
       main { grid-template-columns: 1fr; padding:1rem; margin:1rem; }
     }
 
-    /* confetti canvas overlay */
-    #confettiCanvas { position: fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999; }
+    /* Success burst overlay (replaces confetti) */
+    .success-burst {
+      position: fixed;
+      left: 50%;
+      top: 18%;
+      transform: translateX(-50%) scale(0.95);
+      pointer-events: none;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 220px;
+      height: 100px;
+      opacity: 0;
+      transition: opacity 180ms ease, transform 220ms ease;
+    }
+
+    .success-burst.show {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    /* radial dots */
+    .success-burst .dots {
+      position: absolute;
+      width: 220px;
+      height: 100px;
+      top: 0;
+      left: 0;
+      overflow: visible;
+    }
+    .success-burst .dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transform-origin: center;
+      opacity: 0;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5));
+    }
+
+    @keyframes burst {
+      0% { transform: translate(0,0) scale(0.6); opacity: 1; }
+      60% { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0.9); opacity: 0; }
+    }
+
+    /* checkmark + ring */
+    .success-burst .check {
+      position: relative;
+      z-index: 2;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(79,209,197,0.12), rgba(79,209,197,0.04));
+      border: 1px solid rgba(79,209,197,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transform: scale(0.86);
+      transition: transform 160ms ease;
+    }
+
+    .success-burst.show .check { transform: scale(1); }
+
+    .success-burst .ring {
+      position: absolute;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 2px solid rgba(79,209,197,0.12);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      opacity: 0;
+      transition: transform 260ms ease, opacity 260ms ease;
+    }
+
+    .success-burst.show .ring { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+    .success-burst svg.checkmark {
+      width: 40px;
+      height: 40px;
+      stroke: var(--accent-2);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      transition: stroke-dashoffset 420ms cubic-bezier(.2,.9,.2,1);
+    }
+    .success-burst.show svg.checkmark { stroke-dashoffset: 0; }
   </style>
 </head>
 <body>
@@ -358,12 +450,11 @@
         <div class="log" id="verboseLog" aria-live="polite"></div>
       </div>
 
-      <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/onboardcomputer.html" class="return-link" style="display:block; margin-top:0.9rem; color:var(--accent); text-decoration:none;">← Return to Onboard Computer</a>
+      <!-- bottom duplicate return link removed per request -->
     </section>
   </main>
 
-  <!-- Confetti canvas overlay -->
-  <canvas id="confettiCanvas"></canvas>
+  <!-- Success burst overlay element will be created dynamically by JS (replaces confetti) -->
 
   <script>
     // Original errors & recommendations extended with new systems
@@ -748,7 +839,7 @@
     const verboseLog = document.getElementById('verboseLog');
     const historyList = document.getElementById('historyList');
     const historyControls = document.getElementById('historyControls');
-    const confettiCanvas = document.getElementById('confettiCanvas');
+    // confetti canvas removed - success burst will be created dynamically
 
     let selectedArea = null;
     let currentError = null;
@@ -820,56 +911,87 @@
       ctx.fill();
     }
 
-    // Confetti (lightweight)
+    // Replace confetti with a subtle themed success burst.
+    // This function keeps the old name (triggerConfetti) so existing calls don't need to be changed.
     function triggerConfetti() {
-      const canvas = confettiCanvas;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext('2d');
-      const pieces = [];
-      const count = 60;
-      for (let i=0;i<count;i++){
-        pieces.push({
-          x: Math.random() * canvas.width,
-          y: -Math.random() * 200,
-          size: 6 + Math.random()*8,
-          vx: -2 + Math.random()*4,
-          vy: 2 + Math.random()*4,
-          color: ['#6ee7d7','#4fd1c5','#ffd166','#bdb2ff','#9be7c6'][Math.floor(Math.random()*5)],
-          rot: Math.random()*360,
-          rSpeed: (Math.random()*6-3)
-        });
-      }
+      try {
+        // remove any existing burst
+        const existing = document.querySelector('.success-burst');
+        if (existing) {
+          existing.classList.remove('show');
+          existing.remove();
+        }
 
-      let t0 = performance.now();
-      function step(now){
-        const dt = now - t0;
-        t0 = now;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        for (const p of pieces){
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += 0.07;
-          p.rot += p.rSpeed;
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rot * Math.PI / 180);
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
-          ctx.restore();
+        const container = document.createElement('div');
+        container.className = 'success-burst';
+        container.setAttribute('aria-hidden', 'true');
+
+        // dots layer
+        const dots = document.createElement('div');
+        dots.className = 'dots';
+
+        // colors matching theme
+        const colors = ['#6ee7d7','#4fd1c5','#ffd166','#bdb2ff','#9be7c6'];
+
+        // create several dots around center with random directions
+        const count = 10;
+        for (let i = 0; i < count; i++) {
+          const d = document.createElement('div');
+          d.className = 'dot';
+          d.style.background = colors[i % colors.length];
+          const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+          const dist = 36 + Math.random() * 56;
+          const dx = Math.cos(angle) * dist + 'px';
+          const dy = Math.sin(angle) * (dist * 0.6) + 'px';
+          d.style.setProperty('--dx', dx);
+          d.style.setProperty('--dy', dy);
+          // offset each slightly so animation looks organic
+          d.style.left = '50%';
+          d.style.top = '50%';
+          d.style.transform = 'translate(-50%,-50%)';
+          d.style.animation = `burst 700ms cubic-bezier(.2,.9,.2,1) ${Math.random()*110}ms forwards`;
+          d.style.opacity = '0';
+          dots.appendChild(d);
         }
-        // remove pieces off-screen
-        const alive = pieces.filter(p => p.y < canvas.height + 80);
-        if (alive.length === 0) {
-          ctx.clearRect(0,0,canvas.width,canvas.height);
-          return;
-        } else {
-          requestAnimationFrame(step);
-        }
+
+        // check area with ring + SVG checkmark
+        const checkWrap = document.createElement('div');
+        checkWrap.className = 'check';
+        const ring = document.createElement('div');
+        ring.className = 'ring';
+
+        // SVG checkmark
+        const svgns = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgns, 'svg');
+        svg.setAttribute('class', 'checkmark');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        const path = document.createElementNS(svgns, 'path');
+        path.setAttribute('d', 'M4.5 12.5l4 4 11-11');
+        svg.appendChild(path);
+
+        checkWrap.appendChild(svg);
+        container.appendChild(dots);
+        container.appendChild(ring);
+        container.appendChild(checkWrap);
+
+        document.body.appendChild(container);
+
+        // trigger show state to run transitions
+        requestAnimationFrame(() => {
+          setTimeout(() => container.classList.add('show'), 12);
+        });
+
+        // remove after animation
+        setTimeout(() => {
+          container.classList.remove('show');
+          setTimeout(() => { if (container.parentNode) container.parentNode.removeChild(container); }, 260);
+        }, 1600);
+
+        // light success beep (very subtle)
+        try { beep(110, 740, 'sine', 0.02); } catch(e) {}
+      } catch (e) {
+        // fail silently if something goes wrong
       }
-      requestAnimationFrame(step);
-      // clear after a short while
-      setTimeout(() => { ctx.clearRect(0,0,canvas.width,canvas.height); }, 3000);
     }
 
     // History management
@@ -902,7 +1024,7 @@
         const el = document.createElement('div');
         el.className = 'history-item';
         el.tabIndex = 0;
-        el.innerHTML = `<strong>${h.area}</strong> — <span style="color:var(--text-muted)">${new Date(h.time).toLocaleString()}</span><div style="font-size:0.86rem; color:var(--text-muted); margin-top:3px;">${h.error}</div>`;
+        el.innerHTML = `<strong>${h.area}</strong> — <span style="color:var(--text-muted)">${new Date(h.time).toLocaleString()}</span><div style="font-size:0.86rem; color:var(--text-muted); margin-top:4px;">${h.error || ''}</div>`;
         el.addEventListener('click', () => {
           restoreHistoryItem(h);
         });
@@ -998,220 +1120,108 @@
         diagnosticsArea.textContent = `Diagnosing: ${selectedArea}`;
 
         // select random error
-        const errorList = errors[selectedArea];
-        const index = Math.floor(Math.random() * errorList.length);
-        currentError = errorList[index];
-        diagnosticsError.textContent = currentError;
-        diagnosticsStatus.textContent = '';
-        issueResolved = false;
+        const list = errors[selectedArea] || [];
+        const err = list[Math.floor(Math.random() * list.length)];
+        currentError = err;
+        diagnosticsError.textContent = currentError || '';
 
-        escalationAdded = false;
-
-        // style behavior for nominal vs issue
-        if (currentError.includes('nominal')) {
-          fixBtn.style.display = 'none';
+        // update LED & status text
+        setLedForError(currentError);
+        if (currentError && currentError.includes('nominal')) {
+          diagnosticsStatus.textContent = 'All systems within expected parameters.';
+          diagnosticsError.classList.remove('diagnostics-nominal');
           diagnosticsError.classList.add('diagnostics-nominal');
         } else {
-          fixBtn.style.display = 'inline-block';
+          diagnosticsStatus.textContent = 'Anomaly detected — recommended actions available.';
           diagnosticsError.classList.remove('diagnostics-nominal');
         }
 
-        // Show recommendations
+        // show/hide controls
+        if (currentError && !currentError.includes('nominal')) {
+          fixBtn.style.display = 'inline-flex';
+          downloadBtn.style.display = 'inline-flex';
+        } else {
+          fixBtn.style.display = 'none';
+          downloadBtn.style.display = 'none';
+        }
+
+        // show recommendations
         showRecommendationsFor(currentError);
 
-        // telemetry & LED
-        drawTelemetry(50 + Math.random()*20);
-        setLedForError(currentError);
+        // draw telemetry seeded by severity
+        const seed = currentError && currentError.includes('nominal') ? 60 : 42 + (Math.random()*18);
+        drawTelemetry(seed);
 
-        // enable download/report
-        downloadBtn.style.display = 'inline-block';
+        // log & history
+        appendLog(`Diagnosed ${selectedArea}: ${currentError}`);
+        pushHistory({ area: selectedArea, error: currentError, time: Date.now(), statusText: diagnosticsStatus.textContent });
 
-        // Save to history (lightweight)
-        pushHistory({
-          area: selectedArea,
-          error: currentError,
-          status: 'detected',
-          statusText: '',
-          recommendations: recommendations[currentError] || [],
-          time: Date.now()
-        });
-
-        // persist last-selected
-        try { localStorage.setItem(LAST_SELECTED_KEY, selectedArea); } catch(e){}
-
-        appendLog(`Selected ${selectedArea} — ${currentError}`);
-        beep(80, 880, 'triangle', 0.02);
-      });
-
-      // keyboard: allow Up/Down to move, Enter to click
-      btn.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          const next = areaButtons[(idx+1)%areaButtons.length];
-          next.focus();
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          const prev = areaButtons[(idx-1+areaButtons.length)%areaButtons.length];
-          prev.focus();
-        } else if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          btn.click();
-        }
+        // store last selected
+        try { localStorage.setItem(LAST_SELECTED_KEY, selectedArea); } catch(e) {}
       });
     });
 
-    // Fix button behavior (preserved original randomness)
+    // Fix button behavior (attempt)
     fixBtn.addEventListener('click', () => {
-      appendLog(`Attempting fix for ${selectedArea}: ${currentError}`);
-      beep(60, 520, 'sine', 0.02);
-
-      if (Math.random() < 0.5) {
-        diagnosticsStatus.textContent = "Issue persists. Further diagnostics required.";
-        diagnosticsStatus.style.color = "var(--danger)";
-
-        // Append escalation recommendations but only once per diagnostic result
-        if (!escalationAdded) {
-          const escalation = [
-            "Document observed behavior and recent logs.",
-            "Run extended diagnostics and capture telemetry.",
-            "Escalate to engineering if on-site maintenance is required."
-          ];
-          recommendationList.innerHTML = recommendationList.innerHTML + escalation.map(r => `<li>${r}</li>`).join('');
-          escalationAdded = true;
-          appendLog('Escalation recommendations added.');
-        }
-        pushHistory({
-          area: selectedArea,
-          error: currentError,
-          status: 'attempted_fix_failed',
-          statusText: diagnosticsStatus.textContent,
-          recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
-          time: Date.now()
-        });
-      } else {
-        diagnosticsStatus.textContent = "Issue resolved. Subsystem nominal.";
-        diagnosticsStatus.style.color = "var(--success)";
-        fixBtn.style.display = 'none';
-        diagnosticsError.textContent = '';
-        recommendationList.innerHTML = `<li>Issue appears resolved. Monitor subsystem for recurrence over the next 24 hours.</li>
-                                        <li>Log the repair attempt and any actions taken.</li>`;
-        recommendationsSection.style.display = 'block';
-        escalationAdded = false;
-
-        // fun feedback: confetti + success beep
+      if (!selectedArea || !currentError) return;
+      appendLog(`Attempting fix for ${selectedArea} — ${currentError}`);
+      // simulate fix success for non-nominal issues
+      const success = Math.random() > 0.35;
+      if (success) {
+        diagnosticsError.textContent = `${selectedArea} — issue resolved.`;
+        diagnosticsError.classList.add('diagnostics-nominal');
+        diagnosticsStatus.textContent = 'Resolved';
+        setLedForError('nominal');
+        pushHistory({ area: selectedArea, error: `${selectedArea} — issue resolved.`, time: Date.now(), statusText: 'Resolved' });
+        // celebration (replaced confetti)
         triggerConfetti();
-        beep(220, 660, 'sine', 0.04);
-        appendLog('Issue resolved — confetti triggered.');
-
-        pushHistory({
-          area: selectedArea,
-          error: currentError,
-          status: 'fixed',
-          statusText: diagnosticsStatus.textContent,
-          recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
-          time: Date.now()
-        });
+        issueResolved = true;
+      } else {
+        diagnosticsStatus.textContent = 'Fix attempt failed. Escalating recommended.';
+        appendLog('Fix attempt failed; escalation recommended.');
+        // append escalation recommendation once
+        if (!escalationAdded) {
+          const li = document.createElement('li');
+          li.textContent = 'Escalate to engineering — on-call required for hardware intervention.';
+          recommendationList.appendChild(li);
+          escalationAdded = true;
+        }
       }
     });
 
-    // Download report button
+    // Download report (simple TXT)
     downloadBtn.addEventListener('click', () => {
-      const report = {
-        area: selectedArea,
-        error: currentError,
-        status: diagnosticsStatus.textContent || 'detected',
-        recommendations: Array.from(recommendationList.querySelectorAll('li')).map(li => li.textContent),
-        timestamp: new Date().toISOString()
-      };
-      const text = `Obsidian Bastion — Diagnostic Report
-Time: ${report.timestamp}
-Subsystem: ${report.area}
-Detected: ${report.error}
-Status: ${report.status}
-
-Recommendations:
-- ${report.recommendations.join('\n- ')}
-
-Generated by Obsidian Bastion diagnostics.
-`;
-      const blob = new Blob([text], { type: 'text/plain' });
+      const report = `Diagnostics Report\nArea: ${selectedArea}\nStatus: ${diagnosticsStatus.textContent}\nError: ${currentError}\nTime: ${new Date().toISOString()}\n`;
+      const blob = new Blob([report], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `diagnostic-${(report.area||'unknown').replace(/\s+/g,'_')}-${Date.now()}.txt`;
+      a.download = `diagnostics_${selectedArea.replace(/\s+/g,'_')}_${Date.now()}.txt`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      appendLog('Downloaded diagnostic report.');
-      beep(100, 520, 'sine', 0.02);
+      appendLog('Downloaded diagnostics report.');
     });
 
     // Verbose toggle
     toggleVerbose.addEventListener('click', () => {
-      const active = toggleVerbose.getAttribute('aria-pressed') === 'true';
-      toggleVerbose.setAttribute('aria-pressed', String(!active));
-      logsWrapper.style.display = active ? 'none' : 'block';
-      if (!active) {
-        appendLog('Verbose mode enabled.');
-      } else {
-        appendLog('Verbose mode disabled.');
+      const pressed = toggleVerbose.getAttribute('aria-pressed') === 'true';
+      toggleVerbose.setAttribute('aria-pressed', String(!pressed));
+      logsWrapper.style.display = pressed ? 'none' : 'block';
+    });
+
+    // Initialization: restore last selected
+    try {
+      const last = localStorage.getItem(LAST_SELECTED_KEY);
+      if (last) {
+        const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
+        if (btn) btn.click();
       }
-    });
+    } catch (e) { /* ignore */ }
 
-    // Keyboard shortcuts for global navigation: left/right to select previous/next, Enter to attempt fix
-    window.addEventListener('keydown', (e) => {
-      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        // find focused index or selected index
-        let idx = areaButtons.findIndex(b => b.classList.contains('selected')) ;
-        if (idx === -1) idx = 0;
-        if (e.key === 'ArrowRight') idx = (idx + 1) % areaButtons.length;
-        else idx = (idx - 1 + areaButtons.length) % areaButtons.length;
-        areaButtons[idx].focus();
-        areaButtons[idx].click();
-      } else if (e.key === 'Enter') {
-        // if fix is visible, attempt a fix (helps keyboard users)
-        if (fixBtn && fixBtn.style.display !== 'none') {
-          fixBtn.click();
-        }
-      }
-    });
-
-    // On load: restore last selected if present
-    window.addEventListener('load', () => {
-      try {
-        renderHistory();
-        const last = localStorage.getItem(LAST_SELECTED_KEY);
-        if (last) {
-          const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
-          if (btn) {
-            // small timeout for nicer visual load
-            setTimeout(() => { btn.click(); }, 120);
-          }
-        }
-      } catch (e) {}
-      // draw default telemetry
-      drawTelemetry(48);
-    });
-
-    // Basic responsive resize handling for telemetry/confetti canvas
-    window.addEventListener('resize', () => {
-      try { telemetryCanvas.width = telemetryCanvas.clientWidth; } catch(e){}
-      confettiCanvas.width = window.innerWidth;
-      confettiCanvas.height = window.innerHeight;
-    });
-    // init confetti canvas size
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
+    // initial render history
+    renderHistory();
   </script>
-
-  <footer style="text-align:center;color:var(--text-muted);padding:24px 0 40px;border-top:1px solid rgba(255,255,255,0.03);margin-top:18px;font-style:italic;max-width:980px;margin-left:auto;margin-right:auto;">
-    <div style="margin-bottom:12px">
-      <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" style="color:var(--accent);text-decoration:none;font-weight:600">Vessel Profile</a>
-    </div>
-    &copy; 2026 - Turning Imagination Into Galactic Frontiers.
-  </footer>
 </body>
 </html>
