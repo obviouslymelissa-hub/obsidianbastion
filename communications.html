@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Ship Communications — Obsidian Bastion</title>
+  <title>Ship Communications</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="app.css">
   <style>
@@ -244,8 +244,6 @@
         <div class="stat"><span>Queued Outbound</span><span id="queuedCount">0</span></div>
       </div>
 
-      <div class="muted-note">Local-only demo: message log saved to your browser's storage.</div>
-
       <footer>
         <div class="small-muted">Ship ID: <span id="shipId">Obsidian Bastion</span></div>
       </footer>
@@ -255,7 +253,7 @@
       <div class="toolbar">
         <div>
           <h2 id="log-heading" style="margin:0">Message Log</h2>
-          <div class="small-muted">Log shows outbound and inbound messages, persisted locally.</div>
+          <div class="small-muted">Log shows outbound and inbound messages.</div>
         </div>
 
         <div class="controls-right" style="margin-left:auto">
@@ -269,8 +267,8 @@
       </div>
 
       <div style="margin-top:12px" class="composer" role="form" aria-label="Compose message">
-        <input id="to" type="text" placeholder="Destination (e.g. New Planet / Relay-7)" />
-        <input id="msg" type="text" placeholder='Compose: "hello new planet can anybody hear me?"' />
+        <input id="to" type="text" placeholder="Destination" />
+        <input id="msg" type="text" placeholder="Compose Message" />
         <button id="btnSend">Send</button>
         <!-- incoming indicator: hidden until incoming signal is available -->
         <span id="incomingIndicator" class="pill" style="display:none">Incoming signal detected</span>
@@ -281,9 +279,7 @@
         <!-- Populated by script: power-off messaging / incoming blocked -->
       </div>
 
-      <div class="muted-note" style="margin-top:8px">
-        Tip: Use "Receive Transmission" to simulate an incoming reply. When power is off messages will be queued.
-      </div>
+     
     </div>
   </div>
 
