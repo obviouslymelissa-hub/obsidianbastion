@@ -684,7 +684,7 @@
         actions.className = 'actions';
         // resolve / reopen
         const ackBtn = document.createElement('button');
-        ackBtn.textContent = inc.status === 'resolved' ? 'Reopen' : 'Archive';
+        ackBtn.textContent = inc.status === 'resolved' ? 'Reopen' : 'Resolve';
         ackBtn.addEventListener('click', ()=>{
           toggleResolve(inc.id);
         });
