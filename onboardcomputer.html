@@ -38,10 +38,26 @@
     }
     .page-header h1{margin:0;font-size:18px;letter-spacing:0.6px}
     .page-header .controls{display:flex;gap:8px;align-items:center}
+
     button{background:var(--panel);border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:8px 10px;border-radius:6px;cursor:pointer}
     button.primary{background:linear-gradient(90deg,#114b3b,#427f62);color:white;border:none}
     button.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:7px 10px;border-radius:8px;font-weight:600}
     a.link{color:var(--accent);text-decoration:none}
+
+    /* Generic button used in panels */
+    .btn {
+      background: linear-gradient(90deg,#114b3b,#427f62);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     /* Top-level layout: two columns (main gauges/panels + sidebar navigation) */
     main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
@@ -132,7 +148,16 @@
     .panel h3{margin:0 0 12px 0;font-size:13px;color:var(--muted);position:relative;z-index:1}
     .panel .section-body { margin-top:8px; }
 
-    .placeholder{min-height:72px;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;color:var(--muted);box-sizing:border-box;padding:12px}
+    .placeholder{
+      min-height:72px;
+      border-radius:6px;
+      background:linear-gradient(90deg,rgba(255,255,255,0.015),transparent);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      padding:12px;
+    }
 
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .card{background:var(--panel);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
@@ -162,7 +187,6 @@
     .tile-icon { width:48px;height:48px;border-radius:10px;background:rgba(127,240,223,0.04);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent) }
     .tile-title { font-weight:700; font-size:1rem }
     .tile-desc { color:var(--muted); font-size:0.9rem; margin-top:4px }
-    .btn { background:linear-gradient(90deg,#114b3b,#427f62); color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; border:none; cursor:pointer; display:inline-block }
 
     /* stronger, brighter gradient button styles for additional prominence */
     .btn-alert {
@@ -295,7 +319,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10001;
+      /* increased z-index so modal overlays header / emergency controls */
+      z-index: 10020;
       background: rgba(0,0,0,0.45);
     }
     .modal-box {
@@ -306,6 +331,9 @@
       width: 360px;
       max-width: calc(100% - 40px);
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      /* ensure modal content sits above the modal backdrop but below no other UI */
+      position: relative;
+      z-index: 10021;
     }
     .modal h4{ margin:0 0 8px 0; font-size:16px }
     .modal p{ margin:0 0 12px 0; color:var(--muted); font-size:13px }
@@ -396,20 +424,20 @@
         </div>
       </div>
       <div class="header-right">
-        <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">← Return</a>
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" class="return-command-hub" aria-label="Return to Command Hub" style="color:var(--muted);text-decoration:none">&larr; Return</a>
       </div>
     </div>
   </header>
 
-<div class="page-header">
-  <h1>Mission Control Dashboard</h1>
-  <div class="controls">
-    <button id="btn-toggle-gauges" class="primary">Toggle Gauges</button>
-    <div class="mute-toggle" title="Alarm sound controls" aria-label="Alarm sound controls">
-      <button id="btn-mute" class="ghost" aria-pressed="false">🔈 Mute</button>
+  <div class="page-header">
+    <h1>Mission Control Dashboard</h1>
+    <div class="controls">
+      <!-- Toggle Gauges button removed as requested -->
+      <div class="mute-toggle" title="Alarm sound controls" aria-label="Alarm sound controls">
+        <button id="btn-mute" class="ghost" aria-pressed="false">🔈 Mute</button>
+      </div>
     </div>
   </div>
-</div>
 
 <main>
   <div class="left">
@@ -1048,6 +1076,9 @@ const evacConfirm = document.getElementById('evac-confirm');
 const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
 const btnClearAlert = document.getElementById('btn-clear-alert');
 
+/* Track dispatch timers so they can be aborted cleanly */
+let evacTimers = [];
+
 /* Mute behavior */
 if (btnMute) {
   btnMute.addEventListener('click', ()=>{
@@ -1086,7 +1117,25 @@ if (evacConfirm) evacConfirm.addEventListener('click', ()=> {
 
 /* Cancel dispatch */
 function handleCancelDispatch() {
+  // stop the sound & alert mode
   SoundManager.stopAll();
+
+  // clear all pending timers that would mark pods as docked/removed
+  evacTimers.forEach(t => clearTimeout(t));
+  evacTimers = [];
+
+  // visually mark existing pods as aborted and schedule a short removal
+  const pods = document.querySelectorAll('#evac-pods .pod');
+  pods.forEach((p) => {
+    // if already docked or enroute, mark aborted and update status
+    p.className = 'pod aborted';
+    const st = p.querySelector('.status');
+    if (st) st.textContent = 'ABORTED';
+    // remove after a short delay so user can see the aborted state
+    const tid = setTimeout(()=> { if (p.parentNode) p.parentNode.removeChild(p); }, 2000);
+    evacTimers.push(tid);
+  });
+
   if (btnCancelDispatch) btnCancelDispatch.disabled = true;
   pushTelemetryLine('Evacuation dispatch cancelled');
 }
@@ -1109,15 +1158,22 @@ function dispatchPods(count){
     if (pods) pods.appendChild(pod);
   }
   pushTelemetryLine(`Dispatched ${count} pods`);
-  setTimeout(()=> {
-    const children = document.querySelectorAll('#evac-pods .pod');
+
+  // first timer: after 8s pods mark docked
+  const t1 = setTimeout(()=> {
+    const children = document.querySelectorAll('#evac-pods .pod.enroute');
     children.forEach((p, idx) => {
+      // If a cancel happened earlier, the pod may have been removed/marked aborted; guard accordingly
+      if (!p || !p.parentNode) return;
       p.className = 'pod docked';
       const st = p.querySelector('.status');
       if (st) st.textContent = 'DOCKED';
-      setTimeout(()=> { if (p.parentNode) p.parentNode.removeChild(p); }, 11000 + (idx*400));
+      // schedule removal for each pod (store timer so cancel can clear)
+      const t2 = setTimeout(()=> { if (p.parentNode) p.parentNode.removeChild(p); }, 11000 + (idx*400));
+      evacTimers.push(t2);
     });
   }, 8000);
+  evacTimers.push(t1);
 }
 
 /* Defensive: ensure in-panel buttons stay interactive during EVAC */
@@ -1135,21 +1191,12 @@ const ensureInteractiveDuringEvac = () => {
 if (document.body.classList.contains('evac')) ensureInteractiveDuringEvac();
 const bodyObserver = new MutationObserver((mutations) => {
   mutations.forEach(m => {
-    if (m.attributeName === 'class') {
-      if (document.body.classList.contains('evac')) ensureInteractiveDuringEvac();
+    if (m.target && m.target.classList && (m.target.classList.contains('evac') || m.target.classList.contains('red-alert'))) {
+      ensureInteractiveDuringEvac();
     }
   });
 });
-bodyObserver.observe(document.body, { attributes: true });
-
-/* end script */
+bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 </script>
-
-<footer style="text-align:center;color:var(--muted);padding:24px 0 40px;border-top:1px solid rgba(255,255,255,0.03);margin-top:18px;font-style:italic;">
-  <div style="margin-bottom:12px">
-    <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" style="color:var(--accent);text-decoration:none;font-weight:600">Vessel Profile</a>
-  </div>
-  &copy; 2026 - Turning Imagination Into Galactic Frontiers.
-</footer>
 </body>
 </html>
