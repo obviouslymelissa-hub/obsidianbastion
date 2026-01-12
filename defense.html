@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Ship Defense — Obsidian Bastion</title>
+  <title>Ship Defense</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="app.css">
   <style>
@@ -245,8 +245,7 @@
       </div>
 
       <div class="hud">
-        <div class="hint">Click a piece of debris to target it directly. Lasers cost energy — simulated here for demos.</div>
-        <div class="small">Simulation running — delta-based movement</div>
+        <div class="hint">Select debris to target it directly.</div>
       </div>
     </section>
   </div>
@@ -353,18 +352,18 @@
       if(spawnWindowCountdownTimer) clearInterval(spawnWindowCountdownTimer);
       spawnPaused = false;
       spawnWindowExpiresAt = performance.now() + SPAWN_WINDOW_MS;
-      scanResult.textContent = `Threats active — will stop in ${Math.ceil(SPAWN_WINDOW_MS/1000)}s`;
+      scanResult.textContent = `Threats active!`;
       const updateCountdown = () => {
         const msLeft = Math.max(0, spawnWindowExpiresAt - performance.now());
-        scanResult.textContent = msLeft > 0 ? `Threats active — will stop in ${Math.ceil(msLeft/1000)}s` : 'Threats will stop shortly';
+        scanResult.textContent = msLeft > 0 ? `Threats active!` : 'Threats will stop shortly';
       };
       updateCountdown();
       spawnWindowCountdownTimer = setInterval(updateCountdown, 600);
 
       spawnWindowTimer = setTimeout(() => {
         spawnPaused = true;
-        scanResult.textContent = 'Threats paused — stability maintained';
-        log('Threat window ended — new threats paused.');
+        scanResult.textContent = 'Threats cleared — stability maintained';
+        log('Threats cleared.');
         clearInterval(spawnWindowCountdownTimer);
         spawnWindowCountdownTimer = null;
         spawnWindowTimer = null;
