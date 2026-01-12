@@ -422,6 +422,16 @@
     </section>
 
     <section class="details panel" aria-labelledby="detailsHeading">
+      <!-- Error count box -->
+      <div id="errorCountBox" style="display:none; background:rgba(246,201,77,0.08); border:1px solid rgba(246,201,77,0.18); border-radius:8px; padding:0.7rem; margin-bottom:0.8rem;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="width:10px; height:10px; border-radius:50%; background:var(--warning); box-shadow:0 0 8px rgba(246,201,77,0.3);"></div>
+          <div style="color:var(--warning); font-weight:600; font-size:0.95rem;">
+            <span id="errorCountText">0 issues detected</span>
+          </div>
+        </div>
+      </div>
+
       <div class="header-row">
         <div>
           <div class="diagnostics-area" id="diagnosticsArea">Select a subsystem to diagnose.</div>
@@ -840,6 +850,8 @@
     const verboseLog = document.getElementById('verboseLog');
     const historyList = document.getElementById('historyList');
     const historyControls = document.getElementById('historyControls');
+    const errorCountBox = document.getElementById('errorCountBox');
+    const errorCountText = document.getElementById('errorCountText');
     // confetti canvas removed - success burst will be created dynamically
 
     let selectedArea = null;
@@ -848,6 +860,9 @@
     let escalationAdded = false;
     const HISTORY_KEY = 'obsidian_diag_history_v1';
     const LAST_SELECTED_KEY = 'obsidian_diag_last_selected';
+    
+    // Track subsystem states for error counting and tagging
+    const subsystemStates = {};
 
     // New: how many history entries to show by default
     const HISTORY_DISPLAY_LIMIT = 5;
@@ -1102,6 +1117,47 @@
     // Prevent duplicate escalation recommendations being appended repeatedly
     escalationAdded = false;
 
+    // Update error count display and button tags
+    function updateErrorCountAndTags() {
+      let errorCount = 0;
+      const areasWithErrors = [];
+      
+      // Count subsystems with errors (non-nominal states)
+      for (const area in subsystemStates) {
+        if (subsystemStates[area] && !subsystemStates[area].includes('nominal')) {
+          errorCount++;
+          areasWithErrors.push(area);
+        }
+      }
+      
+      // Update error count box
+      if (errorCount > 0) {
+        errorCountBox.style.display = 'block';
+        errorCountText.textContent = errorCount === 1 ? '1 issue detected' : `${errorCount} issues detected`;
+      } else {
+        errorCountBox.style.display = 'none';
+      }
+      
+      // Update button tags
+      areaButtons.forEach(btn => {
+        const area = btn.getAttribute('data-area');
+        const state = subsystemStates[area];
+        
+        // Remove existing tag if present
+        const existingTag = btn.querySelector('.error-tag');
+        if (existingTag) existingTag.remove();
+        
+        // Add tag if subsystem has an error
+        if (state && !state.includes('nominal')) {
+          const tag = document.createElement('span');
+          tag.className = 'error-tag';
+          tag.style.cssText = 'background:var(--warning); color:var(--bg-dark); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:auto;';
+          tag.textContent = 'REVIEW';
+          btn.appendChild(tag);
+        }
+      });
+    }
+
     function showRecommendationsFor(errorText) {
       if (!errorText) {
         recommendationsSection.style.display = 'none';
@@ -1143,10 +1199,16 @@
           diagnosticsStatus.textContent = 'All systems within expected parameters.';
           diagnosticsError.classList.remove('diagnostics-nominal');
           diagnosticsError.classList.add('diagnostics-nominal');
+          subsystemStates[selectedArea] = currentError;
         } else {
           diagnosticsStatus.textContent = 'Anomaly detected — recommended actions available.';
+          diagnosticsStatus.style.color = 'var(--warning)'; // Ensure yellow color for anomaly message
           diagnosticsError.classList.remove('diagnostics-nominal');
+          subsystemStates[selectedArea] = currentError;
         }
+        
+        // Update error count and tags after state change
+        updateErrorCountAndTags();
 
         // show/hide controls
         if (currentError && !currentError.includes('nominal')) {
@@ -1190,6 +1252,8 @@
         // update LED + status color to nominal
         setLedForError('nominal');
         diagnosticsStatus.style.color = successColor;
+        subsystemStates[selectedArea] = 'nominal'; // Mark as resolved
+        updateErrorCountAndTags(); // Update counts and tags
         pushHistory({ area: selectedArea, error: `${selectedArea} — issue resolved.`, time: Date.now(), statusText: 'Resolved' });
         // celebration (replaced confetti)
         triggerConfetti();
@@ -1231,9 +1295,21 @@
       logsWrapper.style.display = pressed ? 'none' : 'block';
     });
 
+    // Initialize: scan all subsystems to populate initial states
+    function initializeSubsystems() {
+      areaButtons.forEach(btn => {
+        const area = btn.getAttribute('data-area');
+        const list = errors[area] || [];
+        const err = list[Math.floor(Math.random() * list.length)];
+        subsystemStates[area] = err;
+      });
+      updateErrorCountAndTags();
+    }
+
     // Initialization: restore last selected
     try {
       const last = localStorage.getItem(LAST_SELECTED_KEY);
+      initializeSubsystems(); // Initialize all subsystems first
       if (last) {
         const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
         if (btn) btn.click();
