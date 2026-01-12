@@ -222,6 +222,26 @@
     </div>
   </div>
 
+  <!-- Modal: Custom part delivery decision -->
+  <div class="modal fade" id="customPartModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Custom Part Delivered</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="customPartModalText" class="mb-3"></p>
+          <p class="small text-muted">Would you like to use this part immediately or store it for later?</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-primary btn-sm" id="useNowBtn">Use Now</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="storeBtn">Store for Later</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toasts container -->
   <div class="toast-container" id="toastContainer"></div>
 
@@ -276,7 +296,8 @@
     const STORAGE_KEYS = {
       INVENTORY: 'ship.inventory.v1',
       ORDERS: 'ship.orders.v1',
-      USAGE: 'ship.usage.v1'
+      USAGE: 'ship.usage.v1',
+      CUSTOM_PARTS: 'ship.customparts.v1'
     };
 
     const SESSION_RANDOM_KEY = 'ship.inventory.randomized.v1';
@@ -319,10 +340,23 @@
       localStorage.setItem(STORAGE_KEYS.USAGE, JSON.stringify(log));
     }
 
+    function loadCustomParts() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_PARTS);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    function saveCustomParts(parts) {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_PARTS, JSON.stringify(parts));
+    }
+
     // --- Application state ---
     let inventory = loadInventory();
     let orders = loadOrders();
     let usage = loadUsage(); // outgoing supplies & maintenance usage log
+    let customParts = loadCustomParts(); // tracks custom parts stored for later use
 
     // If the session hasn't been randomized yet, initialize with random values within ITEM_RANGES
     function randomBetween(min, max) {
@@ -369,7 +403,24 @@
 
     function refreshCharts() {
       if (partsChart) {
-        partsChart.data.datasets[0].data = PARTS_ORDER.map(k => inventory[k] || 0);
+        // Include custom parts in the chart
+        const customPartKeys = Object.keys(customParts).filter(k => !PARTS_ORDER.includes(k) && !SUPPLIES_KEYS.has(k));
+        const allPartsKeys = [...PARTS_ORDER, ...customPartKeys];
+        const allPartsLabels = allPartsKeys.map(k => capitalizeLabel(customParts[k]?.displayName || k));
+        const allPartsData = allPartsKeys.map(k => inventory[k] || 0);
+        
+        // Generate colors for custom parts
+        const customColors = customPartKeys.map((_, i) => {
+          const hue = (i * 60) % 360;
+          return `hsl(${hue}, 35%, 45%)`;
+        });
+        
+        partsChart.data.labels = allPartsLabels;
+        partsChart.data.datasets[0].data = allPartsData;
+        partsChart.data.datasets[0].backgroundColor = [
+          '#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46',
+          ...customColors
+        ];
         partsChart.update();
       }
       if (suppliesChart) {
@@ -550,19 +601,83 @@
       o.status = 'Delivered';
       o.deliveredAt = Date.now();
 
-      // Update inventory for known items (if unknown, add it)
-      const key = normalizeKey(o.item);
-      if (inventory[key] == null) inventory[key] = 0;
-      inventory[key] += o.qty;
-      saveInventory(inventory);
-
       saveOrders(orders);
-      refreshCharts();
       renderLog();
-      renderRestockSuggestions();
 
-      showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
+      // Check if this is a custom part (not in standard inventory)
+      if (!isStandardPart(o.item)) {
+        // Show custom part modal for decision
+        showCustomPartModal(o);
+      } else {
+        // Standard part - add directly to inventory
+        const key = normalizeKey(o.item);
+        if (inventory[key] == null) inventory[key] = 0;
+        inventory[key] += o.qty;
+        saveInventory(inventory);
+        refreshCharts();
+        renderRestockSuggestions();
+        showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
+      }
     }
+
+    // Show modal for custom part delivery decision
+    const customPartModal = new bootstrap.Modal(document.getElementById('customPartModal'));
+    const customPartModalText = document.getElementById('customPartModalText');
+    let pendingCustomPart = null;
+
+    function showCustomPartModal(order) {
+      pendingCustomPart = order;
+      customPartModalText.textContent = `${order.qty} × ${order.item} has been delivered!`;
+      customPartModal.show();
+    }
+
+    // Handle "Use Now" button
+    document.getElementById('useNowBtn').addEventListener('click', () => {
+      if (!pendingCustomPart) return;
+      
+      // Add directly to inventory and mark as used
+      const key = normalizeKey(pendingCustomPart.item);
+      if (inventory[key] == null) inventory[key] = 0;
+      inventory[key] += pendingCustomPart.qty;
+      saveInventory(inventory);
+      
+      customPartModal.hide();
+      refreshCharts();
+      renderRestockSuggestions();
+      showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} added to active inventory`, { delay: 4000 });
+      pendingCustomPart = null;
+    });
+
+    // Handle "Store for Later" button
+    document.getElementById('storeBtn').addEventListener('click', () => {
+      if (!pendingCustomPart) return;
+      
+      const key = normalizeKey(pendingCustomPart.item);
+      
+      // Add to custom parts storage
+      if (customParts[key] == null) {
+        customParts[key] = {
+          qty: 0,
+          displayName: pendingCustomPart.item,
+          // Custom parts can be consumed like standard parts, with moderate probability
+          perTickProb: 0.015,
+          maxDecrease: 1
+        };
+      }
+      customParts[key].qty += pendingCustomPart.qty;
+      saveCustomParts(customParts);
+      
+      // Also add to inventory for immediate tracking and consumption
+      if (inventory[key] == null) inventory[key] = 0;
+      inventory[key] += pendingCustomPart.qty;
+      saveInventory(inventory);
+      
+      customPartModal.hide();
+      refreshCharts();
+      renderRestockSuggestions();
+      showToast('Part Stored', `${pendingCustomPart.qty} × ${pendingCustomPart.item} stored for future use`, { delay: 4000 });
+      pendingCustomPart = null;
+    });
 
     function normalizeKey(item) {
       const k = item.toLowerCase().trim();
@@ -580,6 +695,12 @@
       if (k.includes('solar')) return 'solar panel';
       if (k.includes('battery')) return 'battery';
       return k; // general fallback
+    }
+
+    // Check if item is a known standard part (in ITEM_RANGES or defaultInventory)
+    function isStandardPart(item) {
+      const key = normalizeKey(item);
+      return key in ITEM_RANGES || key in defaultInventory;
     }
 
     // --- Form handling ---
@@ -611,7 +732,7 @@
 
     // --- Usage simulation: periodically consume items according to ITEM_RANGES ---
     // This interval is started after DOMContentLoaded along with chart creation.
-    const USAGE_TICK_MS = 8000; // every 8s
+    const USAGE_TICK_MS = 5000; // every 5s (faster drain)
     const SUPPLIES_KEYS = new Set(['food rations', 'water pack', 'medical kit']);
     // maintenance keys are everything else listed in ITEM_RANGES (excluding supplies)
     const MAINTENANCE_KEYS = new Set(Object.keys(ITEM_RANGES).filter(k => !SUPPLIES_KEYS.has(k)));
@@ -668,6 +789,7 @@
       setInterval(() => {
         let changed = false;
         const now = Date.now();
+        // Process standard parts from ITEM_RANGES
         for (const k of Object.keys(ITEM_RANGES)) {
           const cfg = ITEM_RANGES[k];
           if (Math.random() < cfg.perTickProb) {
@@ -696,9 +818,37 @@
             }
           }
         }
+        
+        // Process custom parts
+        for (const k of Object.keys(customParts)) {
+          const cfg = customParts[k];
+          if (Math.random() < cfg.perTickProb) {
+            const dec = 1 + Math.floor(Math.random() * cfg.maxDecrease);
+            const old = inventory[k] || 0;
+            const next = Math.max(0, old - dec);
+            if (next !== old) {
+              inventory[k] = next;
+              customParts[k].qty = next;
+              changed = true;
+
+              // Log custom part usage
+              const entry = {
+                id: 'u' + now + Math.floor(Math.random() * 999),
+                item: k,
+                qty: Math.min(dec, old),
+                ts: now,
+                source: 'maintenance'
+              };
+              usage.push(entry);
+              if (usage.length > 300) usage.splice(0, usage.length - 300);
+            }
+          }
+        }
+        
         if (changed) {
           saveInventory(inventory);
           saveUsage(usage);
+          saveCustomParts(customParts);
           refreshCharts();
           renderRestockSuggestions();
           renderUsageLog();
@@ -708,7 +858,7 @@
 
     // Expose small helper to console for testing
     window.shipInventory = {
-      inventory, orders, usage, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
+      inventory, orders, usage, customParts, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
     };
   </script>
 
