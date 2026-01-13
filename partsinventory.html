@@ -663,7 +663,7 @@
       const now = Date.now();
       const usageEntry = {
         id: 'u' + now + Math.floor(Math.random() * 999),
-        item: key,
+        item: pendingCustomPart.item,
         qty: pendingCustomPart.qty,
         ts: now,
         source: 'immediate use'
@@ -676,7 +676,7 @@
       refreshCharts();
       renderRestockSuggestions();
       renderUsageLog();
-      showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} added to active inventory`, { delay: 4000 });
+      showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} used immediately`, { delay: 4000 });
       pendingCustomPart = null;
     });
 
