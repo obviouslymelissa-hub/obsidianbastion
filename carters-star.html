@@ -287,6 +287,47 @@
       font-size:0.95rem;
     }
 
+    /* Signature section with badge and name */
+    .signature-section{
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .signature-badge{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .signature-badge img{
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 2px solid rgba(87,240,201,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .signature-name{
+      font-family: var(--mono);
+      color: var(--accent-2);
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .signature-closing{
+      font-family: var(--ui);
+      color: #dffbf2;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-align: right;
+      line-height: 1.3;
+    }
+
     /* Attachments / right column */
     .attachments{
       display:flex;
@@ -580,6 +621,14 @@ CAPTAIN CARTER, WHOSE INSIGHT AND CURIOSITY REVEAL PATHS OTHERS NEVER SEE.
 
           <div class="inscription" aria-label="Inscription text">
             <div class="quote">Inscribed into the Bastion's charts on this stardate, under the seal of the General.</div>
+            
+            <div class="signature-section">
+              <div class="signature-badge">
+                <img src="images/general.jpg" alt="General's badge">
+                <span class="signature-name">Melissa</span>
+              </div>
+              <div class="signature-closing">Love,<br>Mom</div>
+            </div>
           </div>
         </div>
       </article>
