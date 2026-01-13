@@ -113,70 +113,10 @@
     .btn { background: var(--accent); color: var(--bg-panel); padding:8px 12px; border-radius:8px; font-weight:700; border:0; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
     .btn.ghost { background:transparent; color:var(--text-main); border:1px solid rgba(255,255,255,0.04); padding:7px 10px; font-weight:600 }
 
-    /* Stat cards */
-    .stat-card {
-      background: linear-gradient(135deg, rgba(79,209,197,0.02), rgba(127,240,223,0.01));
-      border: 1px solid rgba(79,209,197,0.08);
-      border-radius: 12px;
-      padding: 18px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .stat-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(79,209,197,0.1), transparent 70%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    .stat-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 12px 36px rgba(79,209,197,0.2);
-      border-color: rgba(79,209,197,0.3);
-    }
-    .stat-card:hover::before {
-      opacity: 1;
-    }
-    .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 8px;
-      filter: drop-shadow(0 0 8px rgba(79,209,197,0.4));
-      animation: floatIcon 3s ease-in-out infinite;
-    }
+    /* Floating icon animation (used by star badge) */
     @keyframes floatIcon {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-6px); }
-    }
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--accent-2);
-      margin: 6px 0;
-      text-shadow: 0 0 12px rgba(79,209,197,0.3);
-    }
-    .stat-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 600;
-    }
-
-    /* Featured stat card (larger, more prominent) */
-    .stat-card-featured {
-      padding: 28px;
-      background: linear-gradient(135deg, rgba(79,209,197,0.04), rgba(127,240,223,0.02));
-      border: 2px solid rgba(79,209,197,0.12);
-    }
-    .stat-card-featured .stat-icon {
-      font-size: 3.5rem;
-    }
-    .stat-card-featured .stat-value {
-      font-size: 3rem;
     }
 
     /* Info brief styling */
@@ -242,18 +182,10 @@
       to { max-height: 1000px; }
     }
 
-    /* Popup message animation */
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-    }
-
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       .live-ind { animation:none }
-      .stat-icon { animation:none }
+      .star-icon-large { animation:none }
       .transmission.incoming { animation:none }
       .typing-text { animation:none }
     }
@@ -342,73 +274,8 @@ This dedication recognizes Captain Carter's exemplary leadership and contributio
   </footer>
 
   <script>
-    // Counter animation for stat cards
-    function animateCounter(element, target, duration = 1500) {
-      const start = 0;
-      const FRAME_INTERVAL = 16; // ~60fps (1000ms / 60fps ≈ 16ms per frame)
-      const increment = target / (duration / FRAME_INTERVAL);
-      let current = start;
-      
-      const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-          element.textContent = target;
-          clearInterval(timer);
-        } else {
-          element.textContent = Math.floor(current);
-        }
-      }, FRAME_INTERVAL);
-    }
-
-    // Animate stat cards on load
+    // Add typing effect to transmission body on first load only
     window.addEventListener('DOMContentLoaded', () => {
-      // Animate the star counter
-      const starsEl = document.getElementById('starsCount');
-      if (starsEl) animateCounter(starsEl, 1, 1000);
-
-      // Add click interaction to stat card
-      document.querySelectorAll('.stat-card').forEach(card => {
-        card.addEventListener('click', function() {
-          const stat = this.dataset.stat;
-          const icon = this.querySelector('.stat-icon');
-          
-          // Reset and restart icon animation for visual feedback
-          icon.style.animation = 'none';
-          // Small delay to ensure animation reset is processed before restart
-          setTimeout(() => {
-            icon.style.animation = 'floatIcon 3s ease-in-out infinite';
-          }, 10);
-          
-          // Show message for star dedications
-          if (stat === 'stars') {
-            const msg = document.createElement('div');
-            msg.textContent = "Carter's Star — Recognizing exemplary leadership and fleet contributions";
-            msg.style.cssText = `
-              position: fixed;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              background: rgba(15, 19, 24, 0.95);
-              color: var(--accent-2);
-              padding: 20px 30px;
-              border-radius: 12px;
-              border: 2px solid var(--accent);
-              box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-              z-index: 1000;
-              font-weight: 600;
-              text-align: center;
-              max-width: 400px;
-              animation: fadeInOut 2.5s ease;
-            `;
-            
-            document.body.appendChild(msg);
-            setTimeout(() => msg.remove(), 2500);
-          }
-        });
-      });
-
-      // Add typing effect to transmission body on first load only
-      // Note: Applied to message body for visual interest on initial page view
       const txBody = document.getElementById('tx-1-title');
       if (txBody && !sessionStorage.getItem('sob-tx-viewed')) {
         txBody.classList.add('typing-text');
