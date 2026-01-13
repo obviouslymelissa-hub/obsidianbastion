@@ -262,7 +262,7 @@
 
     /* Formal inscription block — simplified so it reads inline with the rest of the packet */
     .inscription{
-      margin-top:12px;
+      margin-top:20px;
       padding:0;
       background:transparent;
       border:none;
@@ -285,6 +285,47 @@
       font-family:var(--mono);
       text-align:right;
       font-size:0.95rem;
+    }
+
+    /* Signature section with badge and name */
+    .signature-section{
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .signature-badge{
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .signature-badge .badge-img{
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 2px solid rgba(87,240,201,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .signature-badge .name-img{
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+      filter: brightness(1.1);
+    }
+
+    .signature-closing{
+      font-family: var(--ui);
+      color: #dffbf2;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-align: left;
+      line-height: 1.3;
+      align-self: flex-start;
     }
 
     /* Attachments / right column */
@@ -580,6 +621,14 @@ CAPTAIN CARTER, WHOSE INSIGHT AND CURIOSITY REVEAL PATHS OTHERS NEVER SEE.
 
           <div class="inscription" aria-label="Inscription text">
             <div class="quote">Inscribed into the Bastion's charts on this stardate, under the seal of the General.</div>
+            
+            <div class="signature-section">
+              <div class="signature-badge">
+                <img src="images/general.jpg" alt="General's official military badge" class="badge-img">
+                <img src="images/genmelissa.png" alt="Melissa signature" class="name-img">
+              </div>
+              <div class="signature-closing">Love,<br>Mom</div>
+            </div>
           </div>
         </div>
       </article>
