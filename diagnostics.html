@@ -113,6 +113,7 @@
       padding: 1.25rem;
       display: grid;
       grid-template-columns: 340px 1fr;
+      grid-template-rows: auto auto;
       gap: 1rem;
       align-items: start;
     }
@@ -131,9 +132,6 @@
       flex-direction:column;
       gap:0.55rem;
       margin-bottom: 0.85rem;
-      max-height: calc(100vh - 240px);
-      overflow:auto;
-      padding-right: 6px;
     }
     .diagnostics-select button {
       display:flex;
@@ -208,6 +206,13 @@
       cursor:pointer;
       font-weight:600;
       margin-left:auto;
+      transition: opacity 0.2s ease, cursor 0.2s ease;
+    }
+    .diagnostics-fix-btn:disabled {
+      background:rgba(79,209,197,0.2);
+      color:rgba(15,17,22,0.4);
+      cursor:not-allowed;
+      opacity:0.5;
     }
     .secondary-btn {
       background:transparent;
@@ -269,11 +274,11 @@
     /* Error count box */
     .error-count-box {
       display:none;
-      background:rgba(246,201,77,0.08);
-      border:1px solid rgba(246,201,77,0.18);
+      background:rgba(79,209,197,0.03);
+      border:1px solid rgba(79,209,197,0.08);
       border-radius:8px;
       padding:0.7rem;
-      margin-bottom:0.8rem;
+      margin-top:0.8rem;
     }
     .error-count-box.visible { display:block; }
     .error-count-box .count-row {
@@ -285,13 +290,13 @@
       width:10px;
       height:10px;
       border-radius:50%;
-      background:var(--warning);
-      box-shadow:0 0 8px rgba(246,201,77,0.3);
+      background:var(--accent);
+      box-shadow:0 0 8px rgba(79,209,197,0.2);
     }
     .error-count-box .count-text {
-      color:var(--warning);
-      font-weight:600;
-      font-size:0.95rem;
+      color:var(--text-muted);
+      font-weight:500;
+      font-size:0.9rem;
     }
 
 
@@ -437,17 +442,10 @@
         <button data-area="Docking" aria-selected="false"> <span class="btn-icon" style="background: #c9f5e1;"></span> Docking</button>
       </div>
 
-      <div class="controls-row">
-        <!-- Buttons moved to right column -->
-      </div>
 
-      <div class="history" id="historySection" aria-live="polite">
-        <h4 style="margin:0.65rem 0 0.35rem 0; color:var(--accent); font-size:0.9rem;">Recent Diagnostics</h4>
-        <div id="historyList" style="display:block;"></div>
-        <div id="historyControls" style="margin-top:0.5rem;"></div>
-      </div>
     </section>
 
+    <!-- Diagnostics Section -->
     <section class="details panel" aria-labelledby="detailsHeading">
       <div class="header-row">
         <div>
@@ -477,31 +475,28 @@
       <div class="controls-row" style="margin-top:0.8rem;">
         <button id="fixBtn" class="diagnostics-fix-btn" style="display:none;">Attempt Fix</button>
       </div>
+    </section>
 
-      <!-- System Logs Section - always visible -->
-      <div id="logsWrapper" style="margin-top:1.2rem;">
-        <!-- Error count box moved here -->
-        <div id="errorCountBoxLogs" class="error-count-box" style="margin-bottom:0.6rem;">
-          <div class="count-row">
-            <div class="count-indicator"></div>
-            <div class="count-text">
-              <span id="errorCountTextLogs">0 issues resolved</span>
-            </div>
+    <!-- System Logs Section - separate box -->
+    <section class="details panel" id="logsWrapper" style="grid-column: 2;">
+      <div style="margin-bottom:0.35rem;">
+        <h4 style="margin:0; color:var(--accent); font-size:0.9rem;">System Logs</h4>
+      </div>
+      <div class="log" id="verboseLog" aria-live="polite"></div>
+      
+      <!-- Error count box below logs -->
+      <div id="errorCountBoxLogs" class="error-count-box">
+        <div class="count-row">
+          <div class="count-indicator"></div>
+          <div class="count-text">
+            <span id="errorCountTextLogs">0 issues resolved</span>
           </div>
         </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-          <h4 style="margin:0; color:var(--accent); font-size:0.9rem;">System Logs</h4>
-          <span id="logTimestamp" style="color:var(--text-muted); font-size:0.85rem;"></span>
-        </div>
-        <div class="log" id="verboseLog" aria-live="polite"></div>
-        
-        <div class="controls-row" style="margin-top:0.6rem;">
-          <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
-        </div>
       </div>
-
-      <!-- bottom duplicate return link removed per request -->
+      
+      <div class="controls-row" style="margin-top:0.6rem;">
+        <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
+      </div>
     </section>
   </main>
 
@@ -838,9 +833,6 @@
     const downloadBtn = document.getElementById('downloadBtn');
     const logsWrapper = document.getElementById('logsWrapper');
     const verboseLog = document.getElementById('verboseLog');
-    const logTimestamp = document.getElementById('logTimestamp');
-    const historyList = document.getElementById('historyList');
-    const historyControls = document.getElementById('historyControls');
     const errorCountBoxLogs = document.getElementById('errorCountBoxLogs');
     const errorCountTextLogs = document.getElementById('errorCountTextLogs');
 
@@ -848,15 +840,10 @@
     let currentError = null;
     let issueResolved = false;
     let escalationAdded = false;
-    const HISTORY_KEY = 'obsidian_diag_history_v1';
     const LAST_SELECTED_KEY = 'obsidian_diag_last_selected';
     
     // Track subsystem states for error counting and tagging
     const subsystemStates = {};
-
-    // New: how many history entries to show by default
-    const HISTORY_DISPLAY_LIMIT = 5;
-    let showAllHistory = false;
 
     // Simple beep generator using WebAudio
     function beep(duration = 120, freq = 440, type = 'sine', volume = 0.03) {
@@ -915,6 +902,24 @@
       ctx.beginPath();
       ctx.arc(lastX,lastY,3,0,Math.PI*2);
       ctx.fill();
+    }
+
+    // Update button state based on issue status
+    function updateFixButtonState() {
+      if (!selectedArea || !currentError) {
+        fixBtn.style.display = 'none';
+        return;
+      }
+      
+      // Show button only if there's an issue (not nominal and not resolved)
+      if (currentError && !currentError.includes('nominal') && !issueResolved) {
+        fixBtn.style.display = 'inline-flex';
+        fixBtn.disabled = false;
+      } else {
+        // Gray out button if issue is resolved or nominal
+        fixBtn.style.display = 'inline-flex';
+        fixBtn.disabled = true;
+      }
     }
 
     // Replace confetti with a subtle themed success burst.
@@ -1000,83 +1005,13 @@
       }
     }
 
-    // History management
-    function pushHistory(entry) {
-      try {
-        const raw = localStorage.getItem(HISTORY_KEY);
-        const arr = raw ? JSON.parse(raw) : [];
-        arr.unshift(entry);
-        while (arr.length > 10) arr.pop();
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
-        renderHistory();
-      } catch (e) { /* ignore */ }
-    }
 
-    function renderHistory() {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      historyList.innerHTML = '';
-      historyControls.innerHTML = '';
-
-      if (!arr.length) {
-        historyList.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem;">No previous diagnostics</div>';
-        return;
-      }
-
-      // Choose slice according to showAllHistory and the display limit
-      const toShow = showAllHistory ? arr : arr.slice(0, HISTORY_DISPLAY_LIMIT);
-
-      toShow.forEach((h, idx) => {
-        const el = document.createElement('div');
-        el.className = 'history-item';
-        el.tabIndex = 0;
-        el.innerHTML = `<strong>${h.area}</strong> — <span style="color:var(--text-muted)">${new Date(h.time).toLocaleString()}</span><div style="font-size:0.86rem; color:var(--text-muted); margin-top:4px;">${h.error || ''}</div>`;
-        el.addEventListener('click', () => {
-          restoreHistoryItem(h);
-        });
-        el.addEventListener('keypress', (e) => { if (e.key === 'Enter') restoreHistoryItem(h); });
-        historyList.appendChild(el);
-      });
-
-      // If there are more entries than the display limit, show a toggle control
-      if (arr.length > HISTORY_DISPLAY_LIMIT) {
-        const btn = document.createElement('button');
-        btn.className = 'secondary-btn';
-        btn.style.padding = '0.35rem 0.55rem';
-        btn.textContent = showAllHistory ? 'Show less' : `Show ${Math.min(arr.length, HISTORY_DISPLAY_LIMIT)} of ${arr.length}`;
-        btn.addEventListener('click', () => {
-          showAllHistory = !showAllHistory;
-          renderHistory();
-        });
-        historyControls.appendChild(btn);
-      }
-    }
-
-    function restoreHistoryItem(h) {
-      // find and "click" the area button
-      const btn = areaButtons.find(b => b.getAttribute('data-area') === h.area);
-      if (btn) btn.click();
-      // populate error and recommendations explicitly (preserve timestamp)
-      currentError = h.error;
-      diagnosticsError.textContent = currentError;
-      diagnosticsStatus.textContent = h.statusText || '';
-      showRecommendationsFor(currentError);
-      // log
-      appendLog(`Restored historical diagnostic from ${new Date(h.time).toLocaleString()}`);
-    }
 
     // Logging helper
     function appendLog(msg) {
-      const t = new Date().toLocaleTimeString();
-      verboseLog.innerHTML = `<div>[${t}] ${msg}</div>` + verboseLog.innerHTML;
-      // Update timestamp
-      updateLogTimestamp();
-    }
-    
-    // Update the log timestamp display
-    function updateLogTimestamp() {
       const now = new Date();
-      logTimestamp.textContent = now.toLocaleString();
+      const timestamp = now.toLocaleString();
+      verboseLog.innerHTML = `<div>[${timestamp}] ${msg}</div>` + verboseLog.innerHTML;
     }
 
     // Draw LED based on error text severity and set diagnosticsStatus color accordingly
@@ -1182,6 +1117,9 @@
     // Populate area button behaviors
     areaButtons.forEach((btn, idx) => {
       btn.addEventListener('click', () => {
+        // Reset issue resolved flag when selecting new subsystem
+        issueResolved = false;
+        
         // update selection visuals and aria
         areaButtons.forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-selected','false'); });
         btn.classList.add('selected');
@@ -1214,12 +1152,8 @@
         // Update resolved issues count after state change
         updateResolvedIssuesCount();
 
-        // show/hide fix button only
-        if (currentError && !currentError.includes('nominal')) {
-          fixBtn.style.display = 'inline-flex';
-        } else {
-          fixBtn.style.display = 'none';
-        }
+        // Update fix button state
+        updateFixButtonState();
 
         // show recommendations
         showRecommendationsFor(currentError);
@@ -1228,9 +1162,8 @@
         const seed = currentError && currentError.includes('nominal') ? 60 : 42 + (Math.random()*18);
         drawTelemetry(seed);
 
-        // log & history
+        // log
         appendLog(`Diagnosed ${selectedArea}: ${currentError}`);
-        pushHistory({ area: selectedArea, error: currentError, time: Date.now(), statusText: diagnosticsStatus.textContent });
 
         // store last selected
         try { localStorage.setItem(LAST_SELECTED_KEY, selectedArea); } catch(e) {}
@@ -1239,7 +1172,7 @@
 
     // Fix button behavior (attempt)
     fixBtn.addEventListener('click', () => {
-      if (!selectedArea || !currentError) return;
+      if (!selectedArea || !currentError || fixBtn.disabled) return;
       appendLog(`Attempting fix for ${selectedArea} — ${currentError}`);
       // simulate fix success for non-nominal issues
       const success = Math.random() > 0.35;
@@ -1257,10 +1190,11 @@
         subsystemStates[selectedArea] = 'nominal'; // Mark as resolved
         recordResolvedIssue(selectedArea, currentError); // Record the resolution
         updateResolvedIssuesCount(); // Update counts
-        pushHistory({ area: selectedArea, error: `${selectedArea} — issue resolved.`, time: Date.now(), statusText: 'Resolved' });
         // celebration (replaced confetti)
         triggerConfetti();
         issueResolved = true;
+        // Disable button after successful fix
+        updateFixButtonState();
       } else {
         diagnosticsStatus.textContent = 'Fix attempt failed. Escalating recommended.';
         // explicitly ensure status color is danger (red)
@@ -1306,16 +1240,12 @@
     try {
       const last = localStorage.getItem(LAST_SELECTED_KEY);
       initializeSubsystems(); // Initialize all subsystems first
-      updateLogTimestamp(); // Set initial timestamp
       appendLog('Diagnostics system initialized.');
       if (last) {
         const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
         if (btn) btn.click();
       }
     } catch (e) { /* ignore */ }
-
-    // initial render history
-    renderHistory();
   </script>
 </body>
 </html>
