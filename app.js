@@ -542,12 +542,25 @@ function renderCustomList(){
       goBtn.className = 'primary';
       goBtn.textContent = 'Go';
       goBtn.title = 'Go to this saved location';
-      goBtn.addEventListener('click', () => {
-        const input = $('customGotoInput');
-        const btn = $('customGotoBtn');
-        if(!input || !btn) return;
-        input.value = item.name || (item.planet && item.planet.planetCode) || '';
-        btn.click();
+      goBtn.addEventListener('click', async () => {
+        // Try to parse favorite as catalog destination and travel directly
+        const favName = item.name || (item.planet && item.planet.planetCode) || '';
+        const parsed = parseDestination(favName);
+        if(parsed && parsed.system && parsed.planet){
+          // Found in catalog - travel to it directly without creating custom location
+          renderDetails(parsed.system, parsed.planet);
+          currentCustom = null;
+          const mode = $('travelModeSelect')?.value || 'regular';
+          await travelToCurrent(mode);
+        } else if(parsed && parsed.system && !parsed.planet){
+          // System only - just open it
+          selectSystem(parsed.system);
+          currentCustom = null;
+          updateOverallStatus(`Opened system ${parsed.system}`);
+        } else {
+          // Can't find in catalog
+          updateOverallStatus(`Cannot travel to "${favName}" - not found in navigation catalog.`);
+        }
       });
       
       actions.appendChild(loadBtn);
@@ -580,6 +593,26 @@ async function goToTypedDestination(rawInput, useMode = null){
     selectSystem(parsed.system);
     currentCustom = null;
     updateOverallStatus(`Opened system ${parsed.system}`);
+    return;
+  }
+
+  // Check if this matches a favorite from pb_favorites - if so, don't create a duplicate custom location
+  let pbFavorites = [];
+  try {
+    const favRaw = localStorage.getItem('pb_favorites') || '[]';
+    pbFavorites = JSON.parse(favRaw);
+  } catch(e) {
+    pbFavorites = [];
+  }
+  
+  const matchingFavorite = pbFavorites.find(fav => {
+    const favName = fav.name || (fav.planet && fav.planet.planetCode) || '';
+    return favName.toLowerCase() === raw.toLowerCase();
+  });
+  
+  if(matchingFavorite){
+    // Favorite exists - don't create duplicate. Instead, show a message.
+    updateOverallStatus(`"${raw}" is already in your favorites list. Use the "Go" button on the favorite to travel directly.`);
     return;
   }
 
