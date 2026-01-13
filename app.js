@@ -586,7 +586,7 @@ async function goToTypedDestination(rawInput, useMode = null){
   // create or update a custom location stored separately (won't be added to middle planets)
   const sys = currentSystem || catalog.systems[0];
   if(!sys){ updateOverallStatus('No system available'); return; }
-  const existing = loadCustoms().find(c => c.name.toLowerCase() === raw.toLowerCase() && c.system === sys.id);
+  const existing = loadCustoms().find(c => c.name.toLowerCase() === raw.toLowerCase());
   const id = existing ? existing.id : `custom-${Date.now()}`;
   const maxAU = Math.max(...sys.planets.map(p=>p.orbitalAU));
   const orbital = (maxAU || 1) + 0.6;
