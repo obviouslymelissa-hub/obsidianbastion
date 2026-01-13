@@ -443,6 +443,79 @@
       }
     }
 
+    /* Modal/Lightbox for expanded constellation image */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.95);
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(87, 240, 201, 0.3);
+      animation: zoomIn 0.3s ease-out;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      color: var(--accent);
+      font-size: 42px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      z-index: 10000;
+      text-shadow: 0 0 20px rgba(87, 240, 201, 0.6);
+    }
+    
+    .modal-close:hover {
+      transform: scale(1.2) rotate(90deg);
+      color: var(--accent-2);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes zoomIn {
+      from { 
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      to { 
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    /* Make constellation image clickable */
+    .att-card img {
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .att-card img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 32px rgba(87, 240, 201, 0.3);
+    }
+
     /* small responsive behaviour */
     @media (max-width: 980px){
       .grid{ grid-template-columns: 1fr; }
@@ -467,11 +540,11 @@
       <div class="comms-left">
         <div class="badge" aria-hidden="true">
           <!-- Replace with your seal/logo if desired -->
-          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/ship-seal-placeholder.png" alt="Ship seal placeholder">
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="Strategic Operations Board emblem">
         </div>
         <div class="comms-title" aria-hidden="false">
           <div class="trans-label">STAR DEDICATION</div>
-          <div class="trans-sub">Obsidian Bastion — Shipboard Charts</div>
+          <div class="trans-sub">Strategic Operations Board — Star Registry</div>
         </div>
       </div>
 
@@ -502,8 +575,9 @@
           <div class="headline">OFFICIAL INSCRIPTION (SHIPBOARD)</div>
 
           <div class="payload-text">
-UNDER THE AUTHORITY OF THE STRATEGIC OPERATIONS BOARD
-BY ORDER OF THE OBSIDIAN BASTION, THIS STAR IS MARKED AND HONORED FOR:
+BY DECREE OF THE STRATEGIC OPERATIONS BOARD AND UNDER THE SEAL OF THE OBSIDIAN BASTION:
+
+This star is hereby dedicated in recognition of Captain Carter's distinguished service and unwavering dedication to the Fleet. Let it be recorded that this celestial marking stands in honor of:
 
 THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
           </div>
@@ -598,5 +672,50 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
       <div>END OF RECORD</div>
     </footer>
   </div>
+
+  <!-- Modal for expanded constellation image -->
+  <div id="imageModal" class="modal" aria-hidden="true" role="dialog" aria-label="Expanded constellation image">
+    <span class="modal-close" onclick="closeModal()" aria-label="Close">&times;</span>
+    <img class="modal-content" id="modalImage" alt="Expanded constellation view">
+  </div>
+
+  <script>
+    // Get the constellation image and modal
+    const constellationImg = document.querySelector('.att-card img[src="images/sirius2.jpg"]');
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    
+    // Open modal when constellation image is clicked
+    if (constellationImg) {
+      constellationImg.addEventListener('click', function() {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        modalImg.src = this.src;
+        modalImg.alt = this.alt;
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
+      });
+    }
+    
+    // Close modal function
+    function closeModal() {
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+    
+    // Close modal when clicking outside the image
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+  </script>
 </body>
 </html>
