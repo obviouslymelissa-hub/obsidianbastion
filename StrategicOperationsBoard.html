@@ -166,6 +166,19 @@
       font-weight: 600;
     }
 
+    /* Featured stat card (larger, more prominent) */
+    .stat-card-featured {
+      padding: 28px;
+      background: linear-gradient(135deg, rgba(79,209,197,0.04), rgba(127,240,223,0.02));
+      border: 2px solid rgba(79,209,197,0.12);
+    }
+    .stat-card-featured .stat-icon {
+      font-size: 3.5rem;
+    }
+    .stat-card-featured .stat-value {
+      font-size: 3rem;
+    }
+
     /* Info brief styling */
     .info-brief {
       background: linear-gradient(135deg, rgba(79,209,197,0.03), rgba(127,240,223,0.01));
@@ -244,27 +257,13 @@
   </header>
 
   <main class="container" role="main" aria-live="polite">
-    <!-- Quick Stats Overview -->
-    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px">
-      <div class="stat-card" data-stat="missions">
-        <div class="stat-icon">🎯</div>
-        <div class="stat-value" id="missionsCount">247</div>
-        <div class="stat-label">Missions Approved</div>
-      </div>
-      <div class="stat-card" data-stat="vessels">
-        <div class="stat-icon">🚀</div>
-        <div class="stat-value" id="vesselsCount">18</div>
-        <div class="stat-label">Active Vessels</div>
-      </div>
-      <div class="stat-card" data-stat="stars">
+    <!-- Star Dedications Highlight -->
+    <section style="display:flex;justify-content:center;margin-bottom:24px">
+      <div class="stat-card stat-card-featured" data-stat="stars" style="min-width:280px;max-width:400px">
         <div class="stat-icon">⭐</div>
-        <div class="stat-value" id="starsCount">3</div>
-        <div class="stat-label">Star Dedications</div>
-      </div>
-      <div class="stat-card" data-stat="classified">
-        <div class="stat-icon">🔒</div>
-        <div class="stat-value" id="classifiedCount">█████</div>
-        <div class="stat-label">Classified Ops</div>
+        <div class="stat-value" id="starsCount">1</div>
+        <div class="stat-label">Star Dedication</div>
+        <div style="margin-top:12px;font-size:0.9rem;color:var(--text-muted);font-weight:500">Carter's Star</div>
       </div>
     </section>
 
@@ -337,16 +336,11 @@ Further operational coordinates, ceremony access, and participant manifests are 
 
     // Animate stat cards on load
     window.addEventListener('DOMContentLoaded', () => {
-      // Animate counters
-      const missionsEl = document.getElementById('missionsCount');
-      const vesselsEl = document.getElementById('vesselsCount');
+      // Animate the star counter
       const starsEl = document.getElementById('starsCount');
-      
-      if (missionsEl) animateCounter(missionsEl, 247, 2000);
-      if (vesselsEl) animateCounter(vesselsEl, 18, 1500);
-      if (starsEl) animateCounter(starsEl, 3, 1000);
+      if (starsEl) animateCounter(starsEl, 1, 1000);
 
-      // Add click interactions to stat cards
+      // Add click interaction to stat card
       document.querySelectorAll('.stat-card').forEach(card => {
         card.addEventListener('click', function() {
           const stat = this.dataset.stat;
@@ -359,37 +353,31 @@ Further operational coordinates, ceremony access, and participant manifests are 
             icon.style.animation = 'floatIcon 3s ease-in-out infinite';
           }, 10);
           
-          // Contextual messages for each stat card
-          const messages = {
-            missions: 'Comprehensive mission tracking across all fleet operations',
-            vessels: 'Active vessels currently under Strategic Operations command',
-            stars: 'Officially recognized star dedications honoring outstanding service',
-            classified: 'Level 7 clearance required. Access denied.'
-          };
-          
-          // Create temporary popup message
-          const msg = document.createElement('div');
-          msg.textContent = messages[stat] || 'Data classified';
-          msg.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(15, 19, 24, 0.95);
-            color: var(--accent-2);
-            padding: 20px 30px;
-            border-radius: 12px;
-            border: 2px solid var(--accent);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            z-index: 1000;
-            font-weight: 600;
-            text-align: center;
-            max-width: 400px;
-            animation: fadeInOut 2s ease;
-          `;
-          
-          document.body.appendChild(msg);
-          setTimeout(() => msg.remove(), 2000);
+          // Show message for star dedications
+          if (stat === 'stars') {
+            const msg = document.createElement('div');
+            msg.textContent = "Carter's Star — Recognizing exemplary leadership and fleet contributions";
+            msg.style.cssText = `
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: rgba(15, 19, 24, 0.95);
+              color: var(--accent-2);
+              padding: 20px 30px;
+              border-radius: 12px;
+              border: 2px solid var(--accent);
+              box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+              z-index: 1000;
+              font-weight: 600;
+              text-align: center;
+              max-width: 400px;
+              animation: fadeInOut 2.5s ease;
+            `;
+            
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 2500);
+          }
         });
       });
 
