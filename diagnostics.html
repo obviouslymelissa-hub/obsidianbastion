@@ -1211,37 +1211,49 @@
     downloadBtn.addEventListener('click', () => {
       // Get all log entries from the verboseLog element
       const logEntries = verboseLog.querySelectorAll('div');
-      let logsText = '';
       
       // Extract text from all log entries (in reverse order since they're prepended)
       const logArray = Array.from(logEntries);
+      const logTexts = [];
       for (let i = logArray.length - 1; i >= 0; i--) {
-        logsText += logArray[i].textContent + '\n';
+        logTexts.push(logArray[i].textContent);
       }
+      const logsText = logTexts.join('\n');
       
       // Build comprehensive report
-      let report = '='.repeat(60) + '\n';
-      report += 'OBSIDIAN BASTION - DIAGNOSTICS REPORT\n';
-      report += '='.repeat(60) + '\n';
-      report += `Generated: ${new Date().toLocaleString()}\n`;
-      report += `Timestamp: ${new Date().toISOString()}\n`;
-      report += '='.repeat(60) + '\n\n';
+      const reportParts = [
+        '='.repeat(60),
+        'OBSIDIAN BASTION - DIAGNOSTICS REPORT',
+        '='.repeat(60),
+        `Generated: ${new Date().toLocaleString()}`,
+        `Timestamp: ${new Date().toISOString()}`,
+        '='.repeat(60),
+        ''
+      ];
       
       if (selectedArea) {
-        report += 'CURRENT SUBSYSTEM DIAGNOSTICS\n';
-        report += '-'.repeat(60) + '\n';
-        report += `Area: ${selectedArea}\n`;
-        report += `Status: ${diagnosticsStatus.textContent}\n`;
-        report += `Error: ${currentError || 'None'}\n`;
-        report += '-'.repeat(60) + '\n\n';
+        reportParts.push(
+          'CURRENT SUBSYSTEM DIAGNOSTICS',
+          '-'.repeat(60),
+          `Area: ${selectedArea}`,
+          `Status: ${diagnosticsStatus.textContent}`,
+          `Error: ${currentError || 'None'}`,
+          '-'.repeat(60),
+          ''
+        );
       }
       
-      report += 'SYSTEM LOGS\n';
-      report += '-'.repeat(60) + '\n';
-      report += logsText;
-      report += '\n' + '='.repeat(60) + '\n';
-      report += 'END OF REPORT\n';
-      report += '='.repeat(60) + '\n';
+      reportParts.push(
+        'SYSTEM LOGS',
+        '-'.repeat(60),
+        logsText,
+        '',
+        '='.repeat(60),
+        'END OF REPORT',
+        '='.repeat(60)
+      );
+      
+      const report = reportParts.join('\n');
       
       const blob = new Blob([report], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
