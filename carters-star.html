@@ -471,7 +471,6 @@
       object-fit: contain;
       border-radius: 12px;
       box-shadow: 0 0 60px rgba(87, 240, 201, 0.3);
-      animation: zoomIn 0.3s ease-out;
     }
     
     .modal-close {
@@ -490,17 +489,6 @@
     .modal-close:hover {
       transform: scale(1.2) rotate(90deg);
       color: var(--accent-2);
-    }
-    
-    @keyframes zoomIn {
-      from { 
-        transform: scale(0.8);
-        opacity: 0;
-      }
-      to { 
-        transform: scale(1);
-        opacity: 1;
-      }
     }
     
     /* Make constellation image clickable */
@@ -599,7 +587,7 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
       <aside class="attachments" role="complementary" aria-label="Attachments / images">
         <div class="att-card" role="figure" aria-label="Canis Major attachment">
           <div class="att-label">◆ Canis Major Constellation</div>
-          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" tabindex="0" role="button" aria-label="Click to expand constellation image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
           <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: sirius2.jpg</div>
         </div>
         
@@ -684,17 +672,28 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
     const modalImg = document.getElementById('modalImage');
     const modalClose = document.querySelector('.modal-close');
     
+    // Function to open modal
+    function openModal() {
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      modalImg.src = constellationImg.src;
+      modalImg.alt = constellationImg.alt;
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      // Focus on close button for keyboard accessibility
+      if (modalClose) {
+        setTimeout(() => modalClose.focus(), 100);
+      }
+    }
+    
     // Open modal when constellation image is clicked
     if (constellationImg) {
-      constellationImg.addEventListener('click', function() {
-        modal.classList.add('active');
-        modal.setAttribute('aria-hidden', 'false');
-        modalImg.src = this.src;
-        modalImg.alt = this.alt;
-        document.body.style.overflow = 'hidden'; // Prevent scrolling
-        // Focus on close button for keyboard accessibility
-        if (modalClose) {
-          modalClose.focus();
+      constellationImg.addEventListener('click', openModal);
+      
+      // Support keyboard activation (Enter/Space) for opening modal
+      constellationImg.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openModal();
         }
       });
     }
