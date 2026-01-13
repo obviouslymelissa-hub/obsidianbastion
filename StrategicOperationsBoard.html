@@ -113,9 +113,74 @@
     .btn { background: var(--accent); color: var(--bg-panel); padding:8px 12px; border-radius:8px; font-weight:700; border:0; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
     .btn.ghost { background:transparent; color:var(--text-main); border:1px solid rgba(255,255,255,0.04); padding:7px 10px; font-weight:600 }
 
+    /* Floating icon animation (used by star badge) */
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* Info brief styling */
+    .info-brief {
+      background: linear-gradient(135deg, rgba(79,209,197,0.03), rgba(127,240,223,0.01));
+      border-left: 4px solid var(--accent);
+    }
+    .info-brief h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Star badge inline with transmission header */
+    .star-badge-inline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: linear-gradient(135deg, rgba(79,209,197,0.08), rgba(127,240,223,0.04));
+      border: 2px solid rgba(79,209,197,0.2);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(79,209,197,0.15);
+      flex-shrink: 0;
+    }
+    .star-icon-inline {
+      font-size: 1.5rem;
+      filter: drop-shadow(0 0 8px rgba(79,209,197,0.4));
+      animation: floatIcon 3s ease-in-out infinite;
+      line-height: 1;
+    }
+
+    /* Enhanced transmission animations */
+    .transmission.incoming {
+      animation: slideInFromBottom 0.6s ease-out;
+    }
+    @keyframes slideInFromBottom {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Terminal typing effect */
+    .typing-text {
+      overflow: hidden;
+      white-space: pre-wrap;
+      animation: typing 2.5s steps(60, end);
+    }
+    @keyframes typing {
+      from { max-height: 0; }
+      to { max-height: 1000px; }
+    }
+
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       .live-ind { animation:none }
+      .star-icon-inline { animation:none }
+      .transmission.incoming { animation:none }
+      .typing-text { animation:none }
     }
 
     @media (max-width:980px){
@@ -143,16 +208,16 @@
   </header>
 
   <main class="container" role="main" aria-live="polite">
-    <!-- Description of the Board (kept verbatim) -->
-    <section class="panel" aria-labelledby="sob-desc-title">
-      <h3 id="sob-desc-title">What the Strategic Operations Board is</h3>
+    <!-- Description of the Board -->
+    <section class="panel info-brief" aria-labelledby="sob-desc-title">
+      <h3 id="sob-desc-title">⚡ Command Authority</h3>
 
       <p>
-        The Strategic Operations Board serves as the Fleet’s top command authority. It’s where major decisions are made — mission approvals, star designations, and the overall direction for the ships operating under our banner. Some of those ships are well-known. Others remain intentionally out of sight, mentioned only in secure channels.
+        The Strategic Operations Board serves as the Fleet's top command authority. It's where major decisions are made — mission approvals, star designations, and the overall direction for the ships operating under our banner. Some of those ships are well-known. Others remain intentionally out of sight, mentioned only in secure channels.
       </p>
 
       <p>
-        The Board is presented as a council of senior officers, but its guidance ultimately reflects the leadership of the presiding General, who ensures every vessel — including the Obsidian Bastion — stays aligned with the Fleet’s goals and standards.
+        The Board is presented as a council of senior officers, but its guidance ultimately reflects the leadership of the presiding General, who ensures every vessel — including the Obsidian Bastion — stays aligned with the Fleet's goals and standards.
       </p>
     </section>
 
@@ -165,9 +230,15 @@
         <!-- Carter's Star Dedication -->
         <article class="transmission incoming" role="listitem" aria-labelledby="tx-1-title" data-ts="2026-01-22T17:30:00Z">
           <div class="tx-head">
-            <div class="tx-meta" aria-hidden="false" style="align-items:center">
-              <div class="tx-source">Strategic Operations Board — Broadcast</div>
-              <div class="tx-time" id="tx-1-time">2026-01-22 17:30 (PST)</div>
+            <div class="tx-meta" aria-hidden="false" style="align-items:center;display:flex;gap:12px">
+              <!-- Star Badge Inline -->
+              <div class="star-badge-inline">
+                <div class="star-icon-inline">⭐</div>
+              </div>
+              <div style="flex:1">
+                <div class="tx-source">Strategic Operations Board — Broadcast</div>
+                <div class="tx-time" id="tx-1-time">2026-01-22 17:30 (PST)</div>
+              </div>
             </div>
             <div class="tx-code" style="color:var(--text-muted)">MSG ID: SOB-2026-CCBC-08</div>
           </div>
@@ -176,8 +247,6 @@
 The Strategic Operations Board hereby authorizes Carter's Star Dedication.
 
 This dedication recognizes Captain Carter's exemplary leadership and contributions to Fleet missions. The star dedication will be recorded in official registries and commemorated per Fleet ceremonial protocol.
-
-Further operational coordinates, ceremony access, and participant manifests are maintained in secure channels. Release of any additional information requires declassification by the Board.
           </div>
 
           <div class="tx-actions">
@@ -194,5 +263,16 @@ Further operational coordinates, ceremony access, and participant manifests are 
     </div>
     &copy; 2026 - Turning Imagination Into Galactic Frontiers.
   </footer>
+
+  <script>
+    // Add typing effect to transmission body on first load only
+    window.addEventListener('DOMContentLoaded', () => {
+      const txBody = document.getElementById('tx-1-title');
+      if (txBody && !sessionStorage.getItem('sob-tx-viewed')) {
+        txBody.classList.add('typing-text');
+        sessionStorage.setItem('sob-tx-viewed', 'true');
+      }
+    });
+  </script>
 </body>
 </html>
