@@ -455,14 +455,14 @@
       height: 100%;
       background-color: rgba(0, 0, 0, 0.95);
       transition: opacity 0.3s ease-in, visibility 0.3s ease-in;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .modal.active {
       visibility: visible;
       opacity: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     
     .modal-content {
@@ -490,11 +490,6 @@
     .modal-close:hover {
       transform: scale(1.2) rotate(90deg);
       color: var(--accent-2);
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
     
     @keyframes zoomIn {
@@ -678,13 +673,13 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
 
   <!-- Modal for expanded constellation image -->
   <div id="imageModal" class="modal" aria-hidden="true" role="dialog" aria-label="Expanded constellation image">
-    <span class="modal-close" aria-label="Close">&times;</span>
+    <span class="modal-close" aria-label="Close" tabindex="0">&times;</span>
     <img class="modal-content" id="modalImage" alt="Expanded constellation view">
   </div>
 
   <script>
     // Get the constellation image and modal
-    const constellationImg = document.querySelector('.att-card img:not([style*="display:none"])');
+    const constellationImg = document.querySelector('.att-card img');
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImage');
     const modalClose = document.querySelector('.modal-close');
@@ -697,6 +692,10 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
         modalImg.src = this.src;
         modalImg.alt = this.alt;
         document.body.style.overflow = 'hidden'; // Prevent scrolling
+        // Focus on close button for keyboard accessibility
+        if (modalClose) {
+          modalClose.focus();
+        }
       });
     }
     
@@ -710,6 +709,14 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
     // Close modal when clicking close button
     if (modalClose) {
       modalClose.addEventListener('click', closeModal);
+      
+      // Support keyboard activation (Enter/Space) for close button
+      modalClose.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          closeModal();
+        }
+      });
     }
     
     // Close modal when clicking outside the image
