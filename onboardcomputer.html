@@ -995,16 +995,15 @@ function cycleScrubber(){
 
 /* Open scrubber reset modal instead of native confirm() dialog */
 function openScrubberResetModal(){
-  const scrubberModal = document.getElementById('scrubber-reset-modal');
   // Fallback to native confirm if modal not found
-  if (!scrubberModal) {
+  if (!scrubberResetModal) {
     if (!confirm('Replacing scrubber components sets efficiency to 100% and resets ETA.')) return;
     performScrubberReset();
     return;
   }
   
   // Show modal and manage focus
-  scrubberModal.classList.remove('hidden');
+  scrubberResetModal.classList.remove('hidden');
   const confirmBtn = document.getElementById('scrubber-reset-confirm');
   if (confirmBtn) {
     confirmBtn.focus();
@@ -1013,9 +1012,8 @@ function openScrubberResetModal(){
 
 /* Close scrubber reset modal */
 function closeScrubberResetModal(){
-  const scrubberModal = document.getElementById('scrubber-reset-modal');
-  if (scrubberModal) {
-    scrubberModal.classList.add('hidden');
+  if (scrubberResetModal) {
+    scrubberResetModal.classList.add('hidden');
   }
   // Return focus to Replace Scrubber button
   if (btnReset) {
@@ -1134,6 +1132,7 @@ const evacCancel = document.getElementById('evac-cancel');
 const evacConfirm = document.getElementById('evac-confirm');
 const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
 const btnClearAlert = document.getElementById('btn-clear-alert');
+const scrubberResetModal = document.getElementById('scrubber-reset-modal');
 
 /* Track dispatch timers so they can be aborted cleanly */
 let evacTimers = [];
@@ -1183,8 +1182,7 @@ if (scrubberResetConfirm) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' || e.key === 'Esc') {
     // Close scrubber reset modal if open
-    const scrubberModal = document.getElementById('scrubber-reset-modal');
-    if (scrubberModal && !scrubberModal.classList.contains('hidden')) {
+    if (scrubberResetModal && !scrubberResetModal.classList.contains('hidden')) {
       closeScrubberResetModal();
       e.preventDefault();
       return;
