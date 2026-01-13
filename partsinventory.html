@@ -293,6 +293,12 @@
       'medical kit': 1
     };
 
+    // Configuration for custom parts consumption
+    const CUSTOM_PART_CONFIG = {
+      perTickProb: 0.015,
+      maxDecrease: 1
+    };
+
     const STORAGE_KEYS = {
       INVENTORY: 'ship.inventory.v1',
       ORDERS: 'ship.orders.v1',
@@ -419,6 +425,7 @@
         
         // Generate colors: use standard colors for standard parts, generate for custom
         const standardColors = ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'];
+        const numStandardColors = Math.min(PARTS_ORDER.length, standardColors.length);
         const customColors = customPartKeys.map((_, i) => {
           const hue = (i * 60) % 360;
           return `hsl(${hue}, 35%, 45%)`;
@@ -427,7 +434,7 @@
         partsChart.data.labels = allPartsLabels;
         partsChart.data.datasets[0].data = allPartsData;
         partsChart.data.datasets[0].backgroundColor = [
-          ...standardColors.slice(0, PARTS_ORDER.length),
+          ...standardColors.slice(0, numStandardColors),
           ...customColors
         ];
         partsChart.update();
@@ -668,9 +675,9 @@
         customParts[key] = {
           qty: 0,
           displayName: pendingCustomPart.item,
-          // Custom parts can be consumed like standard parts, with moderate probability
-          perTickProb: 0.015,
-          maxDecrease: 1
+          // Custom parts can be consumed like standard parts
+          perTickProb: CUSTOM_PART_CONFIG.perTickProb,
+          maxDecrease: CUSTOM_PART_CONFIG.maxDecrease
         };
       }
       customParts[key].qty += pendingCustomPart.qty;
