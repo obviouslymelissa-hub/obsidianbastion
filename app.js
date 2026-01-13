@@ -70,6 +70,7 @@ function addToTravelHistory(loc){
 
 function updateOverallStatus(text, progress = null){
   const el = $('overallStatus');
+  if(!el) return;
   el.textContent = `Status: ${text}`;
   const travelState = $('travelState');
   if(travelState) travelState.textContent = text;
@@ -86,12 +87,14 @@ function updateOverallStatus(text, progress = null){
     el.appendChild(bar);
   }
   const inner = document.querySelector('.status-progress > i');
-  inner.style.width = `${Math.round(progress*100)}%`;
+  if(inner) inner.style.width = `${Math.round(progress*100)}%`;
 }
 
 function renderSystems(){
   const container = $('systemsList');
+  if(!container) return;
   container.innerHTML = '';
+  if(!catalog || !catalog.systems) return;
   catalog.systems.forEach(sys=>{
     const el = document.createElement('div');
     el.className = 'item';
@@ -106,9 +109,12 @@ function renderSystems(){
 
 function renderPlanets(systemId){
   const sys = catalog.systems.find(s=>s.id===systemId);
-  const list = $('planetsList'); list.innerHTML = '';
+  const list = $('planetsList');
+  if(!list) return;
+  list.innerHTML = '';
   if(!sys) return;
-  $('systemTitle').textContent = sys.name;
+  const systemTitle = $('systemTitle');
+  if(systemTitle) systemTitle.textContent = sys.name;
   sys.planets.forEach(p=>{
     const el = document.createElement('div');
     el.className = 'item';
@@ -126,14 +132,24 @@ function renderPlanets(systemId){
 function renderDetails(sysId, planetId){
   const sys = catalog.systems.find(s=>s.id===sysId);
   const p = sys?.planets.find(pl=>pl.id===planetId);
-  if(!p){ $('planetName').textContent = '—'; $('planetSummary').textContent = ''; return; }
+  const planetName = $('planetName');
+  const planetSummary = $('planetSummary');
+  const planetType = $('planetType');
+  const planetOrbit = $('planetOrbit');
+  const planetRadius = $('planetRadius');
+  
+  if(!p){
+    if(planetName) planetName.textContent = '—';
+    if(planetSummary) planetSummary.textContent = '';
+    return;
+  }
   currentSystem = sys; currentPlanet = p;
   currentCustom = null;
-  $('planetName').textContent = p.name;
-  $('planetSummary').textContent = p.summary || '';
-  $('planetType').textContent = p.type;
-  $('planetOrbit').textContent = p.orbitalAU + ' AU';
-  $('planetRadius').textContent = p.radiusEarth + ' R⊕';
+  if(planetName) planetName.textContent = p.name;
+  if(planetSummary) planetSummary.textContent = p.summary || '';
+  if(planetType) planetType.textContent = p.type;
+  if(planetOrbit) planetOrbit.textContent = p.orbitalAU + ' AU';
+  if(planetRadius) planetRadius.textContent = p.radiusEarth + ' R⊕';
   renderMapLarge(sys, p, null);
 }
 
@@ -154,6 +170,7 @@ function selectPlanet(systemId, planetId){
 */
 function renderMapLarge(destSystem, highlightedPlanet, customDest){
   const svg = $('mapSvgLarge');
+  if(!svg) return;
   svg.innerHTML = '';
   if(!destSystem) return;
   const W = 1000, H = 320;
