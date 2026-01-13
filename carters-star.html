@@ -292,17 +292,17 @@
       margin-top: 16px;
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
+      gap: 12px;
     }
 
     .signature-badge{
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 12px;
     }
 
-    .signature-badge img{
+    .signature-badge .badge-img{
       width: 48px;
       height: 48px;
       border-radius: 6px;
@@ -311,12 +311,11 @@
       box-shadow: 0 4px 16px rgba(0,0,0,0.6);
     }
 
-    .signature-name{
-      font-family: var(--mono);
-      color: var(--accent-2);
-      font-weight: 800;
-      font-size: 1rem;
-      letter-spacing: 0.5px;
+    .signature-badge .name-img{
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+      filter: brightness(1.1);
     }
 
     .signature-closing{
@@ -324,8 +323,9 @@
       color: #dffbf2;
       font-weight: 600;
       font-size: 0.95rem;
-      text-align: right;
+      text-align: left;
       line-height: 1.3;
+      align-self: flex-start;
     }
 
     /* Attachments / right column */
@@ -624,8 +624,8 @@ CAPTAIN CARTER, WHOSE INSIGHT AND CURIOSITY REVEAL PATHS OTHERS NEVER SEE.
             
             <div class="signature-section">
               <div class="signature-badge">
-                <img src="images/general.jpg" alt="General Melissa's official military badge">
-                <span class="signature-name">Melissa</span>
+                <img src="images/general.jpg" alt="General's official military badge" class="badge-img">
+                <img src="images/genmelissa.png" alt="Melissa signature" class="name-img">
               </div>
               <div class="signature-closing">Love,<br>Mom</div>
             </div>
