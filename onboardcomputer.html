@@ -1165,32 +1165,45 @@ function handleClearAlert() {
 }
 if (btnClearAlert) btnClearAlert.addEventListener('click', handleClearAlert);
 
-/* Pod dispatch simulation */
+/* Pod dispatch simulation - pods arrive one by one */
 function dispatchPods(count){
   const pods = document.getElementById('evac-pods');
-  for (let i=0;i<count;i++){
-    const pod = document.createElement('div');
-    pod.className = 'pod enroute';
-    pod.innerHTML = `<div>Pod ${i+1}</div><div class="status">EN ROUTE</div>`;
-    if (pods) pods.appendChild(pod);
-  }
-  pushTelemetryLine(`Dispatched ${count} pods`);
+  pushTelemetryLine(`Dispatching ${count} pods`);
 
-  // first timer: after 8s pods mark docked
-  const t1 = setTimeout(()=> {
-    const children = document.querySelectorAll('#evac-pods .pod.enroute');
-    children.forEach((p, idx) => {
-      // If a cancel happened earlier, the pod may have been removed/marked aborted; guard accordingly
-      if (!p || !p.parentNode) return;
-      p.className = 'pod docked';
-      const st = p.querySelector('.status');
-      if (st) st.textContent = 'DOCKED';
-      // schedule removal for each pod (store timer so cancel can clear)
-      const t2 = setTimeout(()=> { if (p.parentNode) p.parentNode.removeChild(p); }, 11000 + (idx*400));
-      evacTimers.push(t2);
-    });
-  }, 8000);
-  evacTimers.push(t1);
+  // Timing constants for pod dispatch sequence
+  const POD_DISPATCH_INTERVAL = 1500; // milliseconds between each pod dispatch
+  const POD_TRAVEL_TIME = 8000; // milliseconds for pod to travel and dock
+  const POD_DOCK_DURATION = 11000; // milliseconds pod remains docked before removal
+
+  // Dispatch each pod with a stagger delay
+  for (let i=0;i<count;i++){
+    const dispatchDelay = i * POD_DISPATCH_INTERVAL;
+    const travelTime = POD_TRAVEL_TIME;
+    const dockDuration = POD_DOCK_DURATION;
+    
+    const dispatchTimer = setTimeout(() => {
+      const pod = document.createElement('div');
+      pod.className = 'pod enroute';
+      pod.innerHTML = `<div>Pod ${i+1}</div><div class="status">EN ROUTE</div>`;
+      if (pods) pods.appendChild(pod);
+      
+      // Timer for when this specific pod docks
+      const dockTimer = setTimeout(() => {
+        if (!pod || !pod.parentNode) return;
+        pod.className = 'pod docked';
+        const st = pod.querySelector('.status');
+        if (st) st.textContent = 'DOCKED';
+        
+        // Timer for when this pod is removed
+        const removeTimer = setTimeout(() => {
+          if (pod.parentNode) pod.parentNode.removeChild(pod);
+        }, dockDuration);
+        evacTimers.push(removeTimer);
+      }, travelTime);
+      evacTimers.push(dockTimer);
+    }, dispatchDelay);
+    evacTimers.push(dispatchTimer);
+  }
 }
 
 /* Update comm-msg based on alert state */
