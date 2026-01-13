@@ -130,30 +130,23 @@
       gap: 8px;
     }
 
-    /* Star badge in transmission */
-    .star-badge {
+    /* Star badge inline with transmission header */
+    .star-badge-inline {
       display: inline-flex;
-      flex-direction: column;
       align-items: center;
-      gap: 8px;
-      padding: 16px 24px;
-      background: linear-gradient(135deg, rgba(79,209,197,0.06), rgba(127,240,223,0.03));
-      border: 2px solid rgba(79,209,197,0.15);
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(79,209,197,0.1);
+      justify-content: center;
+      padding: 8px;
+      background: linear-gradient(135deg, rgba(79,209,197,0.08), rgba(127,240,223,0.04));
+      border: 2px solid rgba(79,209,197,0.2);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(79,209,197,0.15);
+      flex-shrink: 0;
     }
-    .star-icon-large {
-      font-size: 3rem;
-      filter: drop-shadow(0 0 12px rgba(79,209,197,0.5));
+    .star-icon-inline {
+      font-size: 1.5rem;
+      filter: drop-shadow(0 0 8px rgba(79,209,197,0.4));
       animation: floatIcon 3s ease-in-out infinite;
-    }
-    .star-badge-label {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent-2);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      text-shadow: 0 0 8px rgba(79,209,197,0.3);
+      line-height: 1;
     }
 
     /* Enhanced transmission animations */
@@ -185,7 +178,7 @@
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       .live-ind { animation:none }
-      .star-icon-large { animation:none }
+      .star-icon-inline { animation:none }
       .transmission.incoming { animation:none }
       .typing-text { animation:none }
     }
@@ -236,18 +229,16 @@
       <div id="transmissions" class="transmissions" role="list" aria-label="Board transmissions">
         <!-- Carter's Star Dedication -->
         <article class="transmission incoming" role="listitem" aria-labelledby="tx-1-title" data-ts="2026-01-22T17:30:00Z">
-          <!-- Star Badge -->
-          <div style="display:flex;justify-content:center;margin-bottom:16px">
-            <div class="star-badge">
-              <div class="star-icon-large">⭐</div>
-              <div class="star-badge-label">Carter's Star</div>
-            </div>
-          </div>
-
           <div class="tx-head">
-            <div class="tx-meta" aria-hidden="false" style="align-items:center">
-              <div class="tx-source">Strategic Operations Board — Broadcast</div>
-              <div class="tx-time" id="tx-1-time">2026-01-22 17:30 (PST)</div>
+            <div class="tx-meta" aria-hidden="false" style="align-items:center;display:flex;gap:12px">
+              <!-- Star Badge Inline -->
+              <div class="star-badge-inline">
+                <div class="star-icon-inline">⭐</div>
+              </div>
+              <div style="flex:1">
+                <div class="tx-source">Strategic Operations Board — Broadcast</div>
+                <div class="tx-time" id="tx-1-time">2026-01-22 17:30 (PST)</div>
+              </div>
             </div>
             <div class="tx-code" style="color:var(--text-muted)">MSG ID: SOB-2026-CCBC-08</div>
           </div>
