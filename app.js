@@ -710,15 +710,15 @@ async function start(){
   $('customGotoBtn').addEventListener('click', ()=> goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value));
   $('customGotoInput').addEventListener('keydown', e => { if(e.key === 'Enter') goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value); });
 
-  // wire systems panel toggle
-  const toggleSystemsBtn = $('toggleSystemsBtn');
-  const systemsList = $('systemsList');
-  if(toggleSystemsBtn && systemsList){
-    toggleSystemsBtn.addEventListener('click', () => {
-      const isCollapsed = systemsList.style.display === 'none';
-      systemsList.style.display = isCollapsed ? 'flex' : 'none';
-      toggleSystemsBtn.textContent = isCollapsed ? '▼' : '▲';
-      toggleSystemsBtn.title = isCollapsed ? 'Collapse systems list' : 'Expand systems list';
+  // wire solar systems section toggle
+  const toggleSolarSystemsBtn = $('toggleSolarSystemsBtn');
+  const solarSystemsGrid = $('solarSystemsGrid');
+  if(toggleSolarSystemsBtn && solarSystemsGrid){
+    toggleSolarSystemsBtn.addEventListener('click', () => {
+      const isCollapsed = solarSystemsGrid.style.display === 'none';
+      solarSystemsGrid.style.display = isCollapsed ? 'grid' : 'none';
+      toggleSolarSystemsBtn.textContent = isCollapsed ? '▼' : '▲';
+      toggleSolarSystemsBtn.title = isCollapsed ? 'Collapse solar systems section' : 'Expand solar systems section';
     });
   }
 
