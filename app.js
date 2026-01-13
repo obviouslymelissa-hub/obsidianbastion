@@ -508,7 +508,7 @@ function renderFavoritesList(){
     const sub = document.createElement('div');
     sub.className = 'fav-sub';
     const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
-    const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
+    const pcode = (item.planet && item.planet.planetCode) || '';
     sub.textContent = `${sys} ${pcode}`.trim();
     
     meta.appendChild(title);
