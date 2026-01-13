@@ -354,6 +354,7 @@ Further operational coordinates, ceremony access, and participant manifests are 
           
           // Reset and restart icon animation for visual feedback
           icon.style.animation = 'none';
+          // Small delay to ensure animation reset is processed before restart
           setTimeout(() => {
             icon.style.animation = 'floatIcon 3s ease-in-out infinite';
           }, 10);
