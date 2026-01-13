@@ -190,6 +190,32 @@
       gap: 8px;
     }
 
+    /* Star badge in transmission */
+    .star-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, rgba(79,209,197,0.06), rgba(127,240,223,0.03));
+      border: 2px solid rgba(79,209,197,0.15);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(79,209,197,0.1);
+    }
+    .star-icon-large {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 12px rgba(79,209,197,0.5));
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+    .star-badge-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-2);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 8px rgba(79,209,197,0.3);
+    }
+
     /* Enhanced transmission animations */
     .transmission.incoming {
       animation: slideInFromBottom 0.6s ease-out;
@@ -257,22 +283,16 @@
   </header>
 
   <main class="container" role="main" aria-live="polite">
-    <!-- Star Dedications Highlight -->
-    <section style="display:flex;justify-content:center;margin-bottom:24px">
-      <div class="stat-card stat-card-featured" data-stat="stars" style="min-width:280px;max-width:400px">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-value" id="starsCount">1</div>
-        <div class="stat-label">Star Dedication</div>
-        <div style="margin-top:12px;font-size:0.9rem;color:var(--text-muted);font-weight:500">Carter's Star</div>
-      </div>
-    </section>
-
-    <!-- Compact Description of the Board -->
+    <!-- Description of the Board -->
     <section class="panel info-brief" aria-labelledby="sob-desc-title">
       <h3 id="sob-desc-title">⚡ Command Authority</h3>
-      <p style="margin:0">
-        <strong>Fleet's top command authority.</strong> Major decisions happen here: mission approvals, star designations, vessel coordination. 
-        Guided by the presiding General. Some ships stay visible. Others operate in shadows.
+
+      <p>
+        The Strategic Operations Board serves as the Fleet's top command authority. It's where major decisions are made — mission approvals, star designations, and the overall direction for the ships operating under our banner. Some of those ships are well-known. Others remain intentionally out of sight, mentioned only in secure channels.
+      </p>
+
+      <p>
+        The Board is presented as a council of senior officers, but its guidance ultimately reflects the leadership of the presiding General, who ensures every vessel — including the Obsidian Bastion — stays aligned with the Fleet's goals and standards.
       </p>
     </section>
 
@@ -284,6 +304,14 @@
       <div id="transmissions" class="transmissions" role="list" aria-label="Board transmissions">
         <!-- Carter's Star Dedication -->
         <article class="transmission incoming" role="listitem" aria-labelledby="tx-1-title" data-ts="2026-01-22T17:30:00Z">
+          <!-- Star Badge -->
+          <div style="display:flex;justify-content:center;margin-bottom:16px">
+            <div class="star-badge">
+              <div class="star-icon-large">⭐</div>
+              <div class="star-badge-label">Carter's Star</div>
+            </div>
+          </div>
+
           <div class="tx-head">
             <div class="tx-meta" aria-hidden="false" style="align-items:center">
               <div class="tx-source">Strategic Operations Board — Broadcast</div>
@@ -296,8 +324,6 @@
 The Strategic Operations Board hereby authorizes Carter's Star Dedication.
 
 This dedication recognizes Captain Carter's exemplary leadership and contributions to Fleet missions. The star dedication will be recorded in official registries and commemorated per Fleet ceremonial protocol.
-
-Further operational coordinates, ceremony access, and participant manifests are maintained in secure channels. Release of any additional information requires declassification by the Board.
           </div>
 
           <div class="tx-actions">
