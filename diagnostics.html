@@ -438,9 +438,7 @@
       </div>
 
       <div class="controls-row">
-        <button id="fixBtn" class="diagnostics-fix-btn" style="display:none;">Attempt Fix</button>
-        <button id="downloadBtn" class="secondary-btn" style="display:none;">Download Report</button>
-        <button id="toggleVerbose" class="secondary-btn" aria-pressed="false">Verbose logs</button>
+        <!-- Buttons moved to right column -->
       </div>
 
       <div class="history" id="historySection" aria-live="polite">
@@ -451,16 +449,6 @@
     </section>
 
     <section class="details panel" aria-labelledby="detailsHeading">
-      <!-- Error count box -->
-      <div id="errorCountBox" class="error-count-box">
-        <div class="count-row">
-          <div class="count-indicator"></div>
-          <div class="count-text">
-            <span id="errorCountText">0 issues detected</span>
-          </div>
-        </div>
-      </div>
-
       <div class="header-row">
         <div>
           <div class="diagnostics-area" id="diagnosticsArea">Select a subsystem to diagnose.</div>
@@ -485,9 +473,32 @@
         <ul class="recommendation-list" id="recommendationList"></ul>
       </div>
 
-      <div id="logsWrapper" style="display:none;">
-        <h4 style="margin:0.6rem 0 0.35rem 0; color:var(--accent); font-size:0.9rem;">Verbose Log</h4>
+      <!-- Fix button moved here -->
+      <div class="controls-row" style="margin-top:0.8rem;">
+        <button id="fixBtn" class="diagnostics-fix-btn" style="display:none;">Attempt Fix</button>
+      </div>
+
+      <!-- System Logs Section - always visible -->
+      <div id="logsWrapper" style="margin-top:1.2rem;">
+        <!-- Error count box moved here -->
+        <div id="errorCountBoxLogs" class="error-count-box" style="margin-bottom:0.6rem;">
+          <div class="count-row">
+            <div class="count-indicator"></div>
+            <div class="count-text">
+              <span id="errorCountTextLogs">0 issues resolved</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <h4 style="margin:0; color:var(--accent); font-size:0.9rem;">System Logs</h4>
+          <span id="logTimestamp" style="color:var(--text-muted); font-size:0.85rem;"></span>
+        </div>
         <div class="log" id="verboseLog" aria-live="polite"></div>
+        
+        <div class="controls-row" style="margin-top:0.6rem;">
+          <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
+        </div>
       </div>
 
       <!-- bottom duplicate return link removed per request -->
@@ -825,14 +836,13 @@
     const statusLabel = document.getElementById('statusLabel');
     const telemetryCanvas = document.getElementById('telemetryCanvas');
     const downloadBtn = document.getElementById('downloadBtn');
-    const toggleVerbose = document.getElementById('toggleVerbose');
     const logsWrapper = document.getElementById('logsWrapper');
     const verboseLog = document.getElementById('verboseLog');
+    const logTimestamp = document.getElementById('logTimestamp');
     const historyList = document.getElementById('historyList');
     const historyControls = document.getElementById('historyControls');
-    const errorCountBox = document.getElementById('errorCountBox');
-    const errorCountText = document.getElementById('errorCountText');
-    // confetti canvas removed - success burst will be created dynamically
+    const errorCountBoxLogs = document.getElementById('errorCountBoxLogs');
+    const errorCountTextLogs = document.getElementById('errorCountTextLogs');
 
     let selectedArea = null;
     let currentError = null;
@@ -1059,6 +1069,14 @@
     function appendLog(msg) {
       const t = new Date().toLocaleTimeString();
       verboseLog.innerHTML = `<div>[${t}] ${msg}</div>` + verboseLog.innerHTML;
+      // Update timestamp
+      updateLogTimestamp();
+    }
+    
+    // Update the log timestamp display
+    function updateLogTimestamp() {
+      const now = new Date();
+      logTimestamp.textContent = now.toLocaleString();
     }
 
     // Draw LED based on error text severity and set diagnosticsStatus color accordingly
@@ -1134,12 +1152,12 @@
     function updateResolvedIssuesCount() {
       const count = getResolvedIssuesLast24h();
       
-      // Update error count box
+      // Update error count box in logs section
       if (count > 0) {
-        errorCountBox.classList.add('visible');
-        errorCountText.textContent = count === 1 ? '1 issue resolved in last 24 hours' : `${count} issues resolved in last 24 hours`;
+        errorCountBoxLogs.classList.add('visible');
+        errorCountTextLogs.textContent = count === 1 ? '1 issue resolved in last 24 hours' : `${count} issues resolved in last 24 hours`;
       } else {
-        errorCountBox.classList.remove('visible');
+        errorCountBoxLogs.classList.remove('visible');
       }
     }
 
@@ -1196,13 +1214,11 @@
         // Update resolved issues count after state change
         updateResolvedIssuesCount();
 
-        // show/hide controls
+        // show/hide fix button only
         if (currentError && !currentError.includes('nominal')) {
           fixBtn.style.display = 'inline-flex';
-          downloadBtn.style.display = 'inline-flex';
         } else {
           fixBtn.style.display = 'none';
-          downloadBtn.style.display = 'none';
         }
 
         // show recommendations
@@ -1275,13 +1291,6 @@
       appendLog('Downloaded diagnostics report.');
     });
 
-    // Verbose toggle
-    toggleVerbose.addEventListener('click', () => {
-      const pressed = toggleVerbose.getAttribute('aria-pressed') === 'true';
-      toggleVerbose.setAttribute('aria-pressed', String(!pressed));
-      logsWrapper.style.display = pressed ? 'none' : 'block';
-    });
-
     // Initialize: scan all subsystems to populate initial states
     function initializeSubsystems() {
       areaButtons.forEach(btn => {
@@ -1297,6 +1306,8 @@
     try {
       const last = localStorage.getItem(LAST_SELECTED_KEY);
       initializeSubsystems(); // Initialize all subsystems first
+      updateLogTimestamp(); // Set initial timestamp
+      appendLog('Diagnostics system initialized.');
       if (last) {
         const btn = areaButtons.find(b => b.getAttribute('data-area') === last);
         if (btn) btn.click();
