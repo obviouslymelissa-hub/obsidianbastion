@@ -484,12 +484,19 @@ function renderCustomList(){
   });
   
   // Render pb_favorites items (favorites from other pages)
-  if(pbFavorites.length > 0){
+  // Filter out favorites that already exist in custom locations to avoid duplicates
+  const customNames = arr.map(c => c.name.toLowerCase());
+  const uniqueFavorites = pbFavorites.filter(item => {
+    const favName = (item.name || (item.planet && item.planet.planetCode) || '').toLowerCase();
+    return !customNames.includes(favName);
+  });
+  
+  if(uniqueFavorites.length > 0){
     const wrapper = document.createElement('div');
     wrapper.className = 'fav-list';
     wrapper.style.marginTop = arr.length > 0 ? '12px' : '0';
     
-    pbFavorites.slice().reverse().slice(0,8).forEach(item => {
+    uniqueFavorites.slice().reverse().slice(0,8).forEach(item => {
       const row = document.createElement('div');
       row.className = 'fav-item';
       
