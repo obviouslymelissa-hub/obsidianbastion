@@ -239,14 +239,7 @@
 
     .controls-row { display:flex; gap:0.5rem; align-items:center; margin-top:0.6rem; }
 
-    /* Telemetry sparkline */
-    .telemetry {
-      margin-top:0.6rem;
-      display:flex;
-      gap:0.6rem;
-      align-items:center;
-    }
-    #telemetryCanvas { background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent); border-radius:6px; border:1px solid rgba(255,255,255,0.02); }
+
 
     /* History list */
     .history {
@@ -458,18 +451,6 @@
             <div class="status-led" id="statusLed" title="status LED" aria-hidden="true"></div>
             <div class="status-label" id="statusLabel">Idle</div>
           </div>
-
-          <canvas id="telemetryCanvas" width="200" height="50" aria-hidden="true"></canvas>
-          
-          <!-- Error count box moved here as stats box -->
-          <div id="errorCountBoxStats" class="error-count-box" style="margin-top:0.4rem;margin-bottom:0;">
-            <div class="count-row">
-              <div class="count-indicator"></div>
-              <div class="count-text">
-                <span id="errorCountTextStats">0 issues resolved</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -491,7 +472,18 @@
     <section class="details panel" id="logsWrapper" style="grid-column: 1 / -1;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
         <h4 style="margin:0; color:var(--accent); font-size:0.9rem;">System Logs</h4>
-        <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <!-- Error count box moved to logs section -->
+          <div id="errorCountBoxStats" class="error-count-box" style="margin:0;">
+            <div class="count-row">
+              <div class="count-indicator"></div>
+              <div class="count-text">
+                <span id="errorCountTextStats">0 issues resolved</span>
+              </div>
+            </div>
+          </div>
+          <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
+        </div>
       </div>
       <div class="log" id="verboseLog" aria-live="polite"></div>
     </section>
@@ -826,7 +818,6 @@
     const recommendationList = document.getElementById('recommendationList');
     const statusLed = document.getElementById('statusLed');
     const statusLabel = document.getElementById('statusLabel');
-    const telemetryCanvas = document.getElementById('telemetryCanvas');
     const downloadBtn = document.getElementById('downloadBtn');
     const logsWrapper = document.getElementById('logsWrapper');
     const verboseLog = document.getElementById('verboseLog');
@@ -856,49 +847,6 @@
         o.start();
         setTimeout(() => { o.stop(); ctx.close(); }, duration);
       } catch (e) { /* ignore if audio not allowed */ }
-    }
-
-    // Telemetry sparkline renderer (simple simulated data)
-    function drawTelemetry(seed = 50) {
-      const c = telemetryCanvas;
-      const ctx = c.getContext('2d');
-      const w = c.width, h = c.height;
-      ctx.clearRect(0,0,w,h);
-
-      // generate small series
-      const pts = [];
-      let val = seed + (Math.random()*6 - 3);
-      for (let i=0;i<22;i++){
-        val += (Math.random()*4 - 2);
-        val = Math.max(6, Math.min(94, val));
-        pts.push(val);
-      }
-
-      // background gradient
-      const g = ctx.createLinearGradient(0,0,0,h);
-      g.addColorStop(0, 'rgba(79,209,197,0.06)');
-      g.addColorStop(1, 'rgba(79,209,197,0.01)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0,0,w,h);
-
-      // sparkline
-      ctx.beginPath();
-      for (let i=0;i<pts.length;i++){
-        const x = (i/(pts.length-1)) * (w-6) + 3;
-        const y = h - (pts[i]/100 * (h-10)) - 5;
-        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.strokeStyle = 'rgba(79,209,197,0.98)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // last dot
-      const lastX = ( (pts.length-1)/(pts.length-1) ) * (w-6) + 3;
-      const lastY = h - (pts[pts.length-1]/100 * (h-10)) - 5;
-      ctx.fillStyle = 'rgba(79,209,197,0.98)';
-      ctx.beginPath();
-      ctx.arc(lastX,lastY,3,0,Math.PI*2);
-      ctx.fill();
     }
 
     // Update button state based on issue status
@@ -1154,10 +1102,6 @@
 
         // show recommendations
         showRecommendationsFor(currentError);
-
-        // draw telemetry seeded by severity
-        const seed = currentError && currentError.includes('nominal') ? 60 : 42 + (Math.random()*18);
-        drawTelemetry(seed);
 
         // log
         appendLog(`Diagnosed ${selectedArea}: ${currentError}`);
