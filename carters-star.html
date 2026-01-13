@@ -158,7 +158,7 @@
       position: relative;
     }
     
-    /* Subtle shine effect on payload */
+    /* Subtle shine effect on payload (paused by default for battery efficiency) */
     .payload::before{
       content: "";
       position: absolute;
@@ -168,6 +168,13 @@
       height: 100%;
       background: linear-gradient(90deg, transparent, rgba(87,240,201,0.03), transparent);
       animation: shine 8s ease-in-out infinite;
+      animation-play-state: paused;
+    }
+    
+    /* Enable shine animation on hover or when page is focused */
+    .payload:hover::before,
+    body:focus-within .payload::before{
+      animation-play-state: running;
     }
     
     @keyframes shine{
@@ -406,8 +413,7 @@
     }
     
     /* Pulse animation for diamond icons */
-    .tech-specs-title::before,
-    .att-label::first-child{
+    .tech-specs-title::before{
       animation: pulse 3s ease-in-out infinite;
     }
     
