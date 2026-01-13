@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TRANSMISSION — Sirius (α Canis Majoris) — Obsidian Bastion</title>
+  <title>Star Dedication — Sirius (α Canis Majoris) — Obsidian Bastion</title>
   <link rel="stylesheet" href="app.css">
   <style>
     /*
@@ -470,25 +470,29 @@
           <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/ship-seal-placeholder.png" alt="Ship seal placeholder">
         </div>
         <div class="comms-title" aria-hidden="false">
-          <div class="trans-label">TRANSMISSION</div>
+          <div class="trans-label">STAR DEDICATION</div>
           <div class="trans-sub">Obsidian Bastion — Shipboard Charts</div>
         </div>
       </div>
 
       <div class="comms-right" aria-hidden="false">
         <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" class="return-command-hub" aria-label="Return to Strategic Operations Board">← Return</a>
-        <div class="meta-chip">CLASSIFICATION: PERSONAL</div>
-        <div class="meta-chip">STARDATE: —</div>
-        <div class="meta-chip">ORIGIN: OBSIDIAN BASTION</div>
       </div>
     </header>
+
+    <!-- Metadata row below header -->
+    <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;" aria-hidden="false">
+      <div class="meta-chip">CLASSIFICATION: PERSONAL</div>
+      <div class="meta-chip">STARDATE: —</div>
+      <div class="meta-chip">ORIGIN: OBSIDIAN BASTION</div>
+    </div>
 
     <section class="grid" aria-label="Transmission payload and attachments">
       <!-- left: payload -->
       <article class="payload" role="article" aria-labelledby="payload-title">
         <div class="payload-head">
           <div>
-            <div id="payload-title" class="payload-meta">PAYLOAD — STAR INSCRIPTION / CHART ENTRY</div>
+            <div id="payload-title" class="payload-meta">STAR INSCRIPTION / CHART ENTRY</div>
             <div class="payload-sub">Sirius (α Canis Majoris) — shipboard marking</div>
           </div>
           <div class="payload-sub" style="color:var(--muted); font-family:var(--mono);">Packet ID: OB-BAS/SIRIUS/001</div>
@@ -509,7 +513,7 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
             <div class="k">Designation</div><div class="v">α Canis Majoris</div>
             <div class="k">Constellation</div><div class="v">Canis Major</div>
             <div class="k">Named for</div><div class="v">Captain Carter</div>
-            <div class="k">Dedication date</div><div class="v">January 22, 2018</div>
+            <div class="k">Dedication date</div><div class="v">January 22, 2026</div>
           </div>
 
           <div class="inscription" aria-label="Inscription text">
@@ -525,12 +529,6 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
           <div class="att-label">◆ Canis Major Constellation</div>
           <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
           <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: sirius2.jpg</div>
-        </div>
-
-        <div class="att-card" role="figure" aria-label="Star map">
-          <div class="att-label">◆ Sirius Star Chart</div>
-          <img src="images/Sirius.jpg" alt="Detailed star chart of Sirius system" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-          <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: Sirius.jpg</div>
         </div>
         
         <!-- Technical specifications moved from main payload -->
@@ -585,10 +583,19 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
       </aside>
     </section>
 
+    <!-- Large Sirius star chart at bottom -->
+    <section style="margin-top:24px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)); border-radius:12px; padding:18px; border:1px solid rgba(87,240,201,0.08); box-shadow: 0 12px 36px rgba(0,0,0,0.6), var(--glow);" role="figure" aria-label="Large Sirius star chart">
+      <div style="font-family:var(--mono); color:var(--accent); font-weight:800; font-size:0.92rem; letter-spacing:0.8px; margin-bottom:12px; text-transform:uppercase; display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--accent-2); font-size:0.7rem;">◆</span> Sirius Star Chart — Detailed View
+      </div>
+      <img src="images/Sirius.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 24px rgba(0,0,0,0.6); background: #000;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:40px;">Image: Sirius.jpg</div>
+    </section>
+
     <footer style="margin-top:18px; color:var(--muted); font-family:var(--mono); font-size:0.82rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <div>TRANSMISSION LOG • OB-BAS • LOCAL</div>
+      <div>STAR DEDICATION LOG • OB-BAS • LOCAL</div>
       <div><a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" style="color:var(--accent);text-decoration:none;font-weight:700">Vessel Profile</a></div>
-      <div>END OF PACKET</div>
+      <div>END OF RECORD</div>
     </footer>
   </div>
 </body>
