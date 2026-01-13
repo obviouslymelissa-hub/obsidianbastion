@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bridge Status Console</title>
+  <title>Mainframe Health Console</title>
 
   <!-- Inter is optional; if you prefer a local font, remove the link -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
@@ -289,7 +289,7 @@
   </style>
 </head>
 <body>
-  <!-- Restored original site header (unchanged as requested) -->
+  <!-- Restored original site header (adjusted to Mainframe context) -->
   <header class="site-header">
     <div class="header-inner" role="banner" aria-label="Obsidian Bastion header">
       <div class="header-left">
@@ -298,7 +298,7 @@
         </div>
         <div class="header-text" aria-label="Site title">
           <h1>Obsidian Bastion</h1>
-          <h2>Network Health</h2>
+          <h2>Mainframe Health</h2>
         </div>
       </div>
       <div class="header-right">
@@ -310,7 +310,7 @@
   <div class="page-content">
     <div class="page-header">
       <div class="title">
-        <h1>Bridge Status Console</h1>
+        <h1>Mainframe Health Console</h1>
         <div class="muted">Sensor & Systems Telemetry</div>
       </div>
 
@@ -330,10 +330,10 @@
       <div class="card summary" aria-labelledby="overviewHeading">
         <h2 id="overviewHeading" style="margin:0 0 10px 0;font-size:14px">Bridge Summary</h2>
 
-        <div class="stat" title="Current Warp Core load">
+        <div class="stat" title="Current mainframe load">
           <div>
-            <div class="label">Warp Core Load</div>
-            <div class="small">avg across cores</div>
+            <div class="label">Mainframe Load</div>
+            <div class="small">avg across compute nodes</div>
           </div>
           <div class="value" id="cpuNow">—%</div>
         </div>
@@ -402,7 +402,7 @@
 
   <script>
     /**************************************************************
-     * Bridge Status Console — interactive demo (trimmed & themed)
+     * Mainframe Health Console — interactive demo (trimmed & themed)
      * - Chart.js v4
      * - Runs in simulated mode by default
      * - Incidents use bridge/logbook phrasing
@@ -490,7 +490,7 @@
         datasets:[
           {label:'Warp Core %', data: series.cpu, borderColor:'#66a0ff', backgroundColor: 'rgba(102,160,255,0.06)', yAxisID:'y1', tension:0.3, fill:true},
           {label:'Thermal Queue (ms)', data: series.io, borderColor:'#78e08f', backgroundColor: 'rgba(120,224,143,0.04)', yAxisID:'y2', tension:0.3},
-          {label:'Comm Latency (ms)', data: series.net, borderColor:'#ffb86b', backgroundColor:'rgba(255,184,107,0.02)', yAxisID:'y2', tension:0.3}
+          {label:'Comm Latency (ms)', data: series.net, borderColor:'#ffb86b', backgroundColor: 'rgba(255,184,107,0.02)', yAxisID:'y2', tension:0.3}
         ]
       },
       options:{
@@ -760,7 +760,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `manifest-bridge-${new Date().toISOString()}.csv`;
+      a.download = `manifest-mainframe-${new Date().toISOString()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     });
