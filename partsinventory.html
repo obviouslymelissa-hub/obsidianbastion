@@ -780,6 +780,10 @@
     // Populate the dropdown with available inventory items
     function populateUseItemDropdown() {
       if (!useItemSelect) return; // Safety check
+      
+      // Save the currently selected value before rebuilding the dropdown
+      const currentSelection = useItemSelect.value;
+      
       // Clear existing options except the first one
       useItemSelect.innerHTML = '<option value="">-- Select an item --</option>';
       
@@ -794,6 +798,11 @@
         option.textContent = `${capitalizeLabel(item)} (${inventory[item]} available)`;
         useItemSelect.appendChild(option);
       });
+      
+      // Restore the previously selected value if it's still available
+      if (currentSelection && availableItems.includes(currentSelection)) {
+        useItemSelect.value = currentSelection;
+      }
     }
 
     // --- Form handling ---
