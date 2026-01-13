@@ -140,8 +140,8 @@
     /* Main grid: left (payload) and right (attachments) */
     .grid{
       display:grid;
-      grid-template-columns: 1fr 360px;
-      gap:18px;
+      grid-template-columns: 1fr 380px;
+      gap:20px;
       align-items:start;
     }
 
@@ -265,53 +265,119 @@
     }
 
     .att-card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
       border-radius:10px;
-      padding:12px;
-      border:1px solid rgba(255,255,255,0.03);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      padding:14px;
+      border:1px solid rgba(87,240,201,0.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6), var(--glow);
       display:flex;
       flex-direction:column;
       gap:10px;
       align-items:center;
     }
 
-    .att-card img{ width:100%; height:220px; object-fit:cover; border-radius:8px; display:block; }
+    .att-card img{ 
+      width:100%; 
+      height:200px; 
+      object-fit:cover; 
+      border-radius:8px; 
+      display:block;
+      border: 1px solid rgba(255,255,255,0.04);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
 
-    .att-label{ font-family:var(--mono); color:var(--muted); font-weight:800; font-size:0.86rem; }
-
-    /* Combined info moved below certificate (still styled as packet data) */
-    .combined{
-      margin-top:14px;
-      background:linear-gradient(180deg, rgba(2,8,10,0.3), rgba(2,8,10,0.18));
-      border-radius:8px;
-      padding:12px;
-      border:1px solid rgba(255,255,255,0.02);
-      box-shadow:0 8px 20px rgba(0,0,0,0.55);
+    .att-label{ 
+      font-family:var(--mono); 
+      color:var(--accent); 
+      font-weight:800; 
+      font-size:0.86rem; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Technical specs card in sidebar */
+    .tech-specs{
+      background: linear-gradient(135deg, rgba(87,240,201,0.04), rgba(87,240,201,0.01));
+      border-radius:10px;
+      padding:14px;
+      border:1px solid rgba(87,240,201,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6), var(--glow);
+    }
+    
+    .tech-specs-title{
       font-family:var(--mono);
-      color:#bfffe9;
+      color:var(--accent-2);
+      font-weight:900;
+      font-size:0.92rem;
+      letter-spacing:1px;
+      margin-bottom:12px;
+      text-transform:uppercase;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-
-    .combined .grid{
+    
+    .tech-specs-title::before{
+      content:"◆";
+      color:var(--accent);
+      font-size:0.7rem;
+    }
+    
+    .spec-row{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-      gap:10px;
+      grid-template-columns: 1fr 1fr;
+      gap:6px;
+      margin-bottom:8px;
+      padding-bottom:8px;
+      border-bottom:1px solid rgba(255,255,255,0.02);
     }
-
-    .combined .item .k{ color:var(--muted); font-weight:800; text-transform:uppercase; font-size:0.78rem; }
-    .combined .item .v{ color:#bfffe9; font-weight:700; font-size:0.95rem; margin-top:6px; }
+    
+    .spec-row:last-child{
+      border-bottom:none;
+      margin-bottom:0;
+      padding-bottom:0;
+    }
+    
+    .spec-label{
+      color:var(--muted);
+      font-family:var(--mono);
+      font-weight:700;
+      font-size:0.78rem;
+      text-transform:uppercase;
+    }
+    
+    .spec-value{
+      color:#dffbf2;
+      font-weight:700;
+      font-size:0.88rem;
+      text-align:right;
+    }
+    
+    /* Enhanced packet appearance */
+    .packet .headline{
+      color:var(--accent-2);
+      font-weight:900;
+      letter-spacing:0.8px;
+      margin-bottom:10px;
+      font-size:1.05rem;
+      text-shadow: 0 0 20px rgba(87,240,201,0.3);
+    }
 
     /* small responsive behaviour */
     @media (max-width: 980px){
       .grid{ grid-template-columns: 1fr; }
       .comms-right { display:none; } /* hide chips on narrow */
       .att-card img{ height:180px; }
+      .tech-specs{ margin-top: 0; }
     }
 
     @media (max-width:560px){
       .badge{ width:56px; height:56px; }
       .badge img{ width:44px; height:44px; }
       .att-card img{ height:140px; }
+      .kv{ grid-template-columns: 1fr; gap: 4px; }
+      .spec-row{ grid-template-columns: 1fr; gap: 2px; }
+      .spec-value{ text-align: left; }
     }
   </style>
 </head>
@@ -360,14 +426,10 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
 
           <div class="kv" aria-hidden="false" role="list">
             <div class="k">Honored star</div><div class="v">Sirius (Alpha Canis Majoris)</div>
-            <div class="k">Location (RA)</div><div class="v">06h 45m 08.917s (J2000)</div>
-            <div class="k">Location (Dec)</div><div class="v">−16° 42' 58.02" (J2000)</div>
-            <div class="k">Apparent brightness</div><div class="v">−1.46</div>
-            <div class="k">Spectral type</div><div class="v">A1V (main-sequence) — primary (Sirius A)</div>
-            <div class="k">Distance</div><div class="v">~8.6 ly (2.64 pc)</div>
-            <div class="k">Radius</div><div class="v">~1.71 × R☉</div>
-            <div class="k">Luminosity</div><div class="v">~25.4 × L☉</div>
-            <div class="k">Surface temp</div><div class="v">~9,940 K</div>
+            <div class="k">Designation</div><div class="v">α Canis Majoris</div>
+            <div class="k">Constellation</div><div class="v">Canis Major</div>
+            <div class="k">Named for</div><div class="v">Captain Carter</div>
+            <div class="k">Dedication date</div><div class="v">January 22, 2018</div>
           </div>
 
           <div class="inscription" aria-label="Inscription text">
@@ -375,32 +437,70 @@ THE BRILLIANCE YOU CARRY, WHICH TRAVELS FARTHER THAN ANY SIGNAL WE SEND.
             <div class="signed">— General Melissa</div>
           </div>
         </div>
-
-        <!-- combined info block beneath payload for quick reference -->
-        <div class="combined" aria-label="Combined star information">
-          <div style="font-weight:900; color:var(--accent); margin-bottom:8px;">COMBINED STAR INFORMATION</div>
-          <div class="grid">
-            <div class="item"><div class="k">Named For</div><div class="v"><em>Captain Carter</em></div></div>
-            <div class="item"><div class="k">Dedication Date</div><div class="v">January 22, 2018</div></div>
-            <div class="item"><div class="k">Constellation</div><div class="v">Canis Major</div></div>
-            <div class="item"><div class="k">Catalog (original)</div><div class="v">HD 48915 (HIP 32349)</div></div>
-            <div class="item"><div class="k">Notes</div><div class="v">Brightest star in the night sky</div></div>
-          </div>
-        </div>
       </article>
 
       <!-- right: attachments area -->
       <aside class="attachments" role="complementary" aria-label="Attachments / images">
         <div class="att-card" role="figure" aria-label="Canis Major attachment">
-          <div class="att-label">Attachment: Canis Major constellation</div>
-          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius2.jpg" alt="Canis Major / Sirius region (placeholder)">
-          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius2.jpg</div>
+          <div class="att-label">◆ Canis Major Constellation</div>
+          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: sirius2.jpg</div>
         </div>
 
         <div class="att-card" role="figure" aria-label="Star map">
-          <div class="att-label">Attachment: Star map</div>
-          <img src="https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius.jpg" alt="Sirius star map">
-          <div style="font-family:var(--mono); color:var(--muted); font-size:0.8rem; margin-top:6px;">https://raw.githubusercontent.com/obviouslymelissa-hub/obsidianbastion/972cba6d9e3d4665106102532f5c74b48855c027/images/sirius.jpg</div>
+          <div class="att-label">◆ Sirius Star Chart</div>
+          <img src="images/Sirius.jpg" alt="Detailed star chart of Sirius system" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: Sirius.jpg</div>
+        </div>
+        
+        <!-- Technical specifications moved from main payload -->
+        <div class="tech-specs" role="region" aria-label="Technical specifications">
+          <div class="tech-specs-title">Technical Specifications</div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Right Ascension</div>
+            <div class="spec-value">06h 45m 08.9s</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Declination</div>
+            <div class="spec-value">−16° 42' 58"</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Magnitude</div>
+            <div class="spec-value">−1.46</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Spectral Type</div>
+            <div class="spec-value">A1V</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Distance</div>
+            <div class="spec-value">8.6 ly</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Radius</div>
+            <div class="spec-value">1.71 R☉</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Luminosity</div>
+            <div class="spec-value">25.4 L☉</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Surface Temp</div>
+            <div class="spec-value">9,940 K</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Catalog</div>
+            <div class="spec-value">HD 48915</div>
+          </div>
         </div>
       </aside>
     </section>
