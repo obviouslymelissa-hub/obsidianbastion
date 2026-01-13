@@ -140,7 +140,10 @@
 
     <main class="grid">
       <aside class="panel systems" aria-label="Systems">
-        <h2>Systems</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h2 style="margin:0;">Systems</h2>
+          <button id="toggleSystemsBtn" class="btn" style="padding:4px 10px;font-size:12px" title="Toggle systems list">▼</button>
+        </div>
         <div id="systemsList" class="list"></div>
       </aside>
 
@@ -162,8 +165,6 @@
           <div class="controls">
             <button id="travelBtn" class="btn">Travel</button>
           </div>
-
-          <div id="travelState" class="muted">Idle</div>
 
         </div>
       </aside>

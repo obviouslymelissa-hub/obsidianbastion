@@ -71,8 +71,6 @@ function addToTravelHistory(loc){
 function updateOverallStatus(text, progress = null){
   const el = $('overallStatus');
   el.textContent = `Status: ${text}`;
-  const travelState = $('travelState');
-  if(travelState) travelState.textContent = text;
   let bar = document.querySelector('.status-progress');
   if(progress === null){
     if(bar) bar.remove();
@@ -519,6 +517,7 @@ function renderFavoritesList(){
     
     const loadBtn = document.createElement('button');
     loadBtn.type = 'button';
+    loadBtn.className = 'primary';
     loadBtn.textContent = 'Load';
     loadBtn.title = 'Load into the custom location input';
     loadBtn.addEventListener('click', () => {
@@ -528,30 +527,7 @@ function renderFavoritesList(){
       input.focus();
     });
     
-    const goBtn = document.createElement('button');
-    goBtn.type = 'button';
-    goBtn.className = 'primary';
-    goBtn.textContent = 'Go';
-    goBtn.title = 'Go to this saved location';
-    goBtn.addEventListener('click', async () => {
-      const favName = item.name || (item.planet && item.planet.planetCode) || '';
-      const parsed = parseDestination(favName);
-      if(parsed && parsed.system && parsed.planet){
-        renderDetails(parsed.system, parsed.planet);
-        currentCustom = null;
-        const mode = $('travelModeSelect')?.value || 'regular';
-        await travelToCurrent(mode);
-      } else if(parsed && parsed.system && !parsed.planet){
-        selectSystem(parsed.system);
-        currentCustom = null;
-        updateOverallStatus(`Opened system ${parsed.system}`);
-      } else {
-        updateOverallStatus(`Cannot travel to "${favName}" - not found in navigation catalog.`);
-      }
-    });
-    
     actions.appendChild(loadBtn);
-    actions.appendChild(goBtn);
     
     row.appendChild(thumb);
     row.appendChild(meta);
@@ -733,6 +709,18 @@ async function start(){
   });
   $('customGotoBtn').addEventListener('click', ()=> goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value));
   $('customGotoInput').addEventListener('keydown', e => { if(e.key === 'Enter') goToTypedDestination($('customGotoInput')?.value, $('travelModeSelect')?.value); });
+
+  // wire systems panel toggle
+  const toggleSystemsBtn = $('toggleSystemsBtn');
+  const systemsList = $('systemsList');
+  if(toggleSystemsBtn && systemsList){
+    toggleSystemsBtn.addEventListener('click', () => {
+      const isCollapsed = systemsList.style.display === 'none';
+      systemsList.style.display = isCollapsed ? 'flex' : 'none';
+      toggleSystemsBtn.textContent = isCollapsed ? '▼' : '▲';
+      toggleSystemsBtn.title = isCollapsed ? 'Collapse systems list' : 'Expand systems list';
+    });
+  }
 
   // restore last location or URL
   const urlParams = new URLSearchParams(location.search);
