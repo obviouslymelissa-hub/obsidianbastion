@@ -203,6 +203,14 @@
       to { max-height: 1000px; }
     }
 
+    /* Popup message animation */
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    }
+
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       .live-ind { animation:none }
@@ -312,7 +320,8 @@ Further operational coordinates, ceremony access, and participant manifests are 
     // Counter animation for stat cards
     function animateCounter(element, target, duration = 1500) {
       const start = 0;
-      const increment = target / (duration / 16);
+      const FRAME_INTERVAL = 16; // ~60fps (1000ms / 60fps ≈ 16ms per frame)
+      const increment = target / (duration / FRAME_INTERVAL);
       let current = start;
       
       const timer = setInterval(() => {
@@ -323,7 +332,7 @@ Further operational coordinates, ceremony access, and participant manifests are 
         } else {
           element.textContent = Math.floor(current);
         }
-      }, 16);
+      }, FRAME_INTERVAL);
     }
 
     // Animate stat cards on load
@@ -343,13 +352,13 @@ Further operational coordinates, ceremony access, and participant manifests are 
           const stat = this.dataset.stat;
           const icon = this.querySelector('.stat-icon');
           
-          // Add pulse effect
+          // Reset and restart icon animation for visual feedback
           icon.style.animation = 'none';
           setTimeout(() => {
             icon.style.animation = 'floatIcon 3s ease-in-out infinite';
           }, 10);
           
-          // Show tooltip or message (optional)
+          // Contextual messages for each stat card
           const messages = {
             missions: 'Comprehensive mission tracking across all fleet operations',
             vessels: 'Active vessels currently under Strategic Operations command',
@@ -357,7 +366,7 @@ Further operational coordinates, ceremony access, and participant manifests are 
             classified: 'Level 7 clearance required. Access denied.'
           };
           
-          // Create temporary message
+          // Create temporary popup message
           const msg = document.createElement('div');
           msg.textContent = messages[stat] || 'Data classified';
           msg.style.cssText = `
@@ -383,25 +392,14 @@ Further operational coordinates, ceremony access, and participant manifests are 
         });
       });
 
-      // Add typing effect to transmission on first load
+      // Add typing effect to transmission body on first load only
+      // Note: Applied to message body for visual interest on initial page view
       const txBody = document.getElementById('tx-1-title');
       if (txBody && !sessionStorage.getItem('sob-tx-viewed')) {
         txBody.classList.add('typing-text');
         sessionStorage.setItem('sob-tx-viewed', 'true');
       }
     });
-
-    // Add fade in/out animation for messages
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeInOut {
-        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-        15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      }
-    `;
-    document.head.appendChild(style);
   </script>
 </body>
 </html>
