@@ -48,7 +48,10 @@
        Bootstrap forms are unaffected. */
     #itemInput,
     #qtyInput,
-    .form-control.form-control-sm {
+    #useItemSelect,
+    #useQtyInput,
+    .form-control.form-control-sm,
+    .form-select.form-select-sm {
       background: transparent;
       /* make input text slightly brighter for readability */
       color: #ffffff;
@@ -59,6 +62,7 @@
     /* brighter placeholder so it's readable but still visually muted */
     #itemInput::placeholder,
     #qtyInput::placeholder,
+    #useQtyInput::placeholder,
     .form-control.form-control-sm::placeholder {
       color: rgba(255,255,255,0.70);
       opacity: 1; /* ensure consistent rendering across browsers */
@@ -67,7 +71,10 @@
     /* subtle focus ring for accessibility */
     #itemInput:focus,
     #qtyInput:focus,
-    .form-control.form-control-sm:focus {
+    #useItemSelect:focus,
+    #useQtyInput:focus,
+    .form-control.form-control-sm:focus,
+    .form-select.form-select-sm:focus {
       outline: 2px solid rgba(127, 224, 211, 0.12);
       outline-offset: 0;
       border-color: var(--accent);
@@ -180,6 +187,27 @@
 
             <div class="col-6 d-flex align-items-end">
               <button type="submit" class="btn btn-primary btn-sm w-100">Order</button>
+            </div>
+          </form>
+
+          <hr class="my-3">
+
+          <h6 class="card-title">Use Item from Inventory</h6>
+          <form id="useForm" class="row g-2 mt-2">
+            <div class="col-12">
+              <label for="useItemSelect" class="form-label small">Select Item</label>
+              <select id="useItemSelect" class="form-select form-select-sm" required>
+                <option value="">-- Select an item --</option>
+              </select>
+            </div>
+
+            <div class="col-6">
+              <label for="useQtyInput" class="form-label small">Quantity</label>
+              <input type="number" id="useQtyInput" class="form-control form-control-sm" value="1" min="1" required>
+            </div>
+
+            <div class="col-6 d-flex align-items-end">
+              <button type="submit" class="btn btn-success btn-sm w-100">Use</button>
             </div>
           </form>
 
@@ -571,16 +599,21 @@
       `;
 
       toastContainer.appendChild(el);
-      const toast = new bootstrap.Toast(el, { delay: options.delay || 4000 });
-      toast.show();
-      el.addEventListener('hidden.bs.toast', () => el.remove());
+      if (typeof bootstrap !== 'undefined') {
+        const toast = new bootstrap.Toast(el, { delay: options.delay || 4000 });
+        toast.show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+      } else {
+        // Fallback: just remove after delay
+        setTimeout(() => el.remove(), options.delay || 4000);
+      }
     }
 
     // --- Ordering flow ---
     const orderForm = document.getElementById('orderForm');
     const itemInput = document.getElementById('itemInput');
     const qtyInput = document.getElementById('qtyInput');
-    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    const orderModal = typeof bootstrap !== 'undefined' ? new bootstrap.Modal(document.getElementById('orderModal')) : null;
     const orderModalText = document.getElementById('orderModalText');
 
     function placeOrder(itemRaw, qtyRaw) {
@@ -603,7 +636,7 @@
       renderRestockSuggestions();
       // Show modal + toast
       orderModalText.textContent = `Ordered ${qty} × ${item}.`;
-      orderModal.show();
+      if (orderModal) orderModal.show();
       showToast('Order placed', `${qty} × ${item}`, { delay: 2500 });
 
       // Simulate delivery delay (random 3–9 seconds)
@@ -634,19 +667,20 @@
         saveInventory(inventory);
         refreshCharts();
         renderRestockSuggestions();
+        populateUseItemDropdown();
         showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
       }
     }
 
     // Show modal for custom part delivery decision
-    const customPartModal = new bootstrap.Modal(document.getElementById('customPartModal'));
+    const customPartModal = typeof bootstrap !== 'undefined' ? new bootstrap.Modal(document.getElementById('customPartModal')) : null;
     const customPartModalText = document.getElementById('customPartModalText');
     let pendingCustomPart = null;
 
     function showCustomPartModal(order) {
       pendingCustomPart = order;
       customPartModalText.textContent = `${order.qty} × ${order.item} has been delivered!`;
-      customPartModal.show();
+      if (customPartModal) customPartModal.show();
     }
 
     // Handle "Use Now" button
@@ -672,10 +706,11 @@
       if (usage.length > 300) usage.splice(0, usage.length - 300);
       saveUsage(usage);
       
-      customPartModal.hide();
+      if (customPartModal) customPartModal.hide();
       refreshCharts();
       renderRestockSuggestions();
       renderUsageLog();
+      populateUseItemDropdown();
       showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} used immediately`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -704,9 +739,10 @@
       inventory[key] += pendingCustomPart.qty;
       saveInventory(inventory);
       
-      customPartModal.hide();
+      if (customPartModal) customPartModal.hide();
       refreshCharts();
       renderRestockSuggestions();
+      populateUseItemDropdown();
       showToast('Part Stored', `${pendingCustomPart.qty} × ${pendingCustomPart.item} stored for future use`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -735,6 +771,31 @@
       return key in ITEM_RANGES || key in defaultInventory;
     }
 
+    // --- Use Item Form Handling ---
+    // Get DOM elements early so they can be referenced by populateUseItemDropdown
+    const useForm = document.getElementById('useForm');
+    const useItemSelect = document.getElementById('useItemSelect');
+    const useQtyInput = document.getElementById('useQtyInput');
+
+    // Populate the dropdown with available inventory items
+    function populateUseItemDropdown() {
+      if (!useItemSelect) return; // Safety check
+      // Clear existing options except the first one
+      useItemSelect.innerHTML = '<option value="">-- Select an item --</option>';
+      
+      // Get all items with quantity > 0
+      const availableItems = Object.keys(inventory)
+        .filter(k => (inventory[k] || 0) > 0)
+        .sort();
+      
+      availableItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = `${capitalizeLabel(item)} (${inventory[item]} available)`;
+        useItemSelect.appendChild(option);
+      });
+    }
+
     // --- Form handling ---
     orderForm.addEventListener('submit', (ev) => {
       ev.preventDefault();
@@ -750,6 +811,56 @@
       itemInput.value = '';
       qtyInput.value = 1;
     });
+
+    // Handle use item form submission
+    if (useForm) {
+      useForm.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const item = useItemSelect.value;
+        const qty = parseInt(useQtyInput.value, 10) || 1;
+        
+        if (!item) {
+          useItemSelect.classList.add('is-invalid');
+          setTimeout(() => useItemSelect.classList.remove('is-invalid'), 1200);
+          return;
+        }
+
+        const available = inventory[item] || 0;
+        if (available < qty) {
+          showToast('Insufficient Stock', `Only ${available} × ${item} available`, { delay: 3000 });
+          return;
+        }
+
+        // Decrease inventory
+        inventory[item] = Math.max(0, available - qty);
+        saveInventory(inventory);
+
+        // Add to usage log
+        const now = Date.now();
+        const usageEntry = {
+          id: 'u' + now + Math.floor(Math.random() * 999),
+          item: item,
+          qty: qty,
+          ts: now,
+          source: 'manual use'
+        };
+        usage.push(usageEntry);
+        if (usage.length > 300) usage.splice(0, usage.length - 300);
+        saveUsage(usage);
+
+        // Update UI
+        refreshCharts();
+        renderRestockSuggestions();
+        renderUsageLog();
+        populateUseItemDropdown();
+
+        // Reset form
+        useItemSelect.value = '';
+        useQtyInput.value = 1;
+
+        showToast('Item Used', `${qty} × ${capitalizeLabel(item)} marked as used`, { delay: 3000 });
+      });
+    }
 
     // --- Buttons: clear log, reset inventory ---
     document.getElementById('clearLogBtn').addEventListener('click', () => {
@@ -771,51 +882,52 @@
 
     // Defer chart creation and interval start until DOM ready
     document.addEventListener('DOMContentLoaded', () => {
-      // basic sanity checks
+      // Chart.js initialization - skip chart creation if library not loaded
       if (typeof Chart === 'undefined') {
         console.error('Chart.js not loaded — charts cannot be created.');
-        return;
+        // Continue with other initialization even without charts
+      } else {
+        const partsCtx = document.getElementById('partsChart');
+        const suppliesCtx = document.getElementById('suppliesChart');
+
+        // create charts
+        partsChart = new Chart(partsCtx, {
+          type: 'doughnut',
+          data: {
+            labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
+            datasets: [{
+              data: PARTS_ORDER.map(k => inventory[k] || 0),
+              // darker, more muted palette (reduced brightness)
+              backgroundColor: ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'],
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            plugins: { legend: { labels: { color: '#e6eef8' } } }
+          }
+        });
+
+        suppliesChart = new Chart(suppliesCtx, {
+          type: 'doughnut',
+          data: {
+            labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
+            datasets: [{
+              data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
+              // darker supplies palette
+              backgroundColor: ['#3e6f59', '#355d78', '#7a5858'],
+              hoverOffset: 6
+            }]
+          },
+          options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
+        });
       }
-
-      const partsCtx = document.getElementById('partsChart');
-      const suppliesCtx = document.getElementById('suppliesChart');
-
-      // create charts
-      partsChart = new Chart(partsCtx, {
-        type: 'doughnut',
-        data: {
-          labels: PARTS_ORDER.map(l => capitalizeLabel(l)),
-          datasets: [{
-            data: PARTS_ORDER.map(k => inventory[k] || 0),
-            // darker, more muted palette (reduced brightness)
-            backgroundColor: ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'],
-            hoverOffset: 6
-          }]
-        },
-        options: {
-          plugins: { legend: { labels: { color: '#e6eef8' } } }
-        }
-      });
-
-      suppliesChart = new Chart(suppliesCtx, {
-        type: 'doughnut',
-        data: {
-          labels: SUPPLIES_ORDER.map(l => capitalizeLabel(l)),
-          datasets: [{
-            data: SUPPLIES_ORDER.map(k => inventory[k] || 0),
-            // darker supplies palette
-            backgroundColor: ['#3e6f59', '#355d78', '#7a5858'],
-            hoverOffset: 6
-          }]
-        },
-        options: { plugins: { legend: { labels: { color: '#e6eef8' } } } }
-      });
 
       // initial render that depends on DOM & charts
       renderLog();
       refreshCharts();
       renderRestockSuggestions();
       renderUsageLog();
+      populateUseItemDropdown();
 
       // start usage simulation interval
       setInterval(() => {
@@ -882,6 +994,7 @@
           refreshCharts();
           renderRestockSuggestions();
           renderUsageLog();
+          populateUseItemDropdown();
         }
       }, USAGE_TICK_MS);
     });
