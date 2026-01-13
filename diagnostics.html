@@ -108,7 +108,7 @@
     }
 
     main {
-      max-width: 980px;
+      max-width: 1200px;
       margin: 1.75rem auto;
       padding: 1.25rem;
       display: grid;
@@ -266,7 +266,7 @@
       font-size:0.82rem;
       padding:0.6rem;
       border-radius:8px;
-      max-height:140px;
+      max-height:280px;
       overflow:auto;
       border:1px solid rgba(255,255,255,0.02);
     }
@@ -460,6 +460,16 @@
           </div>
 
           <canvas id="telemetryCanvas" width="200" height="50" aria-hidden="true"></canvas>
+          
+          <!-- Error count box moved here as stats box -->
+          <div id="errorCountBoxStats" class="error-count-box" style="margin-top:0.4rem;margin-bottom:0;">
+            <div class="count-row">
+              <div class="count-indicator"></div>
+              <div class="count-text">
+                <span id="errorCountTextStats">0 issues resolved</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -477,26 +487,13 @@
       </div>
     </section>
 
-    <!-- System Logs Section - separate box -->
-    <section class="details panel" id="logsWrapper" style="grid-column: 2;">
-      <div style="margin-bottom:0.35rem;">
+    <!-- System Logs Section - spans full width -->
+    <section class="details panel" id="logsWrapper" style="grid-column: 1 / -1;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
         <h4 style="margin:0; color:var(--accent); font-size:0.9rem;">System Logs</h4>
-      </div>
-      <div class="log" id="verboseLog" aria-live="polite"></div>
-      
-      <!-- Error count box below logs -->
-      <div id="errorCountBoxLogs" class="error-count-box">
-        <div class="count-row">
-          <div class="count-indicator"></div>
-          <div class="count-text">
-            <span id="errorCountTextLogs">0 issues resolved</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="controls-row" style="margin-top:0.6rem;">
         <button id="downloadBtn" class="secondary-btn" style="display:inline-flex;">Download Report</button>
       </div>
+      <div class="log" id="verboseLog" aria-live="polite"></div>
     </section>
   </main>
 
@@ -833,8 +830,8 @@
     const downloadBtn = document.getElementById('downloadBtn');
     const logsWrapper = document.getElementById('logsWrapper');
     const verboseLog = document.getElementById('verboseLog');
-    const errorCountBoxLogs = document.getElementById('errorCountBoxLogs');
-    const errorCountTextLogs = document.getElementById('errorCountTextLogs');
+    const errorCountBoxStats = document.getElementById('errorCountBoxStats');
+    const errorCountTextStats = document.getElementById('errorCountTextStats');
 
     let selectedArea = null;
     let currentError = null;
@@ -1087,12 +1084,12 @@
     function updateResolvedIssuesCount() {
       const count = getResolvedIssuesLast24h();
       
-      // Update error count box in logs section
+      // Update error count box in stats section
       if (count > 0) {
-        errorCountBoxLogs.classList.add('visible');
-        errorCountTextLogs.textContent = count === 1 ? '1 issue resolved in last 24 hours' : `${count} issues resolved in last 24 hours`;
+        errorCountBoxStats.classList.add('visible');
+        errorCountTextStats.textContent = count === 1 ? '1 issue resolved in last 24 hours' : `${count} issues resolved in last 24 hours`;
       } else {
-        errorCountBoxLogs.classList.remove('visible');
+        errorCountBoxStats.classList.remove('visible');
       }
     }
 
@@ -1210,19 +1207,53 @@
       }
     });
 
-    // Download report (simple TXT)
+    // Download report with all visible logs
     downloadBtn.addEventListener('click', () => {
-      const report = `Diagnostics Report\nArea: ${selectedArea}\nStatus: ${diagnosticsStatus.textContent}\nError: ${currentError}\nTime: ${new Date().toISOString()}\n`;
+      // Get all log entries from the verboseLog element
+      const logEntries = verboseLog.querySelectorAll('div');
+      let logsText = '';
+      
+      // Extract text from all log entries (in reverse order since they're prepended)
+      const logArray = Array.from(logEntries);
+      for (let i = logArray.length - 1; i >= 0; i--) {
+        logsText += logArray[i].textContent + '\n';
+      }
+      
+      // Build comprehensive report
+      let report = '='.repeat(60) + '\n';
+      report += 'OBSIDIAN BASTION - DIAGNOSTICS REPORT\n';
+      report += '='.repeat(60) + '\n';
+      report += `Generated: ${new Date().toLocaleString()}\n`;
+      report += `Timestamp: ${new Date().toISOString()}\n`;
+      report += '='.repeat(60) + '\n\n';
+      
+      if (selectedArea) {
+        report += 'CURRENT SUBSYSTEM DIAGNOSTICS\n';
+        report += '-'.repeat(60) + '\n';
+        report += `Area: ${selectedArea}\n`;
+        report += `Status: ${diagnosticsStatus.textContent}\n`;
+        report += `Error: ${currentError || 'None'}\n`;
+        report += '-'.repeat(60) + '\n\n';
+      }
+      
+      report += 'SYSTEM LOGS\n';
+      report += '-'.repeat(60) + '\n';
+      report += logsText;
+      report += '\n' + '='.repeat(60) + '\n';
+      report += 'END OF REPORT\n';
+      report += '='.repeat(60) + '\n';
+      
       const blob = new Blob([report], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `diagnostics_${selectedArea.replace(/\s+/g,'_')}_${Date.now()}.txt`;
+      const areaName = selectedArea ? selectedArea.replace(/\s+/g,'_') : 'all';
+      a.download = `diagnostics_report_${areaName}_${Date.now()}.txt`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      appendLog('Downloaded diagnostics report.');
+      appendLog('Downloaded diagnostics report with all system logs.');
     });
 
     // Initialize: scan all subsystems to populate initial states
