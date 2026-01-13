@@ -294,16 +294,7 @@
       font-size:0.95rem;
     }
 
-    /* Review tag for buttons */
-    .error-tag {
-      background:var(--warning);
-      color:var(--bg-dark);
-      padding:2px 6px;
-      border-radius:4px;
-      font-size:0.75rem;
-      font-weight:700;
-      margin-left:auto;
-    }
+
 
     /* responsive */
     @media (max-width:880px) {
@@ -439,8 +430,6 @@
         <!-- New systems added -->
         <button data-area="Defense Systems" aria-selected="false"> <span class="btn-icon" style="background: #ff9aa2;"></span> Defense Systems</button>
         <button data-area="Weapons" aria-selected="false"> <span class="btn-icon" style="background: #ffb482;"></span> Weapons</button>
-        <button data-area="Point Defense" aria-selected="false"> <span class="btn-icon" style="background: #ffd166;"></span> Point Defense</button>
-        <button data-area="ECM" aria-selected="false"> <span class="btn-icon" style="background: #c7f9cc;"></span> Electronic Countermeasures (ECM)</button>
         <button data-area="Sensors" aria-selected="false"> <span class="btn-icon" style="background: #a0e9ff;"></span> Sensors</button>
         <button data-area="Thermal Control" aria-selected="false"> <span class="btn-icon" style="background: #b2d6ff;"></span> Thermal Control</button>
         <button data-area="Hull Integrity" aria-selected="false"> <span class="btn-icon" style="background: #d1d1d1;"></span> Hull Integrity</button>
@@ -553,18 +542,6 @@
         "Turret servo misalignment on port side.",
         "Ammo handling chute jammed.",
         "Weapons nominal (no issues detected)."
-      ],
-      "Point Defense": [
-        "Point-defense turret jammed.",
-        "Auto-tracking unstable on micrometeoric impacts.",
-        "Short-range targeting sensor fault.",
-        "Point Defense nominal (no issues detected)."
-      ],
-      "ECM": [
-        "ECM suite experiencing high SWR on antenna feed.",
-        "Jamming signature detected from unknown source.",
-        "ECM processing queue overflow.",
-        "ECM nominal (no issues detected)."
       ],
       "Sensors": [
         "Long-range radar returns noisy.",
@@ -744,43 +721,6 @@
         "Inspect for foreign objects or deformities in the chute."
       ],
       "Weapons nominal (no issues detected).": [
-        "No action required — subsystem nominal. Continue routine monitoring."
-      ],
-
-      // Point Defense
-      "Point-defense turret jammed.": [
-        "Run turret unjam routine and monitor thermal load.",
-        "Check turret motor currents and replace worn bearings.",
-        "If persistent, bring the turret offline until repaired."
-      ],
-      "Auto-tracking unstable on micrometeoric impacts.": [
-        "Adjust tracking filters to compensate for high-noise environment.",
-        "Enable secondary filters and increase sample rate temporarily."
-      ],
-      "Short-range targeting sensor fault.": [
-        "Reinitialize short-range sensor modules and test returns.",
-        "Cross-check with nearby sensor arrays for confirmation."
-      ],
-      "Point Defense nominal (no issues detected).": [
-        "No action required — subsystem nominal. Continue routine monitoring."
-      ],
-
-      // ECM
-      "ECM suite experiencing high SWR on antenna feed.": [
-        "Inspect antenna feed lines for damage and standing wave reflections.",
-        "Reduce transmitter power and attempt tune.",
-        "Schedule antenna maintenance if SWR remains high."
-      ],
-      "Jamming signature detected from unknown source.": [
-        "Log jamming frequencies and attempt triangulation.",
-        "Raise alert level and coordinate with navigation for evasive maneuvers.",
-        "Attempt active counter-jamming if authorized."
-      ],
-      "ECM processing queue overflow.": [
-        "Restart ECM processors in a controlled fashion.",
-        "Increase processing priority or offload tasks to backup systems."
-      ],
-      "ECM nominal (no issues detected).": [
         "No action required — subsystem nominal. Continue routine monitoring."
       ],
 
@@ -1157,44 +1097,50 @@
     // Prevent duplicate escalation recommendations being appended repeatedly
     escalationAdded = false;
 
-    // Update error count display and button tags
-    function updateErrorCountAndTags() {
-      let errorCount = 0;
-      const areasWithErrors = [];
-      
-      // Count subsystems with errors (non-nominal states)
-      for (const area in subsystemStates) {
-        if (subsystemStates[area] && !subsystemStates[area].includes('nominal')) {
-          errorCount++;
-          areasWithErrors.push(area);
+    // Track resolved issues in last 24 hours
+    const RESOLVED_ISSUES_KEY = 'obsidian_diag_resolved_v1';
+    
+    function getResolvedIssuesLast24h() {
+      try {
+        const raw = localStorage.getItem(RESOLVED_ISSUES_KEY);
+        const resolved = raw ? JSON.parse(raw) : [];
+        const now = Date.now();
+        const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+        
+        // Filter to only issues resolved in last 24 hours
+        const recent = resolved.filter(r => r.timestamp > twentyFourHoursAgo);
+        
+        // Update storage to remove old entries
+        if (recent.length !== resolved.length) {
+          localStorage.setItem(RESOLVED_ISSUES_KEY, JSON.stringify(recent));
         }
+        
+        return recent.length;
+      } catch (e) {
+        return 0;
       }
+    }
+    
+    function recordResolvedIssue(area, error) {
+      try {
+        const raw = localStorage.getItem(RESOLVED_ISSUES_KEY);
+        const resolved = raw ? JSON.parse(raw) : [];
+        resolved.push({ area, error, timestamp: Date.now() });
+        localStorage.setItem(RESOLVED_ISSUES_KEY, JSON.stringify(resolved));
+      } catch (e) { /* ignore */ }
+    }
+    
+    // Update resolved issues count display
+    function updateResolvedIssuesCount() {
+      const count = getResolvedIssuesLast24h();
       
       // Update error count box
-      if (errorCount > 0) {
+      if (count > 0) {
         errorCountBox.classList.add('visible');
-        errorCountText.textContent = errorCount === 1 ? '1 issue detected' : `${errorCount} issues detected`;
+        errorCountText.textContent = count === 1 ? '1 issue resolved in last 24 hours' : `${count} issues resolved in last 24 hours`;
       } else {
         errorCountBox.classList.remove('visible');
       }
-      
-      // Update button tags
-      areaButtons.forEach(btn => {
-        const area = btn.getAttribute('data-area');
-        const state = subsystemStates[area];
-        
-        // Remove existing tag if present
-        const existingTag = btn.querySelector('.error-tag');
-        if (existingTag) existingTag.remove();
-        
-        // Add tag if subsystem has an error
-        if (state && !state.includes('nominal')) {
-          const tag = document.createElement('span');
-          tag.className = 'error-tag';
-          tag.textContent = 'REVIEW';
-          btn.appendChild(tag);
-        }
-      });
     }
 
     function showRecommendationsFor(errorText) {
@@ -1247,8 +1193,8 @@
           subsystemStates[selectedArea] = currentError;
         }
         
-        // Update error count and tags after state change
-        updateErrorCountAndTags();
+        // Update resolved issues count after state change
+        updateResolvedIssuesCount();
 
         // show/hide controls
         if (currentError && !currentError.includes('nominal')) {
@@ -1293,7 +1239,8 @@
         setLedForError('nominal');
         diagnosticsStatus.style.color = successColor;
         subsystemStates[selectedArea] = 'nominal'; // Mark as resolved
-        updateErrorCountAndTags(); // Update counts and tags
+        recordResolvedIssue(selectedArea, currentError); // Record the resolution
+        updateResolvedIssuesCount(); // Update counts
         pushHistory({ area: selectedArea, error: `${selectedArea} — issue resolved.`, time: Date.now(), statusText: 'Resolved' });
         // celebration (replaced confetti)
         triggerConfetti();
@@ -1343,7 +1290,7 @@
         const err = list[Math.floor(Math.random() * list.length)];
         subsystemStates[area] = err;
       });
-      updateErrorCountAndTags();
+      updateResolvedIssuesCount();
     }
 
     // Initialization: restore last selected
