@@ -749,6 +749,20 @@
   </div>
 </div>
 
+<!-- Scrubber replacement confirmation modal -->
+<!-- Custom modal replaces native browser confirm() to avoid showing origin in dialog title (see screenshot in issue) -->
+<div id="scrubber-reset-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="scrubber-reset-title">
+  <div class="modal-box" role="document">
+    <h4 id="scrubber-reset-title">Confirm Scrubber Replacement</h4>
+    <p>Replacing scrubber components will set efficiency to 100% and reset the maintenance countdown to 0 hours. This action cannot be undone.</p>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button id="scrubber-reset-cancel" class="ghost">Cancel</button>
+      <button id="scrubber-reset-confirm" class="btn-danger">Replace Scrubber</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* Utility arc drawing */
 function describeArc(cx, cy, r, startAngle, endAngle) {
@@ -962,7 +976,8 @@ function pushVagueError() {
 const btnCycle = document.getElementById('btn-cycle-scrubber');
 const btnReset = document.getElementById('btn-reset-scrubber');
 if (btnCycle) btnCycle.addEventListener('click', cycleScrubber);
-if (btnReset) btnReset.addEventListener('click', resetScrubber);
+if (btnReset) btnReset.addEventListener('click', openScrubberResetModal);
+
 function cycleScrubber(){
   if (!btnCycle) return;
   btnCycle.disabled = true;
@@ -977,9 +992,38 @@ function cycleScrubber(){
     pushTelemetryLine('Scrubber cycle completed — efficiency improved');
   }, 2200);
 }
-function resetScrubber(){
+
+/* Open scrubber reset modal instead of native confirm() dialog */
+function openScrubberResetModal(){
+  // Fallback to native confirm if modal not found
+  if (!scrubberResetModal) {
+    if (!confirm('Replacing scrubber components sets efficiency to 100% and resets ETA.')) return;
+    performScrubberReset();
+    return;
+  }
+  
+  // Show modal and manage focus
+  scrubberResetModal.classList.remove('hidden');
+  const confirmBtn = document.getElementById('scrubber-reset-confirm');
+  if (confirmBtn) {
+    confirmBtn.focus();
+  }
+}
+
+/* Close scrubber reset modal */
+function closeScrubberResetModal(){
+  if (scrubberResetModal) {
+    scrubberResetModal.classList.add('hidden');
+  }
+  // Return focus to Replace Scrubber button
+  if (btnReset) {
+    btnReset.focus();
+  }
+}
+
+/* Perform the actual scrubber reset (extracted for reuse) */
+function performScrubberReset(){
   if (!btnReset) return;
-  if (!confirm('Replacing scrubber components sets efficiency to 100% and resets ETA.')) return;
   btnReset.disabled = true;
   const original = btnReset.textContent;
   btnReset.textContent = 'Resetting...';
@@ -1088,6 +1132,7 @@ const evacCancel = document.getElementById('evac-cancel');
 const evacConfirm = document.getElementById('evac-confirm');
 const btnCancelDispatch = document.getElementById('btn-cancel-dispatch');
 const btnClearAlert = document.getElementById('btn-clear-alert');
+const scrubberResetModal = document.getElementById('scrubber-reset-modal');
 
 /* Track dispatch timers so they can be aborted cleanly */
 let evacTimers = [];
@@ -1117,6 +1162,37 @@ if (btnEvac) btnEvac.addEventListener('click', ()=> {
 });
 if (evacCancel) evacCancel.addEventListener('click', ()=> {
   if (evacModal) evacModal.classList.add('hidden');
+});
+
+/* Scrubber reset modal event handlers */
+const scrubberResetCancel = document.getElementById('scrubber-reset-cancel');
+const scrubberResetConfirm = document.getElementById('scrubber-reset-confirm');
+
+if (scrubberResetCancel) {
+  scrubberResetCancel.addEventListener('click', closeScrubberResetModal);
+}
+if (scrubberResetConfirm) {
+  scrubberResetConfirm.addEventListener('click', ()=> {
+    closeScrubberResetModal();
+    performScrubberReset();
+  });
+}
+
+/* ESC key handler for modals */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    // Close scrubber reset modal if open
+    if (scrubberResetModal && !scrubberResetModal.classList.contains('hidden')) {
+      closeScrubberResetModal();
+      e.preventDefault();
+      return;
+    }
+    // Close evac modal if open
+    if (evacModal && !evacModal.classList.contains('hidden')) {
+      evacModal.classList.add('hidden');
+      e.preventDefault();
+    }
+  }
 });
 
 /* Dispatch confirm: start evac, enable cancel/clear buttons */
