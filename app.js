@@ -6,7 +6,7 @@ let catalog = null;
 let currentSystem = null;
 let currentPlanet = null;
 let currentCustom = null; // selected custom destination (object from customLocations)
-const STORAGE = { LOC: 'nav:loc:v1', CUSTOMS: 'nav:customs_v1' };
+const STORAGE = { LOC: 'nav:loc:v1', CUSTOMS: 'nav:customs_v1', HISTORY: 'nav:history_v1' };
 
 function $(id){ return document.getElementById(id); }
 
@@ -35,8 +35,38 @@ function saveCustoms(list){ localStorage.setItem(STORAGE.CUSTOMS, JSON.stringify
 function addOrUpdateCustom(c){ const arr = loadCustoms(); const idx = arr.findIndex(x => x.id === c.id); if(idx>=0) arr[idx]=c; else arr.push(c); saveCustoms(arr); renderCustomList(); }
 function removeCustomById(id){ let arr = loadCustoms(); arr = arr.filter(x=>x.id !== id); saveCustoms(arr); renderCustomList(); if(currentCustom && currentCustom.id===id) currentCustom=null; }
 
-function saveLocation(loc){ localStorage.setItem(STORAGE.LOC, JSON.stringify(loc)); }
+function saveLocation(loc){ 
+  localStorage.setItem(STORAGE.LOC, JSON.stringify(loc)); 
+  // Also add to travel history
+  addToTravelHistory(loc);
+}
 function loadLocation(){ try{ return JSON.parse(localStorage.getItem(STORAGE.LOC)); }catch(e){return null} }
+
+/* travel history helpers */
+function loadTravelHistory(){ try{ return JSON.parse(localStorage.getItem(STORAGE.HISTORY)) || []; }catch(e){ return []; } }
+function saveTravelHistory(list){ localStorage.setItem(STORAGE.HISTORY, JSON.stringify(list)); }
+function addToTravelHistory(loc){
+  const history = loadTravelHistory();
+  const entry = {
+    ...loc,
+    timestamp: new Date().toISOString()
+  };
+  // Add to beginning and limit to 10 most recent
+  history.unshift(entry);
+  // Remove duplicates - keep only the most recent entry for each location
+  const unique = [];
+  const seen = new Set();
+  for(const item of history){
+    const key = `${item.system}:${item.planet}`;
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(item);
+    }
+  }
+  const limited = unique.slice(0, 10);
+  saveTravelHistory(limited);
+  renderRecentlyTravelled();
+}
 
 function updateOverallStatus(text, progress = null){
   const el = $('overallStatus');
@@ -429,12 +459,11 @@ async function travelToCurrent(mode = 'regular'){
   renderMapLarge(currentSystem || catalog.systems[0], currentPlanet, currentCustom);
 }
 
-/* Custom locations UI */
-function renderCustomList(){
-  const container = $('customList');
-  const arr = loadCustoms();
+/* Favorites list UI (from pb_favorites) */
+function renderFavoritesList(){
+  const container = $('favoritesList');
+  if(!container) return;
   
-  // Also load pb_favorites to integrate both systems
   let pbFavorites = [];
   try {
     const raw = localStorage.getItem('pb_favorites') || '[]';
@@ -445,143 +474,187 @@ function renderCustomList(){
   
   container.innerHTML = '';
   
-  // Check if we have any items from either source
-  if(arr.length === 0 && pbFavorites.length === 0){
-    container.innerHTML = '<div class="small-muted">No custom locations yet — create one with the Go button.</div>';
+  if(pbFavorites.length === 0){
+    container.innerHTML = '<div class="small-muted" style="padding:8px">No favorites yet. Add favorites from the Mainframe Weather page.</div>';
     return;
   }
   
-  // Render nav:customs_v1 items (newly created custom locations)
-  arr.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'custom-item';
-    el.innerHTML = `<div class="left"><strong>${escapeHtml(c.name)}</strong><div class="small-muted" style="margin-left:6px">${escapeHtml(c.system)} • ${c.orbitalAU} AU</div></div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button data-select="${c.id}" title="Select and preview">Select</button>
-        <button data-travel="${c.id}" title="Travel">Go</button>
-        <button data-delete="${c.id}" title="Delete">✕</button>
-      </div>`;
-    container.appendChild(el);
-    el.querySelector('[data-select]')?.addEventListener('click', ()=> {
-      currentCustom = c; currentPlanet = null; currentSystem = catalog.systems.find(s=>s.id===c.system) || currentSystem;
-      renderMapLarge(currentSystem, null, currentCustom);
-      $('planetName').textContent = c.name;
-      $('planetSummary').textContent = c.summary || 'Custom location';
-      $('planetType').textContent = c.type || 'Waypoint';
-      $('planetOrbit').textContent = c.orbitalAU + ' AU';
-      $('planetRadius').textContent = c.radiusEarth + ' R⊕';
-    });
-    el.querySelector('[data-travel]')?.addEventListener('click', async ()=> {
-      currentCustom = c; currentPlanet = null; currentSystem = catalog.systems.find(s=>s.id===c.system) || currentSystem;
-      renderMapLarge(currentSystem, null, currentCustom);
-      await travelToCurrent($('travelModeSelect')?.value || 'regular');
-    });
-    el.querySelector('[data-delete]')?.addEventListener('click', ()=> {
-      if(!confirm(`Delete custom location "${c.name}"?`)) return;
-      removeCustomById(c.id);
-      if(currentCustom && currentCustom.id === c.id){ currentCustom = null; renderMapLarge(currentSystem, currentPlanet, null); }
-    });
-  });
-  
-  // Render pb_favorites items (favorites from other pages)
-  // Filter out favorites that already exist in custom locations to avoid duplicates
-  const customNames = arr.map(c => c.name.toLowerCase());
-  const uniqueFavorites = pbFavorites.filter(item => {
-    const favName = (item.name || (item.planet && item.planet.planetCode) || '').toLowerCase();
-    return !customNames.includes(favName);
-  });
-  
-  if(uniqueFavorites.length > 0){
-    const wrapper = document.createElement('div');
-    wrapper.className = 'fav-list';
-    wrapper.style.marginTop = arr.length > 0 ? '12px' : '0';
+  // Show most recent favorites first (reverse order, limit to 8)
+  pbFavorites.slice().reverse().slice(0,8).forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'fav-item';
     
-    uniqueFavorites.slice().reverse().slice(0,8).forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'fav-item';
-      
-      const thumb = document.createElement('div');
-      thumb.className = 'fav-thumb';
-      if(item.thumbnail){
-        const img = document.createElement('img');
-        img.src = item.thumbnail;
-        img.alt = item.name || (item.planet && item.planet.planetCode) || 'saved';
-        thumb.appendChild(img);
+    const thumb = document.createElement('div');
+    thumb.className = 'fav-thumb';
+    if(item.thumbnail){
+      const img = document.createElement('img');
+      img.src = item.thumbnail;
+      img.alt = item.name || (item.planet && item.planet.planetCode) || 'saved';
+      thumb.appendChild(img);
+    } else {
+      thumb.textContent = '🔭';
+      thumb.style.fontSize = '18px';
+      thumb.style.display = 'flex';
+      thumb.style.alignItems = 'center';
+      thumb.style.justifyContent = 'center';
+      thumb.style.color = 'rgba(191,230,255,0.6)';
+    }
+    
+    const meta = document.createElement('div');
+    meta.className = 'fav-meta';
+    const title = document.createElement('div');
+    title.className = 'fav-title';
+    title.textContent = item.name || (item.planet && item.planet.planetCode) || 'Saved Location';
+    const sub = document.createElement('div');
+    sub.className = 'fav-sub';
+    const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
+    const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
+    sub.textContent = `${sys} ${pcode}`.trim();
+    
+    meta.appendChild(title);
+    meta.appendChild(sub);
+    
+    const actions = document.createElement('div');
+    actions.className = 'fav-actions';
+    
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.textContent = 'Load';
+    loadBtn.title = 'Load into the custom location input';
+    loadBtn.addEventListener('click', () => {
+      const input = $('customGotoInput');
+      if(!input) return;
+      input.value = item.name || (item.planet && item.planet.planetCode) || '';
+      input.focus();
+    });
+    
+    const goBtn = document.createElement('button');
+    goBtn.type = 'button';
+    goBtn.className = 'primary';
+    goBtn.textContent = 'Go';
+    goBtn.title = 'Go to this saved location';
+    goBtn.addEventListener('click', async () => {
+      const favName = item.name || (item.planet && item.planet.planetCode) || '';
+      const parsed = parseDestination(favName);
+      if(parsed && parsed.system && parsed.planet){
+        renderDetails(parsed.system, parsed.planet);
+        currentCustom = null;
+        const mode = $('travelModeSelect')?.value || 'regular';
+        await travelToCurrent(mode);
+      } else if(parsed && parsed.system && !parsed.planet){
+        selectSystem(parsed.system);
+        currentCustom = null;
+        updateOverallStatus(`Opened system ${parsed.system}`);
       } else {
-        thumb.textContent = '🔭';
-        thumb.style.fontSize = '18px';
-        thumb.style.display = 'flex';
-        thumb.style.alignItems = 'center';
-        thumb.style.justifyContent = 'center';
-        thumb.style.color = 'rgba(191,230,255,0.6)';
+        updateOverallStatus(`Cannot travel to "${favName}" - not found in navigation catalog.`);
       }
-      
-      const meta = document.createElement('div');
-      meta.className = 'fav-meta';
-      const title = document.createElement('div');
-      title.className = 'fav-title';
-      title.textContent = item.name || (item.planet && item.planet.planetCode) || 'Saved Location';
-      const sub = document.createElement('div');
-      sub.className = 'fav-sub';
-      const sys = (item.star && item.star.name) ? item.star.name : (item.planet && item.planet.systemName) || '';
-      const pcode = (item.planet && (item.planet.planetCode || item.planet.planetCode)) || '';
-      sub.textContent = `${sys} ${pcode}`.trim();
-      
-      meta.appendChild(title);
-      meta.appendChild(sub);
-      
-      const actions = document.createElement('div');
-      actions.className = 'fav-actions';
-      
-      const loadBtn = document.createElement('button');
-      loadBtn.type = 'button';
-      loadBtn.textContent = 'Load';
-      loadBtn.title = 'Load into the custom location input';
-      loadBtn.addEventListener('click', () => {
-        const input = $('customGotoInput');
-        if(!input) return;
-        input.value = item.name || (item.planet && item.planet.planetCode) || '';
-        input.focus();
-      });
-      
-      const goBtn = document.createElement('button');
-      goBtn.type = 'button';
-      goBtn.className = 'primary';
-      goBtn.textContent = 'Go';
-      goBtn.title = 'Go to this saved location';
-      goBtn.addEventListener('click', async () => {
-        // Try to parse favorite as catalog destination and travel directly
-        const favName = item.name || (item.planet && item.planet.planetCode) || '';
-        const parsed = parseDestination(favName);
-        if(parsed && parsed.system && parsed.planet){
-          // Found in catalog - travel to it directly without creating custom location
-          renderDetails(parsed.system, parsed.planet);
-          currentCustom = null;
-          const mode = $('travelModeSelect')?.value || 'regular';
-          await travelToCurrent(mode);
-        } else if(parsed && parsed.system && !parsed.planet){
-          // System only - just open it
-          selectSystem(parsed.system);
-          currentCustom = null;
-          updateOverallStatus(`Opened system ${parsed.system}`);
-        } else {
-          // Can't find in catalog
-          updateOverallStatus(`Cannot travel to "${favName}" - not found in navigation catalog.`);
-        }
-      });
-      
-      actions.appendChild(loadBtn);
-      actions.appendChild(goBtn);
-      
-      row.appendChild(thumb);
-      row.appendChild(meta);
-      row.appendChild(actions);
-      
-      wrapper.appendChild(row);
     });
     
-    container.appendChild(wrapper);
+    actions.appendChild(loadBtn);
+    actions.appendChild(goBtn);
+    
+    row.appendChild(thumb);
+    row.appendChild(meta);
+    row.appendChild(actions);
+    
+    container.appendChild(row);
+  });
+}
+
+/* Recently travelled list UI */
+function renderRecentlyTravelled(){
+  const container = $('recentlyTravelledList');
+  if(!container) return;
+  
+  const history = loadTravelHistory();
+  
+  container.innerHTML = '';
+  
+  if(history.length === 0){
+    container.innerHTML = '<div class="small-muted" style="padding:8px">No travel history yet.</div>';
+    return;
   }
+  
+  // Show up to 8 most recent travels
+  history.slice(0, 8).forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'recent-item';
+    
+    // Try to find the destination details from catalog
+    const sys = catalog.systems.find(s => s.id === entry.system);
+    const planet = sys?.planets.find(p => p.id === entry.planet);
+    const customs = loadCustoms();
+    const custom = customs.find(c => c.id === entry.planet);
+    
+    const displayName = custom ? custom.name : (planet ? planet.name : entry.planet);
+    const systemName = sys ? sys.name : entry.system;
+    
+    const meta = document.createElement('div');
+    meta.className = 'recent-meta';
+    
+    const name = document.createElement('div');
+    name.className = 'recent-name';
+    name.textContent = displayName;
+    
+    const detail = document.createElement('div');
+    detail.className = 'recent-detail';
+    const timestamp = new Date(entry.timestamp);
+    const timeAgo = getTimeAgo(timestamp);
+    detail.textContent = `${systemName} • ${timeAgo}`;
+    
+    meta.appendChild(name);
+    meta.appendChild(detail);
+    
+    const actions = document.createElement('div');
+    actions.className = 'recent-actions';
+    
+    const goBtn = document.createElement('button');
+    goBtn.type = 'button';
+    goBtn.className = 'primary';
+    goBtn.textContent = 'Go';
+    goBtn.title = 'Travel to this location';
+    goBtn.addEventListener('click', async () => {
+      if(custom){
+        currentCustom = custom;
+        currentPlanet = null;
+        currentSystem = sys || currentSystem;
+        renderMapLarge(currentSystem, null, currentCustom);
+        await travelToCurrent($('travelModeSelect')?.value || 'regular');
+      } else if(planet){
+        renderDetails(entry.system, entry.planet);
+        currentCustom = null;
+        await travelToCurrent($('travelModeSelect')?.value || 'regular');
+      }
+    });
+    
+    actions.appendChild(goBtn);
+    
+    el.appendChild(meta);
+    el.appendChild(actions);
+    
+    container.appendChild(el);
+  });
+}
+
+/* Helper function to format time ago */
+function getTimeAgo(date){
+  const now = new Date();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if(seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if(minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if(hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if(days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
+/* Wrapper function to render both lists */
+function renderCustomList(){
+  renderFavoritesList();
+  renderRecentlyTravelled();
 }
 
 /* Creating/updating a custom location (stored separately) */
@@ -600,26 +673,6 @@ async function goToTypedDestination(rawInput, useMode = null){
     selectSystem(parsed.system);
     currentCustom = null;
     updateOverallStatus(`Opened system ${parsed.system}`);
-    return;
-  }
-
-  // Check if this matches a favorite from pb_favorites - if so, don't create a duplicate custom location
-  let pbFavorites = [];
-  try {
-    const favRaw = localStorage.getItem('pb_favorites') || '[]';
-    pbFavorites = JSON.parse(favRaw);
-  } catch(e) {
-    pbFavorites = [];
-  }
-  
-  const matchingFavorite = pbFavorites.find(fav => {
-    const favName = fav.name || (fav.planet && fav.planet.planetCode) || '';
-    return favName.toLowerCase() === raw.toLowerCase();
-  });
-  
-  if(matchingFavorite){
-    // Favorite exists - don't create duplicate. Instead, show a message.
-    updateOverallStatus(`"${raw}" is already in your favorites list. Use the "Go" button on the favorite to travel directly.`);
     return;
   }
 
