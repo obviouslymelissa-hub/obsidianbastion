@@ -50,7 +50,8 @@
     #qtyInput,
     #useItemSelect,
     #useQtyInput,
-    .form-control.form-control-sm {
+    .form-control.form-control-sm,
+    .form-select.form-select-sm {
       background: transparent;
       /* make input text slightly brighter for readability */
       color: #ffffff;
@@ -72,7 +73,8 @@
     #qtyInput:focus,
     #useItemSelect:focus,
     #useQtyInput:focus,
-    .form-control.form-control-sm:focus {
+    .form-control.form-control-sm:focus,
+    .form-select.form-select-sm:focus {
       outline: 2px solid rgba(127, 224, 211, 0.12);
       outline-offset: 0;
       border-color: var(--accent);
@@ -194,7 +196,7 @@
           <form id="useForm" class="row g-2 mt-2">
             <div class="col-12">
               <label for="useItemSelect" class="form-label small">Select Item</label>
-              <select id="useItemSelect" class="form-control form-control-sm" required>
+              <select id="useItemSelect" class="form-select form-select-sm" required>
                 <option value="">-- Select an item --</option>
               </select>
             </div>
@@ -880,10 +882,10 @@
 
     // Defer chart creation and interval start until DOM ready
     document.addEventListener('DOMContentLoaded', () => {
-      // basic sanity checks
+      // Chart.js initialization - skip chart creation if library not loaded
       if (typeof Chart === 'undefined') {
         console.error('Chart.js not loaded — charts cannot be created.');
-        // Don't return - continue with other initialization
+        // Continue with other initialization even without charts
       } else {
         const partsCtx = document.getElementById('partsChart');
         const suppliesCtx = document.getElementById('suppliesChart');
