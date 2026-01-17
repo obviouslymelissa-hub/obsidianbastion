@@ -9,18 +9,31 @@
     /* Page-specific small layout helpers */
     .wrap { max-width:1200px; margin:24px auto; padding:0 18px; }
     .controls-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    .grid { display:grid; grid-template-columns: 320px 1fr 320px; gap:16px; margin-top:16px; }
-    .panel-card { background:var(--panel-bg, #0b0f14); padding:14px; border-radius:8px; }
+    /* Wider left/right columns and larger center (makes the center "screen" bigger) */
+    .grid { display:grid; grid-template-columns: 300px 1fr 300px; gap:16px; margin-top:16px; }
+    .panel-card { background:var(--panel-bg, #071019); padding:14px; border-radius:8px; color:var(--text, #e6eef6); }
     .drone-list .tile { display:flex; justify-content:space-between; align-items:center; padding:10px; margin-bottom:8px; background:rgba(255,255,255,0.02); border-radius:6px; }
     .tile .meta { font-size:0.9rem; color:var(--muted); }
-    #mapCanvas { width:100%; height:520px; background:linear-gradient(180deg,#061018, #07131a); border-radius:8px; display:block; }
+    /* map styles: remove fixed height to let JS manage a larger, responsive height */
+    #mapCanvas { width:100%; height:64vh; background:linear-gradient(180deg,#061018, #07131a); border-radius:8px; display:block; touch-action:none; }
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
-    .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; }
+    .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
     .btn.small { padding:6px 8px; font-size:13px; }
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:40; touch-action:none; }
+    #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
+    .mission-controls { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+    .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
+    /* coordinate inputs */
+    .coord-controls { margin-left:auto; display:flex; gap:6px; align-items:center; }
+    .coord-controls input, .coord-controls select { padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.02); color:inherit; border:1px solid rgba(255,255,255,0.03); width:64px; }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .coord-controls { margin-top:8px; width:100%; justify-content:flex-start; }
+    }
   </style>
 </head>
 <body>
-  <!-- Shared header (copy from existing pages) -->
+  <!-- Shared header (copy from other pages) -->
   <header class="site-header">
     <div class="wrap header-wrap">
       <div class="header-left">
@@ -40,12 +53,11 @@
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
       <div>
         <h1>Drone Launch & Operations</h1>
-        <div class="small">Manage fleet status, launch/recall drones, and monitor telemetry.</div>
+        <div class="small">Virtual drone playground — launch, pilot, and plan missions.</div>
       </div>
-
       <div class="controls">
         <div class="controls-row">
-          <div id="connectionStatus" class="pill" style="background:#2b2b2b;padding:8px 10px">Disconnected</div>
+          <div id="connectionStatus" class="pill" style="background:#2b2b2b;padding:8px 10px">Local Simulation</div>
           <button id="btnLaunchAll" class="btn">Launch All</button>
           <button id="btnRecallAll" class="btn">Recall All</button>
           <button id="btnAbortAll" class="btn danger">Abort</button>
@@ -55,49 +67,69 @@
     </div>
 
     <div class="grid" role="main" aria-label="Drone control grid">
-      <!-- Left: Drone list -->
+      <!-- Left: Drone list & mission editor -->
       <aside class="panel-card drone-list" aria-label="Drone list">
         <h3 style="margin:0 0 10px 0">Fleet</h3>
-        <div id="droneList" aria-live="polite">
-          <!-- Drone tiles injected here -->
-        </div>
+        <div id="droneList" aria-live="polite"></div>
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
           <button id="btnScanArea" class="btn small">Scan Area</button>
+          <button id="btnShuffle" class="btn small">Randomize</button>
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div>
+          <h4 style="margin:6px 0">Mission Editor</h4>
+          <div class="mission-controls">
+            <button id="btnSaveMission" class="btn small">Save Mission</button>
+            <button id="btnLoadMission" class="btn small">Load Mission</button>
+            <button id="btnClearWaypoints" class="btn small">Clear Waypoints</button>
+          </div>
+          <div class="small" style="margin-top:8px">Click map to add waypoint for selected drone. Drag waypoints to adjust or enter coordinates.</div>
         </div>
       </aside>
 
       <!-- Center: Map / Tactical display -->
       <section class="panel-card" aria-label="Tactical map">
-        <h3 style="margin:0 0 10px 0">Tactical Map</h3>
-        <canvas id="mapCanvas" width="1000" height="520" role="application" aria-label="Drone positions and paths"></canvas>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <h3 style="margin:0 0 10px 0;flex:0 0 auto">Tactical Map</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="btnCenter" class="btn small">Center on Fleet</button>
+            <button id="btnShowPaths" class="btn small">Toggle Paths</button>
+            <button id="btnToggleTrails" class="btn small">Toggle Trails</button>
+          </div>
+
+          <!-- Coordinate controls (placed in map header area) -->
+          <div class="coord-controls" style="margin-left:auto">
+            <input id="coordX" placeholder="X" title="X coordinate or percent" />
+            <input id="coordY" placeholder="Y" title="Y coordinate or percent" />
+            <select id="coordMode" title="Coordinate mode">
+              <option value="px">px</option>
+              <option value="%">%</option>
+            </select>
+            <button id="btnGotoCoords" class="btn small">Go To</button>
+          </div>
+        </div>
+
+        <canvas id="mapCanvas" width="1000" height="720" role="application" aria-label="Drone positions and paths"></canvas>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button id="btnCenter" class="btn small">Center on Fleet</button>
-          <button id="btnShowPaths" class="btn small">Toggle Paths</button>
-          <div class="small" id="mapHint" style="margin-left:auto">Click a drone to view details</div>
+          <div class="small" id="mapHint" style="margin-left:auto">Click drone to view | Shift+Click to add waypoint globally</div>
         </div>
       </section>
 
-      <!-- Right: Telemetry & Logs -->
+      <!-- Right: Telemetry, camera & logs -->
       <aside class="panel-card telemetry" aria-label="Telemetry and logs">
         <h3 style="margin:0 0 10px 0">Telemetry</h3>
         <div id="selectedDroneName" style="font-weight:700">—</div>
         <dl style="margin-top:8px">
-          <div style="display:flex;justify-content:space-between">
-            <div class="meta">Status</div><div id="sel_status" class="meta">—</div>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <div class="meta">Battery</div><div id="sel_batt" class="meta">—</div>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <div class="meta">Altitude</div><div id="sel_alt" class="meta">—</div>
-          </div>
-          <div style="display:flex;justify-content:space-between">
-            <div class="meta">Speed</div><div id="sel_spd" class="meta">—</div>
-          </div>
+          <div style="display:flex;justify-content:space-between"><div class="meta">Status</div><div id="sel_status" class="meta">—</div></div>
+          <div style="display:flex;justify-content:space-between"><div class="meta">Battery</div><div id="sel_batt" class="meta">—</div></div>
+          <div style="display:flex;justify-content:space-between"><div class="meta">Altitude</div><div id="sel_alt" class="meta">—</div></div>
+          <div style="display:flex;justify-content:space-between"><div class="meta">Speed</div><div id="sel_spd" class="meta">—</div></div>
         </dl>
 
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
@@ -109,10 +141,19 @@
           <button id="btnCmdAbort" class="btn small danger" disabled>Abort</button>
         </div>
 
+        <div style="margin-bottom:8px">
+          <div class="small">Camera</div>
+          <div class="camera-box" id="cameraBox"><canvas id="camCanvas" width="280" height="140" style="width:100%;height:100%"></canvas></div>
+        </div>
+
         <div class="small" style="margin-bottom:6px">Activity Log</div>
         <div id="log" class="log" aria-live="polite">No activity</div>
       </aside>
     </div>
+  </div>
+
+  <div id="joystick" title="Joystick (touch/mouse)">
+    <div id="knob"></div>
   </div>
 
   <footer style="text-align:center;color:var(--muted);padding:24px 0 40px;border-top:1px solid rgba(255,255,255,0.03);margin-top:18px;font-style:italic;">
@@ -124,15 +165,14 @@
 
   <script>
   (function(){
-    /* Simple in-page fleet simulator and public API.
-       Integration notes:
-       - Replace the simulated transport layer with a WebSocket or REST calls to your real drone backend.
-       - Expose the same window.droneConsole interface so other pages (or tests) can control drones:
-         window.droneConsole.launchDrone(id), landDrone(id), recallDrone(id), listDrones(), getStatus(id), setWaypoint(id, {x,y})
+    /* Enhanced client-side drone playground (updated)
+       - Larger responsive center screen
+       - Coordinate input to send drones to exact PX or % positions
+       - window.droneConsole.goToCoords(...) API
     */
 
+    // Elements
     const el = {
-      connectionStatus: document.getElementById('connectionStatus'),
       droneList: document.getElementById('droneList'),
       mapCanvas: document.getElementById('mapCanvas'),
       selectedName: document.getElementById('selectedDroneName'),
@@ -149,37 +189,35 @@
       btnCmdLand: document.getElementById('btnCmdLand'),
       btnCmdReturn: document.getElementById('btnCmdReturn'),
       btnCmdAbort: document.getElementById('btnCmdAbort'),
-      autoPilot: document.getElementById('autoPilot'),
+      btnCenter: document.getElementById('btnCenter'),
+      btnShowPaths: document.getElementById('btnShowPaths'),
+      btnToggleTrails: document.getElementById('btnToggleTrails'),
+      btnSaveMission: document.getElementById('btnSaveMission'),
+      btnLoadMission: document.getElementById('btnLoadMission'),
+      btnClearWaypoints: document.getElementById('btnClearWaypoints'),
+      btnShuffle: document.getElementById('btnShuffle'),
+      camCanvas: document.getElementById('camCanvas'),
+      joystick: document.getElementById('joystick'),
+      knob: document.getElementById('knob'),
+      coordX: document.getElementById('coordX'),
+      coordY: document.getElementById('coordY'),
+      coordMode: document.getElementById('coordMode'),
+      btnGotoCoords: document.getElementById('btnGotoCoords')
     };
 
     const ctx = el.mapCanvas.getContext('2d');
+    const camCtx = el.camCanvas.getContext('2d');
 
-    // Simulated drones (id, name, x,y,alt,battery,status)
-    let drones = [];
+    // Simulation state
+    let drones = []; // full model {id,name,x,y,px,py,vx,vy,alt,battery,status,path[],waypoints[]}
     let selected = null;
     let showPaths = true;
-    let mapCenter = { x: 500, y: 260 };
+    let trailsEnabled = true;
+    let trails = {}; // id -> array of {x,y,ttl}
+    let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
 
     function generateId(){ return 'd-'+Math.random().toString(36).slice(2,9); }
-
-    function addDrone(name){
-      const d = {
-        id: generateId(),
-        name: name || ('Drone ' + (drones.length+1)),
-        x: mapCenter.x + (Math.random()-0.5)*300,
-        y: mapCenter.y + (Math.random()-0.5)*200,
-        alt: Math.floor(10 + Math.random()*120),
-        battery: 60 + Math.floor(Math.random()*40),
-        status: 'idle',
-        path: [],
-      };
-      drones.push(d);
-      log(`Created ${d.name} (${d.id})`);
-      renderList();
-      renderMap();
-      return d;
-    }
-
+    function now(){ return Date.now(); }
     function log(msg){
       const ts = new Date().toLocaleTimeString();
       const line = `[${ts}] ${msg}`;
@@ -188,7 +226,56 @@
       el.log.scrollTop = el.log.scrollHeight;
       console.log(line);
     }
+    function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+    function lerp(a,b,t){ return a + (b-a)*t; }
 
+    // Canvas resize for crispness & responsive size
+    function resizeMapCanvas(){
+      const DPR = window.devicePixelRatio || 1;
+      const cw = el.mapCanvas.clientWidth;
+      // use 64vh in CSS, so get clientHeight
+      const ch = el.mapCanvas.clientHeight;
+      el.mapCanvas.width = Math.max(320, Math.round(cw * DPR));
+      el.mapCanvas.height = Math.max(240, Math.round(ch * DPR));
+      // drawing transforms so our logical coords use client pixels
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      mapSize.w = cw;
+      mapSize.h = ch;
+      // recenter drones if newly created with default center
+      drones.forEach(d => {
+        d.x = clamp(d.x, 6, mapSize.w-6);
+        d.y = clamp(d.y, 6, mapSize.h-6);
+      });
+    }
+    window.addEventListener('resize', () => { resizeMapCanvas(); });
+
+    // Create drone
+    function addDrone(name){
+      // ensure map size known
+      if(!mapSize.w || !mapSize.h){ resizeMapCanvas(); }
+      const d = {
+        id: generateId(),
+        name: name || ('Drone ' + (drones.length+1)),
+        x: mapSize.w/2 + (Math.random()-0.5)*300,
+        y: mapSize.h/2 + (Math.random()-0.5)*200,
+        px: 0, py:0,
+        vx: 0, vy: 0,
+        targetVx: 0, targetVy: 0,
+        alt: Math.floor(10 + Math.random()*90),
+        battery: 70 + Math.floor(Math.random()*30),
+        status: 'idle',
+        path: [],
+        waypoints: [],
+        lastUpdate: now()
+      };
+      drones.push(d);
+      trails[d.id] = [];
+      log(`Created ${d.name}`);
+      renderList();
+      return d;
+    }
+
+    // List / UI
     function renderList(){
       el.droneList.innerHTML = '';
       drones.forEach(d => {
@@ -197,7 +284,7 @@
         tile.innerHTML = `
           <div>
             <div style="font-weight:700">${d.name}</div>
-            <div class="meta">${d.status} • ${d.battery}% • alt ${d.alt}m</div>
+            <div class="meta">${d.status} • ${Math.round(d.battery)}% • alt ${Math.round(d.alt)}m</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn small" data-action="select" data-id="${d.id}">Select</button>
@@ -211,11 +298,11 @@
     function selectDrone(id){
       selected = drones.find(x => x.id === id) || null;
       if(selected){
-        el.selectedName.textContent = selected.name + ' — ' + selected.id;
+        el.selectedName.textContent = `${selected.name} — ${selected.id}`;
         el.sel_status.textContent = selected.status;
-        el.sel_batt.textContent = selected.battery + '%';
-        el.sel_alt.textContent = selected.alt + ' m';
-        el.sel_spd.textContent = selected.speed || '—';
+        el.sel_batt.textContent = Math.round(selected.battery) + '%';
+        el.sel_alt.textContent = Math.round(selected.alt) + ' m';
+        el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
         el.btnCmdLaunch.disabled = selected.status !== 'idle';
         el.btnCmdLand.disabled = selected.status !== 'flying';
         el.btnCmdReturn.disabled = selected.status === 'landing';
@@ -234,110 +321,373 @@
       renderMap();
     }
 
+    // Commands
     function launchDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
       d.status = 'flying';
-      d.speed = (3 + Math.random()*12).toFixed(1) + ' m/s';
-      d.path.push({x:d.x, y:d.y});
+      d.alt = 50;
+      d.targetVx = (Math.random()-0.5) * 1.4;
+      d.targetVy = (Math.random()-0.5) * 1.4;
       log(`Launched ${d.name}`);
       renderList();
-      renderMap();
-      if(selected && selected.id === id) selectDrone(id);
     }
-
     function landDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
       d.status = 'landing';
-      d.speed = '0.0 m/s';
-      d.path = [];
+      d.targetVx = 0; d.targetVy = 0;
       log(`Landing ${d.name}`);
-      renderList();
-      renderMap();
-      setTimeout(()=>{ d.status='idle'; d.alt = 0; log(`${d.name} landed`); renderList(); renderMap(); if(selected && selected.id===id) selectDrone(id); }, 2200);
+      setTimeout(() => {
+        d.status = 'idle';
+        d.alt = 0;
+        renderList();
+      }, 1600);
     }
-
     function recallDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
       d.status = 'returning';
+      d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
       log(`Recalling ${d.name}`);
-      // simulate return
-      d.path.push({x: mapCenter.x, y: mapCenter.y});
-      setTimeout(()=>{ d.status='landing'; renderList(); renderMap(); selectDrone(id); setTimeout(()=>{ d.status='idle'; d.alt=0; log(`${d.name} returned`); renderList(); renderMap(); if(selected && selected.id===id) selectDrone(id); },1500); }, 1800);
+    }
+    function abortDrone(id){
+      const d = drones.find(x => x.id === id);
+      if(!d) return;
+      d.status = 'idle';
+      d.targetVx = 0; d.targetVy = 0; d.waypoints = [];
+      log(`${d.name} aborted`);
+      renderList();
     }
 
-    // Public API
-    window.droneConsole = {
-      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, status:d.status, battery:d.battery })),
-      getStatus: (id) => drones.find(d => d.id === id) || null,
-      launchDrone: (id) => launchDrone(id),
-      landDrone: (id) => landDrone(id),
-      recallDrone: (id) => recallDrone(id),
-      createDrone: (name) => addDrone(name),
-      setWaypoint: (id, point) => {
-        const d = drones.find(x=>x.id===id);
-        if(!d) return;
-        d.path.push(point);
-        log(`Waypoint set for ${d.name} → (${point.x.toFixed(0)},${point.y.toFixed(0)})`);
-        renderMap();
-      },
-      connect: (opts) => {
-        // placeholder: real implementation would open websocket
-        el.connectionStatus.textContent = 'Connected';
-        el.connectionStatus.style.background = '#173d19';
-        log('Connected to drone network (simulated)');
-      },
-      disconnect: () => {
-        el.connectionStatus.textContent = 'Disconnected';
-        el.connectionStatus.style.background = 'unset';
-        log('Disconnected from drone network (simulated)');
-      }
-    };
+    // Waypoints & missions
+    function addWaypointToSelected(x,y){
+      if(!selected) { alert('Select a drone first'); return; }
+      selected.waypoints.push({ x, y, id: generateId() });
+      log(`Waypoint added to ${selected.name} (${Math.round(x)},${Math.round(y)})`);
+    }
 
-    // render map simple
+    function clearWaypoints(){
+      if(!selected) return;
+      selected.waypoints = [];
+      log(`Waypoints cleared for ${selected.name}`);
+    }
+
+    function saveMission(){
+      if(!selected) { alert('Select a drone to save its mission'); return; }
+      const key = 'mission:' + selected.id;
+      localStorage.setItem(key, JSON.stringify(selected.waypoints));
+      log(`Saved mission for ${selected.name}`);
+    }
+
+    function loadMission(){
+      if(!selected) { alert('Select a drone to load mission'); return; }
+      const key = 'mission:' + selected.id;
+      const raw = localStorage.getItem(key);
+      if(!raw) { alert('No saved mission'); return; }
+      try {
+        selected.waypoints = JSON.parse(raw);
+        log(`Loaded mission for ${selected.name}`);
+      } catch(e){ alert('Failed to load mission'); }
+    }
+
+    // Programmatic: go-to-coords, percent mode optional
+    function goToCoords(id, x, y, opts = { percent: false }){
+      // if percent mode, x,y are 0..100
+      const d = drones.find(z => z.id === id);
+      if(!d) return;
+      let targetX = x, targetY = y;
+      if(opts.percent){
+        targetX = (x/100) * mapSize.w;
+        targetY = (y/100) * mapSize.h;
+      }
+      // clamp
+      targetX = clamp(targetX, 6, mapSize.w-6);
+      targetY = clamp(targetY, 6, mapSize.h-6);
+      // add waypoint
+      d.waypoints.push({ x: targetX, y: targetY, id: generateId() });
+      d.status = 'flying';
+      log(`Ordered ${d.name} to go to ${opts.percent ? `${x}% , ${y}%` : `${Math.round(targetX)},${Math.round(targetY)}`}`);
+    }
+
+    // Trails: append points as drone moves
+    function pushTrail(d){
+      const t = trails[d.id] || (trails[d.id]=[]);
+      t.push({ x:d.x, y:d.y, ttl: 2000 + Math.random()*800 });
+      if(t.length > 200) t.shift();
+    }
+    function updateTrails(dt){
+      Object.keys(trails).forEach(id => {
+        const arr = trails[id];
+        for(let i = arr.length-1; i >= 0; --i){
+          arr[i].ttl -= dt;
+          if(arr[i].ttl <= 0) arr.splice(i,1);
+        }
+      });
+    }
+
+    // Map rendering
     function renderMap(){
       const c = ctx;
-      c.clearRect(0,0,el.mapCanvas.width, el.mapCanvas.height);
+      c.clearRect(0,0,mapSize.w,mapSize.h);
 
-      // background grid
-      c.fillStyle = '#07131a';
-      c.fillRect(0,0,el.mapCanvas.width, el.mapCanvas.height);
+      // background
+      c.fillStyle = '#041217';
+      c.fillRect(0,0,mapSize.w,mapSize.h);
 
-      // draw paths
-      if(showPaths){
-        drones.forEach(d => {
-          if(d.path && d.path.length){
+      // trails
+      if(trailsEnabled){
+        Object.values(trails).forEach(arr => {
+          for(let i=1;i<arr.length;i++){
+            const a = arr[i-1], b = arr[i];
             c.beginPath();
-            c.strokeStyle = 'rgba(120,180,255,0.15)';
-            c.lineWidth = 1.2;
-            c.moveTo(d.x, d.y);
-            d.path.forEach(p => c.lineTo(p.x, p.y));
-            c.stroke();
+            c.strokeStyle = `rgba(155,231,198,${0.08 + ((b.ttl||1000)/3000)})`;
+            c.lineWidth = 2;
+            c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke();
           }
         });
       }
 
-      // draw drones
+      // paths and waypoints
+      if(showPaths){
+        drones.forEach(d => {
+          if(d.waypoints && d.waypoints.length){
+            c.beginPath();
+            c.strokeStyle = 'rgba(255,180,130,0.18)';
+            c.lineWidth = 1.2;
+            c.moveTo(d.x,d.y);
+            d.waypoints.forEach(w => c.lineTo(w.x,w.y));
+            c.stroke();
+
+            // draw waypoint markers
+            d.waypoints.forEach(w => {
+              c.beginPath();
+              c.fillStyle = '#ffb482';
+              c.arc(w.x, w.y, 6, 0, Math.PI*2);
+              c.fill();
+            });
+          }
+        });
+      }
+
+      // drones
       drones.forEach(d => {
         c.beginPath();
         const isSel = selected && selected.id === d.id;
         c.fillStyle = isSel ? '#ffd47a' : '#9be7c6';
         c.strokeStyle = isSel ? '#ffc66a' : '#0b1e22';
         c.lineWidth = isSel ? 2 : 1;
-        c.arc(d.x, d.y, isSel ? 8 : 6, 0, Math.PI*2);
+        c.arc(d.x, d.y, isSel ? 9 : 7, 0, Math.PI*2);
         c.fill();
         c.stroke();
 
         // label
-        c.fillStyle = 'rgba(255,255,255,0.8)';
+        c.fillStyle = 'rgba(255,255,255,0.85)';
         c.font = '12px system-ui';
-        c.fillText(d.name, d.x + 10, d.y + 4);
+        c.fillText(d.name, d.x + 12, d.y + 5);
       });
     }
 
-    // events
+    // Simulation physics step
+    let lastFrame = now();
+    function step(){
+      const t = now();
+      const dt = t - lastFrame;
+      lastFrame = t;
+
+      drones.forEach(d => {
+        // waypoint seeking
+        if(d.waypoints && d.waypoints.length){
+          const wp = d.waypoints[0];
+          const dx = wp.x - d.x, dy = wp.y - d.y;
+          const dist = Math.hypot(dx,dy) || 1;
+          const desiredV = 0.9 + (d.status==='flying'?1.6:0);
+          const tx = (dx / dist) * desiredV;
+          const ty = (dy / dist) * desiredV;
+          d.targetVx = lerp(d.targetVx, tx, 0.06);
+          d.targetVy = lerp(d.targetVy, ty, 0.06);
+          if(dist < 8){
+            d.waypoints.shift();
+            log(`${d.name} reached waypoint`);
+          }
+        } else {
+          d.targetVx = lerp(d.targetVx, 0, 0.02);
+          d.targetVy = lerp(d.targetVy, 0, 0.02);
+        }
+
+        d.vx = lerp(d.vx, d.targetVx, 0.12);
+        d.vy = lerp(d.vy, d.targetVy, 0.12);
+
+        d.x += d.vx * (dt/16);
+        d.y += d.vy * (dt/16);
+        d.x = clamp(d.x, 6, mapSize.w-6);
+        d.y = clamp(d.y, 6, mapSize.h-6);
+
+        if(d.status === 'flying' || d.status === 'returning'){
+          d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
+        }
+
+        pushTrail(d);
+      });
+
+      updateTrails(dt);
+      renderMap();
+      renderCamera();
+
+      if(selected){
+        el.sel_status.textContent = selected.status;
+        el.sel_batt.textContent = Math.round(selected.battery) + '%';
+        el.sel_alt.textContent = Math.round(selected.alt) + ' m';
+        el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    // Simple simulated camera display
+    function renderCamera(){
+      const c = camCtx;
+      const cw = el.camCanvas.width, ch = el.camCanvas.height;
+      c.clearRect(0,0,cw,ch);
+      c.fillStyle = '#000';
+      c.fillRect(0,0,cw,ch);
+
+      c.strokeStyle = '#17303a';
+      c.lineWidth = 1;
+      for(let x=0;x<cw;x+=28){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,ch); c.stroke(); }
+      for(let y=0;y<ch;y+=18){ c.beginPath(); c.moveTo(0,y); c.lineTo(cw,y); c.stroke(); }
+
+      const focus = selected || drones[0];
+      if(focus){
+        c.fillStyle = '#2bbf9b';
+        c.beginPath();
+        const fx = ((focus.x / mapSize.w) * (cw*0.7)) + cw*0.15;
+        const fy = ((focus.y / mapSize.h) * (ch*0.7)) + ch*0.15;
+        c.arc(fx, fy, 8 + Math.sin(now()/300)*2, 0, Math.PI*2);
+        c.fill();
+        c.fillStyle = '#fff';
+        c.font = '11px system-ui';
+        c.fillText(focus.name, 8, ch-10);
+      } else {
+        c.fillStyle = '#666';
+        c.fillText('No drone selected', 10, ch/2);
+      }
+    }
+
+    // Map click selects or adds waypoint
+    el.mapCanvas.addEventListener('click', (ev) => {
+      const rect = el.mapCanvas.getBoundingClientRect();
+      const x = (ev.clientX - rect.left);
+      const y = (ev.clientY - rect.top);
+      let nearest = null, dist = 9999;
+      drones.forEach(d => {
+        const dd = Math.hypot(d.x - x, d.y - y);
+        if(dd < dist && dd < 24){ dist = dd; nearest = d; }
+      });
+      if(nearest) {
+        selectDrone(nearest.id);
+      } else if(ev.shiftKey) {
+        drones.forEach(d => d.waypoints.push({ x,y,id:generateId() }));
+        log(`Global waypoint added`);
+      } else {
+        addWaypointToSelected(x,y);
+      }
+    });
+
+    // Coordinate Go To button
+    el.btnGotoCoords.addEventListener('click', () => {
+      if(!selected){ alert('Select a drone first'); return; }
+      const rawX = el.coordX.value.trim();
+      const rawY = el.coordY.value.trim();
+      if(!rawX || !rawY){ alert('Enter both X and Y'); return; }
+      const mode = el.coordMode.value;
+      let x = parseFloat(rawX.replace('%',''));
+      let y = parseFloat(rawY.replace('%',''));
+      if(Number.isNaN(x) || Number.isNaN(y)){ alert('Invalid numbers'); return; }
+      if(mode === '%'){ goToCoords(selected.id, x, y, { percent: true }); }
+      else { // px
+        // clamp px to current mapSize
+        x = clamp(x, 6, mapSize.w-6);
+        y = clamp(y, 6, mapSize.h-6);
+        goToCoords(selected.id, x, y, { percent: false });
+      }
+    });
+
+    // Joystick (pointer)
+    (function initJoystick(){
+      const js = el.joystick, knob = el.knob;
+      let active = false, origin = { x:0, y:0 }, radius = 46;
+      function updateOrigin(){
+        const r = js.getBoundingClientRect();
+        origin.x = r.left + r.width/2;
+        origin.y = r.top + r.height/2;
+      }
+      updateOrigin();
+      window.addEventListener('resize', updateOrigin);
+
+      function onPointerMove(e){
+        if(!active) return;
+        const x = e.clientX - origin.x;
+        const y = e.clientY - origin.y;
+        const dist = Math.min(radius, Math.hypot(x,y));
+        const ang = Math.atan2(y,x);
+        const dx = Math.cos(ang) * dist;
+        const dy = Math.sin(ang) * dist;
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        const normX = dx / radius;
+        const normY = dy / radius;
+        if(selected){
+          selected.targetVx = normX * 2.2;
+          selected.targetVy = normY * 2.2;
+          if(selected.status === 'idle'){ selected.status = 'flying'; }
+        }
+      }
+      function onPointerUp(){
+        active = false;
+        knob.style.transform = '';
+        if(selected){
+          selected.targetVx = 0; selected.targetVy = 0;
+        }
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+      }
+      js.addEventListener('pointerdown', (ev)=>{
+        active = true; updateOrigin();
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+        ev.preventDefault();
+      });
+    })();
+
+    // Keyboard controls
+    window.addEventListener('keydown', (ev) => {
+      if(!selected) return;
+      const step = 0.6;
+      let vx = 0, vy = 0;
+      if(ev.key === ' ') { landDrone(selected.id); }
+      if(ev.key.toLowerCase() === 'r') { recallDrone(selected.id); }
+      if(ev.key === 'w' || ev.key === 'ArrowUp') vy = -step;
+      if(ev.key === 's' || ev.key === 'ArrowDown') vy = step;
+      if(ev.key === 'a' || ev.key === 'ArrowLeft') vx = -step;
+      if(ev.key === 'd' || ev.key === 'ArrowRight') vx = step;
+      if(vx || vy){ selected.targetVx = vx * 2.0; selected.targetVy = vy * 2.0; selected.status = 'flying'; }
+    });
+
+    // Gamepad polling
+    setInterval(()=> {
+      const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null;
+      if(!gp || !selected) return;
+      const axX = gp.axes[0], axY = gp.axes[1];
+      if(Math.abs(axX) > 0.12 || Math.abs(axY) > 0.12){
+        selected.targetVx = axX * 2.2;
+        selected.targetVy = axY * 2.2;
+        selected.status = 'flying';
+      } else {
+        selected.targetVx = 0; selected.targetVy = 0;
+      }
+    }, 80);
+
+    // UI bindings
     el.droneList.addEventListener('click', (ev) => {
       const btn = ev.target.closest('button');
       if(!btn) return;
@@ -346,48 +696,77 @@
       if(act === 'select') selectDrone(id);
       if(act === 'launch') launchDrone(id);
     });
-
-    el.btnLaunchAll.addEventListener('click', ()=> drones.forEach(d => d.status==='idle' && launchDrone(d.id)));
-    el.btnRecallAll.addEventListener('click', ()=> drones.forEach(d => d.status==='flying' && recallDrone(d.id)));
-    el.btnAbortAll.addEventListener('click', ()=> drones.forEach(d => { d.status='idle'; d.path=[]; log(`${d.name} abort`); renderList(); renderMap(); }));
-
-    el.btnNewDrone.addEventListener('click', ()=> addDrone('Drone ' + (drones.length+1)));
-    el.btnCmdLaunch.addEventListener('click', ()=> selected && launchDrone(selected.id));
-    el.btnCmdLand.addEventListener('click', ()=> selected && landDrone(selected.id));
-    el.btnCmdReturn.addEventListener('click', ()=> selected && recallDrone(selected.id));
-    el.btnCmdAbort.addEventListener('click', ()=> selected && (selected.status = 'idle', selected.path=[], log(`${selected.name} abort`), renderList(), renderMap(), selectDrone(selected.id)));
-
-    el.mapCanvas.addEventListener('click', (ev) => {
-      const rect = el.mapCanvas.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-      // pick nearest drone within 16px
-      let nearest = null, dist = 9999;
-      drones.forEach(d => {
-        const dx = d.x - x, dy = d.y - y;
-        const dd = Math.hypot(dx,dy);
-        if(dd < dist && dd < 24){ dist = dd; nearest = d; }
-      });
-      if(nearest) selectDrone(nearest.id);
-      else {
-        // set a waypoint for selected drone
-        if(selected){
-          window.droneConsole.setWaypoint(selected.id, {x,y});
-        }
-      }
+    el.btnNewDrone.addEventListener('click', () => { addDrone(); renderList(); });
+    el.btnLaunchAll.addEventListener('click', () => drones.forEach(d => d.status==='idle' && launchDrone(d.id)));
+    el.btnRecallAll.addEventListener('click', () => drones.forEach(d => d.status==='flying' && recallDrone(d.id)));
+    el.btnAbortAll.addEventListener('click', () => drones.forEach(d => abortDrone(d.id)));
+    el.btnCmdLaunch.addEventListener('click', () => selected && launchDrone(selected.id));
+    el.btnCmdLand.addEventListener('click', () => selected && landDrone(selected.id));
+    el.btnCmdReturn.addEventListener('click', () => selected && recallDrone(selected.id));
+    el.btnCmdAbort.addEventListener('click', () => selected && abortDrone(selected.id));
+    el.btnCenter.addEventListener('click', () => {
+      drones.forEach(d => { d.x = mapSize.w/2 + (Math.random()-0.5)*120; d.y = mapSize.h/2 + (Math.random()-0.5)*80; });
+      log('Centered fleet');
     });
+    el.btnShowPaths.addEventListener('click', ()=> { showPaths = !showPaths; el.btnShowPaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths'; });
+    el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
+    el.btnSaveMission.addEventListener('click', saveMission);
+    el.btnLoadMission.addEventListener('click', loadMission);
+    el.btnClearWaypoints.addEventListener('click', clearWaypoints);
+    el.btnShuffle.addEventListener('click', () => { drones.forEach(d => { d.x = Math.random()*mapSize.w; d.y = Math.random()*mapSize.h; }); log('Shuffled drones'); });
 
-    // initialization: create a few drones for demo
-    addDrone('Alpha-1');
-    addDrone('Beta-3');
-    addDrone('Scout-02');
-    renderMap();
+    // Dragging waypoints
+    (function initWaypointDrag(){
+      let dragging = null; // { drone, waypoint }
+      function findWaypointAt(x,y){
+        for(const d of drones){
+          for(const w of d.waypoints){
+            if(Math.hypot(w.x - x, w.y - y) < 9) return {d,w};
+          }
+        }
+        return null;
+      }
+      el.mapCanvas.addEventListener('pointerdown', (ev) => {
+        const rect = el.mapCanvas.getBoundingClientRect();
+        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+        const hit = findWaypointAt(x,y);
+        if(hit){ dragging = { d: hit.d, w: hit.w }; ev.preventDefault(); }
+      });
+      window.addEventListener('pointermove', (ev) => {
+        if(!dragging) return;
+        const rect = el.mapCanvas.getBoundingClientRect();
+        dragging.w.x = clamp(ev.clientX - rect.left, 8, mapSize.w-8);
+        dragging.w.y = clamp(ev.clientY - rect.top, 8, mapSize.h-8);
+      });
+      window.addEventListener('pointerup', (ev) => { if(dragging){ log(`Waypoint moved for ${dragging.d.name}`); dragging = null; }});
+    })();
 
-    // demo "connect"
-    setTimeout(()=> window.droneConsole.connect(), 800);
+    // Expose API
+    window.droneConsole = {
+      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, status:d.status, battery: Math.round(d.battery) })),
+      getStatus: (id) => drones.find(d => d.id === id) || null,
+      launchDrone: (id) => launchDrone(id),
+      landDrone: (id) => landDrone(id),
+      recallDrone: (id) => recallDrone(id),
+      createDrone: (name) => addDrone(name),
+      saveMissionFor: (id) => { const d = drones.find(x=>x.id===id); if(d) localStorage.setItem('mission:'+id, JSON.stringify(d.waypoints)); },
+      loadMissionFor: (id) => { const d = drones.find(x=>x.id===id); if(d){ const raw = localStorage.getItem('mission:'+id); if(raw) d.waypoints = JSON.parse(raw); } },
+      goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts)
+    };
 
-    // expose helper for dev console
-    window._drones = { state: () => drones.slice() };
+    // Initialization
+    resizeMapCanvas();
+    addDrone('Alpha-1'); addDrone('Beta-3'); addDrone('Scout-02');
+    renderList();
+    lastFrame = now();
+    requestAnimationFrame(step);
+    renderCamera();
+
+    // Expose debug state
+    window._drones = { state: () => drones.slice(), mapSize: () => Object.assign({}, mapSize) };
+
+    // Small safety: when switching device DPR or resizing, keep canvas in sync
+    setTimeout(() => { resizeMapCanvas(); }, 120);
 
   })();
   </script>
