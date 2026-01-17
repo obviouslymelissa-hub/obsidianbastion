@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Drone Control — Obsidian Bastion</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /* Page-specific small layout helpers */
+    .wrap { max-width:1200px; margin:24px auto; padding:0 18px; }
+    .controls-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .grid { display:grid; grid-template-columns: 320px 1fr 320px; gap:16px; margin-top:16px; }
+    .panel-card { background:var(--panel-bg, #0b0f14); padding:14px; border-radius:8px; }
+    .drone-list .tile { display:flex; justify-content:space-between; align-items:center; padding:10px; margin-bottom:8px; background:rgba(255,255,255,0.02); border-radius:6px; }
+    .tile .meta { font-size:0.9rem; color:var(--muted); }
+    #mapCanvas { width:100%; height:520px; background:linear-gradient(180deg,#061018, #07131a); border-radius:8px; display:block; }
+    .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
+    .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; }
+    .btn.small { padding:6px 8px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <!-- Shared header (copy from existing pages) -->
+  <header class="site-header">
+    <div class="wrap header-wrap">
+      <div class="header-left">
+        <img src="images/StrOpBoard.png" alt="Strategic Operations Board" style="height:44px">
+        <div class="header-text" aria-label="Site title">
+          <h1 style="margin:0">Obsidian Bastion</h1>
+          <h2 style="margin:0;font-weight:400;font-size:13px;color:var(--muted)">Drone Control</h2>
+        </div>
+      </div>
+      <div class="header-right">
+        <a href="onboardcomputer.html" class="return-command-hub" aria-label="Return to Onboard Computer">← Return</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1>Drone Launch & Operations</h1>
+        <div class="small">Manage fleet status, launch/recall drones, and monitor telemetry.</div>
+      </div>
+
+      <div class="controls">
+        <div class="controls-row">
+          <div id="connectionStatus" class="pill" style="background:#2b2b2b;padding:8px 10px">Disconnected</div>
+          <button id="btnLaunchAll" class="btn">Launch All</button>
+          <button id="btnRecallAll" class="btn">Recall All</button>
+          <button id="btnAbortAll" class="btn danger">Abort</button>
+          <label style="display:flex;align-items:center;gap:8px"><input id="autoPilot" type="checkbox"> Auto-Pilot</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" role="main" aria-label="Drone control grid">
+      <!-- Left: Drone list -->
+      <aside class="panel-card drone-list" aria-label="Drone list">
+        <h3 style="margin:0 0 10px 0">Fleet</h3>
+        <div id="droneList" aria-live="polite">
+          <!-- Drone tiles injected here -->
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btnNewDrone" class="btn small">Create Drone</button>
+          <button id="btnScanArea" class="btn small">Scan Area</button>
+        </div>
+      </aside>
+
+      <!-- Center: Map / Tactical display -->
+      <section class="panel-card" aria-label="Tactical map">
+        <h3 style="margin:0 0 10px 0">Tactical Map</h3>
+        <canvas id="mapCanvas" width="1000" height="520" role="application" aria-label="Drone positions and paths"></canvas>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="btnCenter" class="btn small">Center on Fleet</button>
+          <button id="btnShowPaths" class="btn small">Toggle Paths</button>
+          <div class="small" id="mapHint" style="margin-left:auto">Click a drone to view details</div>
+        </div>
+      </section>
+
+      <!-- Right: Telemetry & Logs -->
+      <aside class="panel-card telemetry" aria-label="Telemetry and logs">
+        <h3 style="margin:0 0 10px 0">Telemetry</h3>
+        <div id="selectedDroneName" style="font-weight:700">—</div>
+        <dl style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between">
+            <div class="meta">Status</div><div id="sel_status" class="meta">—</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="meta">Battery</div><div id="sel_batt" class="meta">—</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="meta">Altitude</div><div id="sel_alt" class="meta">—</div>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <div class="meta">Speed</div><div id="sel_spd" class="meta">—</div>
+          </div>
+        </dl>
+
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <button id="btnCmdLaunch" class="btn small" disabled>Launch</button>
+          <button id="btnCmdLand" class="btn small" disabled>Land</button>
+          <button id="btnCmdReturn" class="btn small" disabled>Return</button>
+          <button id="btnCmdAbort" class="btn small danger" disabled>Abort</button>
+        </div>
+
+        <div class="small" style="margin-bottom:6px">Activity Log</div>
+        <div id="log" class="log" aria-live="polite">No activity</div>
+      </aside>
+    </div>
+  </div>
+
+  <footer style="text-align:center;color:var(--muted);padding:24px 0 40px;border-top:1px solid rgba(255,255,255,0.03);margin-top:18px;font-style:italic;">
+    <div style="margin-bottom:12px">
+      <a href="index.html" style="color:var(--accent);text-decoration:none;font-weight:600">Vessel Profile</a>
+    </div>
+    &copy; 2026 - Turning Imagination Into Galactic Frontiers.
+  </footer>
+
+  <script>
+  (function(){
+    /* Simple in-page fleet simulator and public API.
+       Integration notes:
+       - Replace the simulated transport layer with a WebSocket or REST calls to your real drone backend.
+       - Expose the same window.droneConsole interface so other pages (or tests) can control drones:
+         window.droneConsole.launchDrone(id), landDrone(id), recallDrone(id), listDrones(), getStatus(id), setWaypoint(id, {x,y})
+    */
+
+    const el = {
+      connectionStatus: document.getElementById('connectionStatus'),
+      droneList: document.getElementById('droneList'),
+      mapCanvas: document.getElementById('mapCanvas'),
+      selectedName: document.getElementById('selectedDroneName'),
+      sel_status: document.getElementById('sel_status'),
+      sel_batt: document.getElementById('sel_batt'),
+      sel_alt: document.getElementById('sel_alt'),
+      sel_spd: document.getElementById('sel_spd'),
+      log: document.getElementById('log'),
+      btnLaunchAll: document.getElementById('btnLaunchAll'),
+      btnRecallAll: document.getElementById('btnRecallAll'),
+      btnAbortAll: document.getElementById('btnAbortAll'),
+      btnNewDrone: document.getElementById('btnNewDrone'),
+      btnCmdLaunch: document.getElementById('btnCmdLaunch'),
+      btnCmdLand: document.getElementById('btnCmdLand'),
+      btnCmdReturn: document.getElementById('btnCmdReturn'),
+      btnCmdAbort: document.getElementById('btnCmdAbort'),
+      autoPilot: document.getElementById('autoPilot'),
+    };
+
+    const ctx = el.mapCanvas.getContext('2d');
+
+    // Simulated drones (id, name, x,y,alt,battery,status)
+    let drones = [];
+    let selected = null;
+    let showPaths = true;
+    let mapCenter = { x: 500, y: 260 };
+
+    function generateId(){ return 'd-'+Math.random().toString(36).slice(2,9); }
+
+    function addDrone(name){
+      const d = {
+        id: generateId(),
+        name: name || ('Drone ' + (drones.length+1)),
+        x: mapCenter.x + (Math.random()-0.5)*300,
+        y: mapCenter.y + (Math.random()-0.5)*200,
+        alt: Math.floor(10 + Math.random()*120),
+        battery: 60 + Math.floor(Math.random()*40),
+        status: 'idle',
+        path: [],
+      };
+      drones.push(d);
+      log(`Created ${d.name} (${d.id})`);
+      renderList();
+      renderMap();
+      return d;
+    }
+
+    function log(msg){
+      const ts = new Date().toLocaleTimeString();
+      const line = `[${ts}] ${msg}`;
+      const cur = el.log.textContent.trim();
+      el.log.textContent = (cur === 'No activity' ? '' : cur + '\n') + line;
+      el.log.scrollTop = el.log.scrollHeight;
+      console.log(line);
+    }
+
+    function renderList(){
+      el.droneList.innerHTML = '';
+      drones.forEach(d => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.innerHTML = `
+          <div>
+            <div style="font-weight:700">${d.name}</div>
+            <div class="meta">${d.status} • ${d.battery}% • alt ${d.alt}m</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn small" data-action="select" data-id="${d.id}">Select</button>
+            <button class="btn small" data-action="launch" data-id="${d.id}">Launch</button>
+          </div>
+        `;
+        el.droneList.appendChild(tile);
+      });
+    }
+
+    function selectDrone(id){
+      selected = drones.find(x => x.id === id) || null;
+      if(selected){
+        el.selectedName.textContent = selected.name + ' — ' + selected.id;
+        el.sel_status.textContent = selected.status;
+        el.sel_batt.textContent = selected.battery + '%';
+        el.sel_alt.textContent = selected.alt + ' m';
+        el.sel_spd.textContent = selected.speed || '—';
+        el.btnCmdLaunch.disabled = selected.status !== 'idle';
+        el.btnCmdLand.disabled = selected.status !== 'flying';
+        el.btnCmdReturn.disabled = selected.status === 'landing';
+        el.btnCmdAbort.disabled = selected.status === 'idle';
+      } else {
+        el.selectedName.textContent = '—';
+        el.sel_status.textContent = '—';
+        el.sel_batt.textContent = '—';
+        el.sel_alt.textContent = '—';
+        el.sel_spd.textContent = '—';
+        el.btnCmdLaunch.disabled = true;
+        el.btnCmdLand.disabled = true;
+        el.btnCmdReturn.disabled = true;
+        el.btnCmdAbort.disabled = true;
+      }
+      renderMap();
+    }
+
+    function launchDrone(id){
+      const d = drones.find(x => x.id === id);
+      if(!d) return;
+      d.status = 'flying';
+      d.speed = (3 + Math.random()*12).toFixed(1) + ' m/s';
+      d.path.push({x:d.x, y:d.y});
+      log(`Launched ${d.name}`);
+      renderList();
+      renderMap();
+      if(selected && selected.id === id) selectDrone(id);
+    }
+
+    function landDrone(id){
+      const d = drones.find(x => x.id === id);
+      if(!d) return;
+      d.status = 'landing';
+      d.speed = '0.0 m/s';
+      d.path = [];
+      log(`Landing ${d.name}`);
+      renderList();
+      renderMap();
+      setTimeout(()=>{ d.status='idle'; d.alt = 0; log(`${d.name} landed`); renderList(); renderMap(); if(selected && selected.id===id) selectDrone(id); }, 2200);
+    }
+
+    function recallDrone(id){
+      const d = drones.find(x => x.id === id);
+      if(!d) return;
+      d.status = 'returning';
+      log(`Recalling ${d.name}`);
+      // simulate return
+      d.path.push({x: mapCenter.x, y: mapCenter.y});
+      setTimeout(()=>{ d.status='landing'; renderList(); renderMap(); selectDrone(id); setTimeout(()=>{ d.status='idle'; d.alt=0; log(`${d.name} returned`); renderList(); renderMap(); if(selected && selected.id===id) selectDrone(id); },1500); }, 1800);
+    }
+
+    // Public API
+    window.droneConsole = {
+      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, status:d.status, battery:d.battery })),
+      getStatus: (id) => drones.find(d => d.id === id) || null,
+      launchDrone: (id) => launchDrone(id),
+      landDrone: (id) => landDrone(id),
+      recallDrone: (id) => recallDrone(id),
+      createDrone: (name) => addDrone(name),
+      setWaypoint: (id, point) => {
+        const d = drones.find(x=>x.id===id);
+        if(!d) return;
+        d.path.push(point);
+        log(`Waypoint set for ${d.name} → (${point.x.toFixed(0)},${point.y.toFixed(0)})`);
+        renderMap();
+      },
+      connect: (opts) => {
+        // placeholder: real implementation would open websocket
+        el.connectionStatus.textContent = 'Connected';
+        el.connectionStatus.style.background = '#173d19';
+        log('Connected to drone network (simulated)');
+      },
+      disconnect: () => {
+        el.connectionStatus.textContent = 'Disconnected';
+        el.connectionStatus.style.background = 'unset';
+        log('Disconnected from drone network (simulated)');
+      }
+    };
+
+    // render map simple
+    function renderMap(){
+      const c = ctx;
+      c.clearRect(0,0,el.mapCanvas.width, el.mapCanvas.height);
+
+      // background grid
+      c.fillStyle = '#07131a';
+      c.fillRect(0,0,el.mapCanvas.width, el.mapCanvas.height);
+
+      // draw paths
+      if(showPaths){
+        drones.forEach(d => {
+          if(d.path && d.path.length){
+            c.beginPath();
+            c.strokeStyle = 'rgba(120,180,255,0.15)';
+            c.lineWidth = 1.2;
+            c.moveTo(d.x, d.y);
+            d.path.forEach(p => c.lineTo(p.x, p.y));
+            c.stroke();
+          }
+        });
+      }
+
+      // draw drones
+      drones.forEach(d => {
+        c.beginPath();
+        const isSel = selected && selected.id === d.id;
+        c.fillStyle = isSel ? '#ffd47a' : '#9be7c6';
+        c.strokeStyle = isSel ? '#ffc66a' : '#0b1e22';
+        c.lineWidth = isSel ? 2 : 1;
+        c.arc(d.x, d.y, isSel ? 8 : 6, 0, Math.PI*2);
+        c.fill();
+        c.stroke();
+
+        // label
+        c.fillStyle = 'rgba(255,255,255,0.8)';
+        c.font = '12px system-ui';
+        c.fillText(d.name, d.x + 10, d.y + 4);
+      });
+    }
+
+    // events
+    el.droneList.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button');
+      if(!btn) return;
+      const id = btn.dataset.id;
+      const act = btn.dataset.action;
+      if(act === 'select') selectDrone(id);
+      if(act === 'launch') launchDrone(id);
+    });
+
+    el.btnLaunchAll.addEventListener('click', ()=> drones.forEach(d => d.status==='idle' && launchDrone(d.id)));
+    el.btnRecallAll.addEventListener('click', ()=> drones.forEach(d => d.status==='flying' && recallDrone(d.id)));
+    el.btnAbortAll.addEventListener('click', ()=> drones.forEach(d => { d.status='idle'; d.path=[]; log(`${d.name} abort`); renderList(); renderMap(); }));
+
+    el.btnNewDrone.addEventListener('click', ()=> addDrone('Drone ' + (drones.length+1)));
+    el.btnCmdLaunch.addEventListener('click', ()=> selected && launchDrone(selected.id));
+    el.btnCmdLand.addEventListener('click', ()=> selected && landDrone(selected.id));
+    el.btnCmdReturn.addEventListener('click', ()=> selected && recallDrone(selected.id));
+    el.btnCmdAbort.addEventListener('click', ()=> selected && (selected.status = 'idle', selected.path=[], log(`${selected.name} abort`), renderList(), renderMap(), selectDrone(selected.id)));
+
+    el.mapCanvas.addEventListener('click', (ev) => {
+      const rect = el.mapCanvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      // pick nearest drone within 16px
+      let nearest = null, dist = 9999;
+      drones.forEach(d => {
+        const dx = d.x - x, dy = d.y - y;
+        const dd = Math.hypot(dx,dy);
+        if(dd < dist && dd < 24){ dist = dd; nearest = d; }
+      });
+      if(nearest) selectDrone(nearest.id);
+      else {
+        // set a waypoint for selected drone
+        if(selected){
+          window.droneConsole.setWaypoint(selected.id, {x,y});
+        }
+      }
+    });
+
+    // initialization: create a few drones for demo
+    addDrone('Alpha-1');
+    addDrone('Beta-3');
+    addDrone('Scout-02');
+    renderMap();
+
+    // demo "connect"
+    setTimeout(()=> window.droneConsole.connect(), 800);
+
+    // expose helper for dev console
+    window._drones = { state: () => drones.slice() };
+
+  })();
+  </script>
+</body>
+</html>
