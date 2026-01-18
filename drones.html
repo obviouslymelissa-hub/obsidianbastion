@@ -69,7 +69,7 @@
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <label class="hint" style="margin-right:6px">New Drone Type</label>
           <select id="newDroneType" style="padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
             <option value="explorer">Explorer</option>
@@ -77,6 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
+          <input id="customDroneNumber" type="number" min="1" placeholder="Custom #" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -126,6 +127,7 @@
             <div style="flex:1">
               <strong>Collect Objects</strong>
               <div class="hint">Collectors roam and gather resources.</div>
+              <input id="collectTargetItem" type="text" placeholder="Specific item to collect (optional)" style="width:100%;margin-top:6px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);font-size:0.9rem;" title="Enter a specific item for the collector to find">
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button id="btnQuestCollect" class="btn small">Assign</button>
@@ -242,6 +244,8 @@
       btnCmdReturn: document.getElementById('btnCmdReturn'),
       btnCmdAbort: document.getElementById('btnCmdAbort'),
       newDroneType: document.getElementById('newDroneType'),
+      customDroneNumber: document.getElementById('customDroneNumber'),
+      collectTargetItem: document.getElementById('collectTargetItem'),
       autoPilot: document.getElementById('autoPilot'),
       camCanvas: document.getElementById('camCanvas'),
       joystick: document.getElementById('joystick'),
@@ -482,6 +486,8 @@
     function assignCollect(targetAll=false){
       const list = targetAll ? drones : (selected ? [selected] : []);
       if(list.length === 0) { alert('Select a drone or spawn a wave.'); return; }
+      const targetItem = el.collectTargetItem.value.trim();
+      
       list.forEach(d => {
         if(d.type !== 'collector') return;
         d.waypoints = [];
@@ -490,7 +496,23 @@
           d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
         }
         d.status = 'flying';
-        log(`${d.name} assigned Collect Objects`);
+        
+        if(targetItem){
+          d.collectTarget = targetItem;
+          d.collectStartTime = now();
+          log(`${d.name} assigned to collect "${targetItem}"`);
+          
+          // Set up 2-minute timeout
+          setTimeout(() => {
+            if(d.collectTarget === targetItem && d.status !== 'idle'){
+              log(`${d.name} reports: "${targetItem}" not found after 2 minutes`);
+              d.collectTarget = null;
+              d.collectStartTime = null;
+            }
+          }, 120000); // 2 minutes = 120000ms
+        } else {
+          log(`${d.name} assigned Collect Objects`);
+        }
       });
     }
 
@@ -547,6 +569,21 @@
       c.clearRect(0,0,mapSize.w,mapSize.h);
       c.fillStyle = '#041217';
       c.fillRect(0,0,mapSize.w,mapSize.h);
+
+      // Draw concentric rings around the ship for distance reference
+      const centerX = mapSize.w/2;
+      const centerY = mapSize.h/2;
+      const maxRadius = Math.min(mapSize.w, mapSize.h) / 2;
+      const ringCount = 5;
+      
+      for(let i = 1; i <= ringCount; i++){
+        const radius = (maxRadius / ringCount) * i;
+        c.beginPath();
+        c.strokeStyle = `rgba(79, 209, 197, ${0.08 - (i * 0.01)})`;
+        c.lineWidth = 1;
+        c.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        c.stroke();
+      }
 
       // ship in center
       c.fillStyle = '#0f4f6f';
@@ -662,7 +699,20 @@
           if(dist < 10){
             d.waypoints.shift();
             if(d.type === 'explorer') log(`${d.name} scanned a point`);
-            if(d.type === 'collector') log(`${d.name} collected an object`);
+            if(d.type === 'collector'){
+              if(d.collectTarget){
+                // Random chance of finding the item
+                if(Math.random() < 0.15){
+                  log(`${d.name} found "${d.collectTarget}"!`);
+                  d.collectTarget = null;
+                  d.collectStartTime = null;
+                } else {
+                  log(`${d.name} collected an object (still searching for "${d.collectTarget}")`);
+                }
+              } else {
+                log(`${d.name} collected an object`);
+              }
+            }
           }
         } else {
           d.targetVx = lerp(d.targetVx, 0, 0.02);
@@ -865,8 +915,21 @@
     });
     el.btnNewDrone.addEventListener('click', () => {
       const type = el.newDroneType.value || 'explorer';
-      addDrone('', type);
+      const customNum = el.customDroneNumber.value.trim();
+      let droneName = '';
+      
+      if(customNum && !isNaN(parseInt(customNum))){
+        const num = parseInt(customNum);
+        droneName = `${type.charAt(0).toUpperCase()+type.slice(1)}-${num.toString().padStart(2, '0')}`;
+      }
+      
+      addDrone(droneName, type);
       renderList();
+      
+      // Clear the custom number input after use
+      if(customNum){
+        el.customDroneNumber.value = '';
+      }
     });
 
     el.btnQuestExplore.addEventListener('click', () => assignExplore(false));
