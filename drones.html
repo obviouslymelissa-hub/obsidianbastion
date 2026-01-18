@@ -77,10 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="Custom #" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
-        </div>
-
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
         </div>
 
@@ -145,16 +142,6 @@
           <div style="display:flex;gap:8px;align-items:center">
             <button id="btnToggleTrails" class="btn small">Toggle Trails</button>
           </div>
-
-          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-            <input id="coordX" placeholder="X" title="X coordinate or percent" />
-            <input id="coordY" placeholder="Y" title="Y coordinate or percent" />
-            <select id="coordMode" title="Coordinate mode">
-              <option value="px">px</option>
-              <option value="%">%</option>
-            </select>
-            <button id="btnGotoCoords" class="btn small">Go To</button>
-          </div>
         </div>
 
         <canvas id="mapCanvas" width="1000" height="720" role="application" aria-label="Drone positions and paths"></canvas>
@@ -178,7 +165,7 @@
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <button id="btnCmdReturn" class="btn small" disabled>Recall</button>
+          <button id="btnCmdReturn" class="btn small">Recall</button>
         </div>
 
         <div style="margin-bottom:8px">
@@ -239,11 +226,7 @@
       autoPilot: document.getElementById('autoPilot'),
       camCanvas: document.getElementById('camCanvas'),
       joystick: document.getElementById('joystick'),
-      knob: document.getElementById('knob'),
-      coordX: document.getElementById('coordX'),
-      coordY: document.getElementById('coordY'),
-      coordMode: document.getElementById('coordMode'),
-      btnGotoCoords: document.getElementById('btnGotoCoords')
+      knob: document.getElementById('knob')
     };
 
     const ctx = el.mapCanvas.getContext('2d');
@@ -371,7 +354,6 @@
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
-        el.btnCmdReturn.disabled = selected.status === 'landing';
       } else {
         el.selectedName.textContent = '—';
         el.sel_type.textContent = '—';
@@ -413,6 +395,13 @@
       d.status = 'returning';
       d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
       log(`Recalling ${d.name}`);
+    }
+    function recallAllDrones(){
+      drones.forEach(d => {
+        d.status = 'returning';
+        d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
+      });
+      log(`Recalling all drones to center`);
     }
     function abortDrone(id){
       const d = drones.find(x => x.id === id);
@@ -808,24 +797,6 @@
       }
     });
 
-    // Coordinate Go To
-    el.btnGotoCoords && el.btnGotoCoords.addEventListener('click', () => {
-      if(!selected){ alert('Select a drone first'); return; }
-      const rawX = el.coordX.value.trim();
-      const rawY = el.coordY.value.trim();
-      if(!rawX || !rawY){ alert('Enter both X and Y'); return; }
-      const mode = el.coordMode.value;
-      let x = parseFloat(rawX.replace('%',''));
-      let y = parseFloat(rawY.replace('%',''));
-      if(Number.isNaN(x) || Number.isNaN(y)){ alert('Invalid numbers'); return; }
-      if(mode === '%'){ goToCoords(selected.id, x, y, { percent: true }); }
-      else {
-        x = clamp(x, 6, mapSize.w-6);
-        y = clamp(y, 6, mapSize.h-6);
-        goToCoords(selected.id, x, y, { percent: false });
-      }
-    });
-
     function goToCoords(id, x, y, opts = { percent: false }){
       const d = drones.find(z => z.id === id);
       if(!d) return;
@@ -957,7 +928,7 @@
     el.btnQuestCollect.addEventListener('click', () => assignCollect(false));
     el.btnQuestCollectAll.addEventListener('click', () => assignCollect(true));
 
-    el.btnCmdReturn.addEventListener('click', () => selected && recallDrone(selected.id));
+    el.btnCmdReturn.addEventListener('click', () => recallAllDrones());
     el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
 
     // Dragging waypoints
