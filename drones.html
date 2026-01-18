@@ -33,7 +33,7 @@
 <body>
   <!-- Shared header (copy from other pages) -->
   <header class="site-header">
-    <div class="wrap header-wrap">
+    <div class="wrap header-wrap" style="display:flex;justify-content:space-between;align-items:center;">
       <div class="header-left">
         <img src="images/StrOpBoard.png" alt="Strategic Operations Board" style="height:44px">
         <div class="header-text" aria-label="Site title">
@@ -80,8 +80,6 @@
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
-          <button id="btnSpawnWave" class="btn small">Spawn Wave</button>
-          <button id="btnShuffle" class="btn small">Shuffle</button>
         </div>
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
@@ -216,8 +214,6 @@
       sel_spd: document.getElementById('sel_spd'),
       log: document.getElementById('log'),
       btnNewDrone: document.getElementById('btnNewDrone'),
-      btnSpawnWave: document.getElementById('btnSpawnWave'),
-      btnShuffle: document.getElementById('btnShuffle'),
       btnQuestExplore: document.getElementById('btnQuestExplore'),
       btnQuestExploreAll: document.getElementById('btnQuestExploreAll'),
       btnQuestDefend: document.getElementById('btnQuestDefend'),
@@ -818,8 +814,6 @@
       addDrone('', type);
       renderList();
     });
-    el.btnSpawnWave.addEventListener('click', () => spawnWave(6));
-    el.btnShuffle.addEventListener('click', () => { drones.forEach(d => { d.x = Math.random()*mapSize.w; d.y = Math.random()*mapSize.h; }); log('Shuffled drones'); });
 
     el.btnQuestExplore.addEventListener('click', () => assignExplore(false));
     el.btnQuestExploreAll.addEventListener('click', () => assignExplore(true));
@@ -883,7 +877,7 @@
 
     // Initialization
     resizeMapCanvas();
-    addDrone('Alpha-1','explorer'); addDrone('Beta-3','defender'); addDrone('Scout-02','scout');
+    addDrone('Explorer-01','explorer'); addDrone('Defender-01','defender'); addDrone('Scout-01','scout');
     renderList();
     lastFrame = now();
     requestAnimationFrame(step);
