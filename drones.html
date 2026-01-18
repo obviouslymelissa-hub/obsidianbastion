@@ -143,8 +143,6 @@
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <h3 style="margin:0 0 10px 0;flex:0 0 auto">Tactical Map</h3>
           <div style="display:flex;gap:8px;align-items:center">
-            <button id="btnCenter" class="btn small">Center on Fleet</button>
-            <button id="btnShowPaths" class="btn small">Toggle Paths</button>
             <button id="btnToggleTrails" class="btn small">Toggle Trails</button>
           </div>
 
@@ -180,10 +178,7 @@
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <button id="btnCmdLaunch" class="btn small" disabled>Launch</button>
-          <button id="btnCmdLand" class="btn small" disabled>Land</button>
           <button id="btnCmdReturn" class="btn small" disabled>Recall</button>
-          <button id="btnCmdAbort" class="btn small danger" disabled>Abort</button>
         </div>
 
         <div style="margin-bottom:8px">
@@ -236,13 +231,8 @@
       btnQuestScoutAll: document.getElementById('btnQuestScoutAll'),
       btnQuestCollect: document.getElementById('btnQuestCollect'),
       btnQuestCollectAll: document.getElementById('btnQuestCollectAll'),
-      btnCenter: document.getElementById('btnCenter'),
-      btnShowPaths: document.getElementById('btnShowPaths'),
       btnToggleTrails: document.getElementById('btnToggleTrails'),
-      btnCmdLaunch: document.getElementById('btnCmdLaunch'),
-      btnCmdLand: document.getElementById('btnCmdLand'),
       btnCmdReturn: document.getElementById('btnCmdReturn'),
-      btnCmdAbort: document.getElementById('btnCmdAbort'),
       newDroneType: document.getElementById('newDroneType'),
       customDroneNumber: document.getElementById('customDroneNumber'),
       collectTargetItem: document.getElementById('collectTargetItem'),
@@ -381,10 +371,7 @@
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
-        el.btnCmdLaunch.disabled = selected.status !== 'idle';
-        el.btnCmdLand.disabled = selected.status !== 'flying';
         el.btnCmdReturn.disabled = selected.status === 'landing';
-        el.btnCmdAbort.disabled = selected.status === 'idle';
       } else {
         el.selectedName.textContent = '—';
         el.sel_type.textContent = '—';
@@ -970,15 +957,7 @@
     el.btnQuestCollect.addEventListener('click', () => assignCollect(false));
     el.btnQuestCollectAll.addEventListener('click', () => assignCollect(true));
 
-    el.btnCmdLaunch.addEventListener('click', () => selected && launchDrone(selected.id));
-    el.btnCmdLand.addEventListener('click', () => selected && landDrone(selected.id));
     el.btnCmdReturn.addEventListener('click', () => selected && recallDrone(selected.id));
-    el.btnCmdAbort.addEventListener('click', () => selected && abortDrone(selected.id));
-    el.btnCenter.addEventListener('click', () => {
-      drones.forEach(d => { d.x = mapSize.w/2 + (Math.random()-0.5)*120; d.y = mapSize.h/2 + (Math.random()-0.5)*80; });
-      log('Centered fleet');
-    });
-    el.btnShowPaths.addEventListener('click', ()=> { showPaths = !showPaths; el.btnShowPaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths'; });
     el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
 
     // Dragging waypoints
