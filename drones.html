@@ -259,6 +259,11 @@
     const ctx = el.mapCanvas.getContext('2d');
     const camCtx = el.camCanvas.getContext('2d');
 
+    // Constants
+    const COLLECT_TIMEOUT_MS = 120000; // 2 minutes
+    const RING_BASE_OPACITY = 0.08;
+    const RING_MIN_OPACITY = 0.01;
+
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
     let selected = null;
@@ -524,7 +529,7 @@
               d.collectStartTime = null;
               d.collectTimeoutId = null;
             }
-          }, 120000); // 2 minutes = 120000ms
+          }, COLLECT_TIMEOUT_MS);
         } else {
           log(`${d.name} assigned Collect Objects`);
         }
@@ -594,7 +599,7 @@
       for(let i = 1; i <= ringCount; i++){
         const radius = (maxRadius / ringCount) * i;
         c.beginPath();
-        c.strokeStyle = `rgba(79, 209, 197, ${Math.max(0.01, 0.08 - (i * 0.01))})`;
+        c.strokeStyle = `rgba(79, 209, 197, ${Math.max(RING_MIN_OPACITY, RING_BASE_OPACITY - (i * 0.01))})`;
         c.lineWidth = 1;
         c.arc(centerX, centerY, radius, 0, Math.PI * 2);
         c.stroke();
@@ -941,7 +946,9 @@
       if(customNum){
         const num = parseInt(customNum);
         if(!isNaN(num)){
-          droneName = `${type.charAt(0).toUpperCase()+type.slice(1)}-${num.toString().padStart(2, '0')}`;
+          // Use padStart for single digits, plain number for double digits+
+          const numStr = num < 10 ? num.toString().padStart(2, '0') : num.toString();
+          droneName = `${type.charAt(0).toUpperCase()+type.slice(1)}-${numStr}`;
         }
       }
       
