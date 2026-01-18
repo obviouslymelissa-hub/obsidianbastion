@@ -307,14 +307,16 @@
     function addDrone(name, type){
       if(!mapSize.w || !mapSize.h) resizeMapCanvas();
       
-      // Check if a primary drone of this type already exists
-      const primary = getPrimaryDrone(type);
-      if(primary) {
-        // This is a follower drone - increment the follower count
-        primary.followers = (primary.followers || 0) + 1;
-        log(`Added follower to ${primary.name} (now ${primary.followers} followers)`);
-        renderList();
-        return primary;
+      // If no name is provided, check if a primary drone of this type already exists
+      if(!name){
+        const primary = getPrimaryDrone(type);
+        if(primary) {
+          // This is a follower drone - increment the follower count
+          primary.followers = (primary.followers || 0) + 1;
+          log(`Added follower to ${primary.name} (now ${primary.followers} followers)`);
+          renderList();
+          return primary;
+        }
       }
       
       // Create a new primary drone
