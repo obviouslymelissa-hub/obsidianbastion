@@ -75,6 +75,7 @@
             <option value="explorer">Explorer</option>
             <option value="defender">Defender</option>
             <option value="scout">Scout</option>
+            <option value="collector">Collector</option>
           </select>
         </div>
 
@@ -118,6 +119,17 @@
             <div style="display:flex;flex-direction:column;gap:6px">
               <button id="btnQuestScout" class="btn small">Assign</button>
               <button id="btnQuestScoutAll" class="btn small">Assign to Fleet</button>
+            </div>
+          </div>
+
+          <div class="quest">
+            <div style="flex:1">
+              <strong>Collect Objects</strong>
+              <div class="hint">Collectors roam and gather resources.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button id="btnQuestCollect" class="btn small">Assign</button>
+              <button id="btnQuestCollectAll" class="btn small">Assign to Fleet</button>
             </div>
           </div>
 
@@ -220,6 +232,8 @@
       btnQuestDefendAll: document.getElementById('btnQuestDefendAll'),
       btnQuestScout: document.getElementById('btnQuestScout'),
       btnQuestScoutAll: document.getElementById('btnQuestScoutAll'),
+      btnQuestCollect: document.getElementById('btnQuestCollect'),
+      btnQuestCollectAll: document.getElementById('btnQuestCollectAll'),
       btnCenter: document.getElementById('btnCenter'),
       btnShowPaths: document.getElementById('btnShowPaths'),
       btnToggleTrails: document.getElementById('btnToggleTrails'),
@@ -242,13 +256,18 @@
     const camCtx = el.camCanvas.getContext('2d');
 
     // Simulation state
-    let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints}
+    let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers}
     let selected = null;
     let showPaths = true;
     let trailsEnabled = true;
     let trails = {};
     let intruders = [];
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
+    
+    // Helper to get primary drone of a specific type
+    function getPrimaryDrone(type) {
+      return drones.find(d => d.type === type && d.isPrimary);
+    }
 
     function generateId(){ return 'd-'+Math.random().toString(36).slice(2,9); }
     function now(){ return Date.now(); }
@@ -283,10 +302,24 @@
     // Create drone (with type)
     function addDrone(name, type){
       if(!mapSize.w || !mapSize.h) resizeMapCanvas();
+      
+      // Check if a primary drone of this type already exists
+      const primary = getPrimaryDrone(type);
+      if(primary) {
+        // This is a follower drone - increment the follower count
+        primary.followers = (primary.followers || 0) + 1;
+        log(`Added follower to ${primary.name} (now ${primary.followers} followers)`);
+        renderList();
+        return primary;
+      }
+      
+      // Create a new primary drone
       const d = {
         id: generateId(),
-        name: name || (type.charAt(0).toUpperCase()+type.slice(1) + ' ' + (drones.length+1)),
+        name: name || (type.charAt(0).toUpperCase()+type.slice(1) + '-01'),
         type: type || 'explorer',
+        isPrimary: true,
+        followers: 0,
         x: mapSize.w/2 + (Math.random()-0.5)*300,
         y: mapSize.h/2 + (Math.random()-0.5)*200,
         vx: 0, vy: 0,
@@ -313,9 +346,10 @@
       drones.forEach(d => {
         const tile = document.createElement('div');
         tile.className = 'tile';
+        const followerText = d.followers > 0 ? ` (${d.followers} follower${d.followers !== 1 ? 's' : ''})` : '';
         tile.innerHTML = `
           <div>
-            <div style="font-weight:700">${d.name}</div>
+            <div style="font-weight:700">${d.name}${followerText}</div>
             <div class="meta">${d.type} • ${d.status} • ${Math.round(d.battery)}%</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -445,11 +479,27 @@
       });
     }
 
+    function assignCollect(targetAll=false){
+      const list = targetAll ? drones : (selected ? [selected] : []);
+      if(list.length === 0) { alert('Select a drone or spawn a wave.'); return; }
+      list.forEach(d => {
+        if(d.type !== 'collector') return;
+        d.waypoints = [];
+        const n = 6;
+        for(let i=0;i<n;i++){
+          d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
+        }
+        d.status = 'flying';
+        log(`${d.name} assigned Collect Objects`);
+      });
+    }
+
     // Spawn a wave of N drones of selected type
     function spawnWave(count = 6){
       const type = el.newDroneType.value || 'explorer';
       for(let i=0;i<count;i++){
         const d = addDrone(`${type.charAt(0).toUpperCase()+type.slice(1)} ${drones.length+1}`, type);
+        if(!d.isPrimary) continue; // Skip if it was added as a follower
         if(type === 'explorer'){
           d.waypoints = [{ x: Math.random()*(mapSize.w-80)+40, y: Math.random()*(mapSize.h-80)+40, id: generateId() }];
         } else if(type === 'defender'){
@@ -457,6 +507,8 @@
           const r = Math.min(mapSize.w,mapSize.h)*0.2;
           d.waypoints = [{ x: mapSize.w/2 + Math.cos(a)*r, y: mapSize.h/2 + Math.sin(a)*r, id: generateId() }];
         } else if(type === 'scout'){
+          d.waypoints = [{ x: Math.random()*(mapSize.w-80)+40, y: Math.random()*(mapSize.h-80)+40, id: generateId() }];
+        } else if(type === 'collector'){
           d.waypoints = [{ x: Math.random()*(mapSize.w-80)+40, y: Math.random()*(mapSize.h-80)+40, id: generateId() }];
         }
         if(el.autoPilot.checked) launchDrone(d.id);
@@ -551,7 +603,7 @@
       drones.forEach(d => {
         c.beginPath();
         const isSel = selected && selected.id === d.id;
-        const color = d.type === 'defender' ? '#ffd47a' : (d.type === 'scout' ? '#7ad1ff' : '#9be7c6');
+        const color = d.type === 'defender' ? '#ffd47a' : (d.type === 'scout' ? '#7ad1ff' : (d.type === 'collector' ? '#d47aff' : '#9be7c6'));
         c.fillStyle = isSel ? '#fff8dc' : color;
         c.strokeStyle = isSel ? '#ffb84d' : '#03181b';
         c.lineWidth = isSel ? 2 : 1;
@@ -561,7 +613,8 @@
 
         c.fillStyle = 'rgba(255,255,255,0.85)';
         c.font = '12px system-ui';
-        c.fillText(d.name, d.x + 12, d.y + 5);
+        const followerText = d.followers > 0 ? ` (${d.followers})` : '';
+        c.fillText(d.name + followerText, d.x + 12, d.y + 5);
       });
     }
 
@@ -609,6 +662,7 @@
           if(dist < 10){
             d.waypoints.shift();
             if(d.type === 'explorer') log(`${d.name} scanned a point`);
+            if(d.type === 'collector') log(`${d.name} collected an object`);
           }
         } else {
           d.targetVx = lerp(d.targetVx, 0, 0.02);
@@ -821,6 +875,8 @@
     el.btnQuestDefendAll.addEventListener('click', () => assignDefend(true));
     el.btnQuestScout.addEventListener('click', () => assignScout(false));
     el.btnQuestScoutAll.addEventListener('click', () => assignScout(true));
+    el.btnQuestCollect.addEventListener('click', () => assignCollect(false));
+    el.btnQuestCollectAll.addEventListener('click', () => assignCollect(true));
 
     el.btnCmdLaunch.addEventListener('click', () => selected && launchDrone(selected.id));
     el.btnCmdLand.addEventListener('click', () => selected && landDrone(selected.id));
@@ -877,7 +933,10 @@
 
     // Initialization
     resizeMapCanvas();
-    addDrone('Explorer-01','explorer'); addDrone('Defender-01','defender'); addDrone('Scout-01','scout');
+    addDrone('Explorer-01','explorer'); 
+    addDrone('Defender-01','defender'); 
+    addDrone('Scout-01','scout');
+    addDrone('Collector-01','collector');
     renderList();
     lastFrame = now();
     requestAnimationFrame(step);
