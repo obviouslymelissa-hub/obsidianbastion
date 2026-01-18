@@ -50,7 +50,12 @@ input#search{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.0
 }
 .ship-core { fill: var(--accent); stroke: #042023; stroke-width: 1px; }
 .ship-tail { fill: rgba(110,231,183,0.85); opacity: 0.85; }
-.planet { cursor: pointer; transition: transform 140ms ease; }
+.planet { 
+  cursor: pointer; 
+  transition: transform 140ms ease; 
+  transform-origin: center;
+  transform-box: fill-box;
+}
 .planet:hover { transform: scale(1.08); }
 .star { fill: #ffd66b; stroke: rgba(255,255,255,0.06); stroke-width: 0.6; }
 .selected-planet { stroke: #6ee7b7; stroke-width: 1.6; }
