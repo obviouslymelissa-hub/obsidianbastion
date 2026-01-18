@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Star Dedication</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    /*
+      Transmission theme:
+      - Dark, high-contrast terminal / comms layout
+      - Metadata header, payload card, attachments area
+      - Keeps the star info + inscription content (formatted as a transmitted payload)
+    */
+
+    :root{
+      --bg-dark: #0f1318;
+      --bg-panel: #151821;
+      --accent: #4fd1c5;
+      --accent-2: #7ef0df;
+      --text-main: #e6eef2;
+      --text-muted: #9fb2bf;
+      --border: #22272f;
+      --bg: #06070a;
+      --panel: #0f1720;
+      --muted: #9bb3b0;
+      --accent-neon: #57f0c9;   /* neon cyan */
+      --accent-amber: #ffd77a; /* amber for seals */
+      --glass: rgba(255,255,255,0.03);
+      --glow: 0 6px 28px rgba(87,240,201,0.08);
+      --mono: "SFMono-Regular", "Roboto Mono", "Menlo", "Monaco", monospace;
+      --ui: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      min-height:100%;
+      font-family:var(--ui);
+      background:var(--bg-dark);
+      color:var(--text-main);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding-bottom:48px;
+    }
+
+    .container{
+      max-width:1140px;
+      margin:28px auto;
+      padding:18px 20px;
+      box-sizing:border-box;
+    }
+
+    /* Comm header */
+    .comms-head{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:18px;
+    }
+
+    .comms-left{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .badge{
+      width:72px;
+      height:72px;
+      border-radius:8px;
+      background:linear-gradient(180deg,#071018,#0b2730);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:2px solid rgba(87,240,201,0.12);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 30px rgba(87,240,201,0.02) inset;
+    }
+    .badge img{ width:56px; height:56px; object-fit:contain; display:block; }
+
+    .comms-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .trans-label{
+      font-family:var(--mono);
+      font-weight:800;
+      color:var(--accent);
+      letter-spacing:1px;
+      font-size:0.85rem;
+    }
+
+    .trans-sub{
+      font-weight:700;
+      color:var(--muted);
+      font-size:0.95rem;
+    }
+
+    .comms-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .return-command-hub {
+      background: var(--accent);
+      color: var(--bg-panel);
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .return-command-hub:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+
+    .meta-chip{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      padding:10px 12px;
+      border-radius:8px;
+      font-family:var(--mono);
+      color:var(--muted);
+      font-weight:700;
+      font-size:0.85rem;
+      box-shadow: var(--glow);
+    }
+
+    /* Main grid: left (payload) and right (attachments) */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:20px;
+      align-items:start;
+    }
+
+    /* Payload card */
+    .payload{
+      background: 
+        radial-gradient(circle at top right, rgba(87,240,201,0.03), transparent 50%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(87,240,201,0.08);
+      border-radius:10px;
+      padding:18px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.6), var(--glow);
+      overflow:hidden;
+      position: relative;
+    }
+    
+    /* Subtle shine effect on payload (paused by default for battery efficiency) */
+    .payload::before{
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(87,240,201,0.03), transparent);
+      animation: shine 8s ease-in-out infinite;
+      animation-play-state: paused;
+    }
+    
+    /* Enable shine animation on hover or when page is focused */
+    .payload:hover::before,
+    body:focus-within .payload::before{
+      animation-play-state: running;
+    }
+    
+    @keyframes shine{
+      0%, 100%{ left: -100%; }
+      50%{ left: 100%; }
+    }
+
+    .payload-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .payload-meta{
+      font-family:var(--mono);
+      color:var(--accent);
+      font-weight:800;
+      font-size:0.92rem;
+      letter-spacing:0.8px;
+    }
+
+    .payload-sub{
+      color:var(--muted);
+      font-weight:700;
+      font-size:0.9rem;
+    }
+
+    /* Transmission block (styled like fixed-width packet) */
+    .packet{
+      background: linear-gradient(180deg, rgba(2,8,10,0.4), rgba(2,8,10,0.2));
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      padding:14px;
+      font-family:var(--mono);
+      color:#bfffe9;
+      line-height:1.6;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      position:relative;
+      overflow:hidden;
+      z-index: 1;
+    }
+
+    /* subtle scanline overlay */
+    .packet::after{
+      content:"";
+      pointer-events:none;
+      position:absolute;
+      inset:0;
+      background-image:linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px);
+      background-size:100% 4px;
+      mix-blend-mode:overlay;
+      opacity:0.6;
+    }
+
+    /* make certain lines stand out */
+    .packet .headline{
+      color:var(--accent-2);
+      font-weight:900;
+      letter-spacing:0.8px;
+      margin-bottom:8px;
+      font-size:1rem;
+    }
+
+    .packet .payload-text{
+      font-size:0.95rem;
+      color:#dffbf2;
+      margin-bottom:10px;
+      white-space:pre-wrap;
+    }
+
+    .packet .kv{
+      display:grid;
+      grid-template-columns:180px 1fr;
+      gap:6px 12px;
+      align-items:start;
+      margin-top:8px;
+    }
+
+    .kv .k{ color:var(--muted); font-family:var(--mono); font-weight:800; font-size:0.80rem; text-transform:uppercase; }
+    .kv .v{ color:#bfffe9; font-weight:700; font-size:0.95rem; }
+
+    /* Formal inscription block — simplified so it reads inline with the rest of the packet */
+    .inscription{
+      margin-top:20px;
+      padding:0;
+      background:transparent;
+      border:none;
+    }
+
+    .inscription .quote{
+      font-family:var(--mono);
+      font-weight:400;
+      color:#dffbf2; /* match normal packet text */
+      font-size:0.95rem;
+      margin-bottom:6px;
+      line-height:1.4;
+    }
+
+    .inscription .signed{
+      margin-top:6px;
+      display:block;
+      color:#dffbf2; /* keep signature inline with packet text */
+      font-weight:700;
+      font-family:var(--mono);
+      text-align:right;
+      font-size:0.95rem;
+    }
+
+    /* Signature section with badge and name */
+    .signature-section{
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .signature-badge{
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .signature-badge .badge-img{
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 2px solid rgba(87,240,201,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .signature-badge .name-img{
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+      filter: brightness(1.1);
+    }
+
+    .signature-closing{
+      font-family: var(--ui);
+      color: #dffbf2;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-align: left;
+      line-height: 1.3;
+      align-self: flex-start;
+    }
+
+    /* Attachments / right column */
+    .attachments{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .att-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+      border-radius:10px;
+      padding:14px;
+      border:1px solid rgba(87,240,201,0.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6), var(--glow);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
+    }
+
+    .att-card img{ 
+      width:100%; 
+      height:160px; 
+      object-fit:contain; 
+      border-radius:8px; 
+      display:block;
+      border: 1px solid rgba(255,255,255,0.04);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      background: #000;
+    }
+
+    .att-label{ 
+      font-family:var(--mono); 
+      color:var(--accent); 
+      font-weight:800; 
+      font-size:0.86rem; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Technical specs card in sidebar */
+    .tech-specs{
+      background: linear-gradient(135deg, rgba(87,240,201,0.04), rgba(87,240,201,0.01));
+      border-radius:10px;
+      padding:14px;
+      border:1px solid rgba(87,240,201,0.12);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6), var(--glow);
+    }
+    
+    .tech-specs-title{
+      font-family:var(--mono);
+      color:var(--accent-2);
+      font-weight:900;
+      font-size:0.92rem;
+      letter-spacing:1px;
+      margin-bottom:12px;
+      text-transform:uppercase;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    
+    .tech-specs-title::before{
+      content:"◆";
+      color:var(--accent);
+      font-size:0.7rem;
+    }
+    
+    .spec-row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6px;
+      margin-bottom:8px;
+      padding-bottom:8px;
+      border-bottom:1px solid rgba(255,255,255,0.02);
+    }
+    
+    .spec-row:last-child{
+      border-bottom:none;
+      margin-bottom:0;
+      padding-bottom:0;
+    }
+    
+    .spec-label{
+      color:var(--muted);
+      font-family:var(--mono);
+      font-weight:700;
+      font-size:0.78rem;
+      text-transform:uppercase;
+    }
+    
+    .spec-value{
+      color:#dffbf2;
+      font-weight:700;
+      font-size:0.88rem;
+      text-align:right;
+    }
+    
+    /* Enhanced packet appearance */
+    .packet .headline{
+      color:var(--accent-2);
+      font-weight:900;
+      letter-spacing:0.8px;
+      margin-bottom:10px;
+      font-size:1.05rem;
+      text-shadow: 0 0 20px rgba(87,240,201,0.3);
+    }
+    
+    /* Subtle hover effects and animations */
+    .att-card{
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .att-card:hover{
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.7), 0 0 40px rgba(87,240,201,0.15);
+    }
+    
+    .tech-specs{
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .tech-specs:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.7), 0 0 40px rgba(87,240,201,0.15);
+    }
+    
+    /* Pulse animation for diamond icons */
+    .tech-specs-title::before{
+      animation: pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes pulse{
+      0%, 100%{ opacity: 0.6; }
+      50%{ opacity: 1; }
+    }
+    
+    /* Fade in animation for content */
+    .payload, .attachments > *{
+      animation: fadeInUp 0.6s ease-out backwards;
+    }
+    
+    .attachments > *:nth-child(1){ animation-delay: 0.1s; }
+    .attachments > *:nth-child(2){ animation-delay: 0.2s; }
+    .attachments > *:nth-child(3){ animation-delay: 0.3s; }
+    
+    @keyframes fadeInUp{
+      from{
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to{
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Modal/Lightbox for expanded constellation image */
+    .modal {
+      visibility: hidden;
+      opacity: 0;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.95);
+      transition: opacity 0.3s ease-in, visibility 0.3s ease-in;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .modal-content {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 0 60px rgba(87, 240, 201, 0.3);
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      color: var(--accent);
+      font-size: 42px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      z-index: 10000;
+      text-shadow: 0 0 20px rgba(87, 240, 201, 0.6);
+    }
+    
+    .modal-close:hover {
+      transform: scale(1.2) rotate(90deg);
+      color: var(--accent-2);
+    }
+    
+    /* Make constellation image clickable */
+    .att-card img {
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .att-card img:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 32px rgba(87, 240, 201, 0.3);
+    }
+
+    /* small responsive behaviour */
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .comms-right { display:none; } /* hide chips on narrow */
+      .att-card img{ height:180px; }
+      .tech-specs{ margin-top: 0; }
+    }
+
+    @media (max-width:560px){
+      .badge{ width:56px; height:56px; }
+      .badge img{ width:44px; height:44px; }
+      .att-card img{ height:140px; }
+      .kv{ grid-template-columns: 1fr; gap: 4px; }
+      .spec-row{ grid-template-columns: 1fr; gap: 2px; }
+      .spec-value{ text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header class="comms-head" role="banner" aria-label="Transmission header">
+      <div class="comms-left">
+        <div class="badge" aria-hidden="true">
+          <!-- Replace with your seal/logo if desired -->
+          <img src="https://obviouslymelissa-hub.github.io/obsidianbastion/images/StrOpBoard.png" alt="Strategic Operations Board emblem">
+        </div>
+        <div class="comms-title" aria-hidden="false">
+          <div class="trans-label">STAR DEDICATION</div>
+          <div class="trans-sub">Strategic Operations Board — Star Registry</div>
+        </div>
+      </div>
+
+      <div class="comms-right" aria-hidden="false">
+        <a href="https://obviouslymelissa-hub.github.io/obsidianbastion/StrategicOperationsBoard.html" class="return-command-hub" aria-label="Return to Strategic Operations Board">← Return</a>
+      </div>
+    </header>
+
+    <!-- Metadata row below header -->
+    <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;" aria-hidden="false">
+      <div class="meta-chip">CLASSIFICATION: PERSONAL</div>
+      <div class="meta-chip">STARDATE: 1/18/26</div>
+    </div>
+
+    <section class="grid" aria-label="Transmission payload and attachments">
+      <!-- left: payload -->
+      <article class="payload" role="article" aria-labelledby="payload-title">
+        <div class="payload-head">
+          <div>
+            <div id="payload-title" class="payload-meta">STAR INSCRIPTION / CHART ENTRY</div>
+            <div class="payload-sub">Sirius A (α Canis Majoris A) — shipboard marking</div>
+          </div>
+          <div class="payload-sub" style="color:var(--muted); font-family:var(--mono);">Packet ID: OB-BAS/SIRIUS-A/001</div>
+        </div>
+
+        <div class="packet" aria-label="Transmission packet">
+          <div class="headline">OFFICIAL INSCRIPTION (SHIPBOARD)</div>
+
+          <div class="payload-text">
+BY DECREE AND UNDER THE SEAL OF THE STRATEGIC OPERATIONS BOARD:
+
+Let it be recorded that this celestial marking stands in honor of:
+            
+NIMA, WHOSE LIGHT ILLUMINATES THE PATH FOR THOSE WHO FOLLOW.
+
+           Your presence guides us through the darkest voids.
+            The brightest star for the brightest soul.
+          </div>
+
+          <div class="kv" aria-hidden="false" role="list">
+            <div class="k">Honored star</div><div class="v">Sirius A (Alpha Canis Majoris A)</div>
+            <div class="k">Designation</div><div class="v">α CMa A</div>
+            <div class="k">Constellation</div><div class="v">Canis Major</div>
+            <div class="k">Named for</div><div class="v">Nima</div>
+            <div class="k">Dedication date</div><div class="v">January 18, 2026</div>
+          </div>
+
+          <div class="inscription" aria-label="Inscription text">
+            <div class="quote">Inscribed into the Bastion's charts on this stardate, under the seal of the General.</div>
+            
+            <div class="signature-section">
+              <div class="signature-badge">
+                <img src="images/general.jpg" alt="General's official military badge" class="badge-img">
+                <img src="images/genmelissa.png" alt="Melissa signature" class="name-img">
+              </div>
+              <div class="signature-closing">Love,<br>Mom</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- right: attachments area -->
+      <aside class="attachments" role="complementary" aria-label="Attachments / images">
+        <div class="att-card" role="figure" aria-label="Canis Major attachment">
+          <div class="att-label">◆ Canis Major Constellation</div>
+          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" tabindex="0" role="button" aria-label="Click to expand constellation image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: sirius2.jpg</div>
+        </div>
+        
+        <!-- Technical specifications moved from main payload -->
+        <div class="tech-specs" role="region" aria-label="Technical specifications">
+          <div class="tech-specs-title">Technical Specifications</div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Right Ascension</div>
+            <div class="spec-value">06h 45m 08.9s</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Declination</div>
+            <div class="spec-value">−16° 42' 58"</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Magnitude</div>
+            <div class="spec-value">−1.46</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Spectral Type</div>
+            <div class="spec-value">A1V</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Distance</div>
+            <div class="spec-value">8.6 ly</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Radius</div>
+            <div class="spec-value">1.71 R☉</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Luminosity</div>
+            <div class="spec-value">25.4 L☉</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Surface Temp</div>
+            <div class="spec-value">9,940 K</div>
+          </div>
+          
+          <div class="spec-row">
+            <div class="spec-label">Catalog</div>
+            <div class="spec-value">HD 48915</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Large Sirius star chart at bottom -->
+    <section style="margin-top:24px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)); border-radius:12px; padding:18px; border:1px solid rgba(87,240,201,0.08); box-shadow: 0 12px 36px rgba(0,0,0,0.6), var(--glow);" role="figure" aria-label="Large Sirius star chart">
+      <div style="font-family:var(--mono); color:var(--accent); font-weight:800; font-size:0.92rem; letter-spacing:0.8px; margin-bottom:12px; text-transform:uppercase; display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--accent-2); font-size:0.7rem;">◆</span> Sirius Star Chart — Detailed View
+      </div>
+      <img src="images/Sirius.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 24px rgba(0,0,0,0.6); background: #000;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:40px;">Image: Sirius.jpg</div>
+    </section>
+
+    <footer style="margin-top:18px; color:var(--muted); font-family:var(--mono); font-size:0.82rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>STAR DEDICATION LOG • OB-BAS • LOCAL</div>
+      <div><a href="https://obviouslymelissa-hub.github.io/obsidianbastion/index.html" style="color:var(--accent);text-decoration:none;font-weight:700">Vessel Profile</a></div>
+      <div>END OF RECORD</div>
+    </footer>
+  </div>
+
+  <!-- Modal for expanded constellation image -->
+  <div id="imageModal" class="modal" aria-hidden="true" role="dialog" aria-label="Expanded constellation image">
+    <span class="modal-close" aria-label="Close" tabindex="0">&times;</span>
+    <img class="modal-content" id="modalImage" alt="Expanded constellation view">
+  </div>
+
+  <script>
+    // Get the constellation image and modal
+    const constellationImg = document.querySelector('.att-card img');
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const modalClose = document.querySelector('.modal-close');
+    
+    // Function to open modal
+    function openModal() {
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      modalImg.src = constellationImg.src;
+      modalImg.alt = constellationImg.alt;
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      // Focus on close button for keyboard accessibility
+      if (modalClose) {
+        setTimeout(() => modalClose.focus(), 100);
+      }
+    }
+    
+    // Open modal when constellation image is clicked
+    if (constellationImg) {
+      constellationImg.addEventListener('click', openModal);
+      
+      // Support keyboard activation (Enter/Space) for opening modal
+      constellationImg.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openModal();
+        }
+      });
+    }
+    
+    // Close modal function
+    function closeModal() {
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+    
+    // Close modal when clicking close button
+    if (modalClose) {
+      modalClose.addEventListener('click', closeModal);
+      
+      // Support keyboard activation (Enter/Space) for close button
+      modalClose.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          closeModal();
+        }
+      });
+    }
+    
+    // Close modal when clicking outside the image
+    modal.addEventListener('click', function(event) {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>
