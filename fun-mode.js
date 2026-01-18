@@ -338,15 +338,6 @@
   // start loop
   requestAnimationFrame(overlayLoop);
 
-  // periodically spawn small particle bursts around random drones to keep things lively
-  setInterval(()=>{
-    const ds = dronesState();
-    if(!ds.length) return;
-    const pick = ds[Math.floor(Math.random()*ds.length)];
-    if(!pick) return;
-    spawnParticles(pick.x + (Math.random()-0.5)*18, pick.y + (Math.random()-0.5)*18, '#ffb482', 10, 2);
-  }, 4200);
-
   // resize overlay whenever the map canvas changes size
   const ro = new ResizeObserver(resizeOverlay);
   ro.observe(mapCanvas);
