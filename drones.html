@@ -9,8 +9,9 @@
     /* Page-specific small layout helpers */
     .wrap { max-width:1200px; margin:24px auto; padding:0 18px; }
     .controls-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .hint { color:var(--muted); font-size:0.95rem; }
     /* Wider left/right columns and larger center (makes the center "screen" bigger) */
-    .grid { display:grid; grid-template-columns: 300px 1fr 300px; gap:16px; margin-top:16px; }
+    .grid { display:grid; grid-template-columns: 320px 1fr 320px; gap:16px; margin-top:16px; }
     .panel-card { background:var(--panel-bg, #071019); padding:14px; border-radius:8px; color:var(--text, #e6eef6); }
     .drone-list .tile { display:flex; justify-content:space-between; align-items:center; padding:10px; margin-bottom:8px; background:rgba(255,255,255,0.02); border-radius:6px; }
     .tile .meta { font-size:0.9rem; color:var(--muted); }
@@ -19,13 +20,15 @@
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
     .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
     .btn.small { padding:6px 8px; font-size:13px; }
-    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:40; touch-action:none; }
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:30; }
     #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
     .mission-controls { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
     .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
     /* coordinate inputs */
     .coord-controls { margin-left:auto; display:flex; gap:6px; align-items:center; }
     .coord-controls input, .coord-controls select { padding:6px 8px; border-radius:6px; background:rgba(255,255,255,0.02); color:inherit; border:1px solid rgba(255,255,255,0.03); width:64px; }
+    .badge { background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:8px; font-weight:600; }
+    .quest { display:flex; gap:8px; align-items:center; margin:6px 0; }
     @media (max-width: 980px) {
       .grid { grid-template-columns: 1fr; }
       .coord-controls { margin-top:8px; width:100%; justify-content:flex-start; }
@@ -50,18 +53,17 @@
   </header>
 
   <div class="wrap">
-    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
-        <h1>Drone Launch & Operations</h1>
-        <div class="small">Virtual drone playground — launch, pilot, and plan missions.</div>
+        <h1>Launch Bay — Drone Deck</h1>
+        <div class="hint">Captain! Build your drone fleet, choose a mission and send them out from the Obsidian Cruiser. Click a drone on the map to select it. Space = land, R = recall.</div>
       </div>
       <div class="controls">
         <div class="controls-row">
-          <div id="connectionStatus" class="pill" style="background:#2b2b2b;padding:8px 10px">Local Simulation</div>
-          <button id="btnLaunchAll" class="btn">Launch All</button>
-          <button id="btnRecallAll" class="btn">Recall All</button>
-          <button id="btnAbortAll" class="btn danger">Abort</button>
-          <label style="display:flex;align-items:center;gap:8px"><input id="autoPilot" type="checkbox"> Auto-Pilot</label>
+          <!-- Replaced "Local Simulation" with ship badge -->
+          <div class="badge" id="shipBadge" title="Ship">Obsidian Cruiser</div>
+          <!-- Autopilot now functional: auto-launch new drones -->
+          <label style="display:flex;align-items:center;gap:8px"><input id="autoPilot" type="checkbox"> Auto-Launch</label>
         </div>
       </div>
     </div>
@@ -74,10 +76,19 @@
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="hint" style="margin-right:6px">New Drone Type</label>
+          <select id="newDroneType" style="padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
+            <option value="explorer">Explorer</option>
+            <option value="defender">Defender</option>
+            <option value="scout">Scout</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
-          <button id="btnScanArea" class="btn small">Scan Area</button>
-          <button id="btnShuffle" class="btn small">Randomize</button>
+          <button id="btnSpawnWave" class="btn small">Spawn Wave</button>
+          <button id="btnShuffle" class="btn small">Shuffle</button>
         </div>
 
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
@@ -89,7 +100,45 @@
             <button id="btnLoadMission" class="btn small">Load Mission</button>
             <button id="btnClearWaypoints" class="btn small">Clear Waypoints</button>
           </div>
-          <div class="small" style="margin-top:8px">Click map to add waypoint for selected drone. Drag waypoints to adjust or enter coordinates.</div>
+          <div class="small" style="margin-top:8px">Click the map to add a waypoint for the selected drone. Drag waypoints to adjust or enter coordinates.</div>
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <div>
+          <h4 style="margin:6px 0">Quests</h4>
+          <div class="small" style="margin-bottom:8px">Choose a quest and then click "Assign" to give it to the selected drone. You can also assign to the whole fleet.</div>
+
+          <div class="quest">
+            <div style="flex:1">
+              <strong>Explore Sector</strong>
+              <div class="hint">Explorer drones will visit several random points and report back.</div>
+            </div>
+            <div>
+              <button id="btnQuestExplore" class="btn small">Assign</button>
+            </div>
+          </div>
+
+          <div class="quest">
+            <div style="flex:1">
+              <strong>Defend Perimeter</strong>
+              <div class="hint">Defenders circle the ship and chase intruders that appear.</div>
+            </div>
+            <div>
+              <button id="btnQuestDefend" class="btn small">Assign</button>
+            </div>
+          </div>
+
+          <div class="quest">
+            <div style="flex:1">
+              <strong>Scout Ahead</strong>
+              <div class="hint">Scouts sprint to the edge and return with a single ping.</div>
+            </div>
+            <div>
+              <button id="btnQuestScout" class="btn small">Assign</button>
+            </div>
+          </div>
+
         </div>
       </aside>
 
@@ -117,7 +166,7 @@
 
         <canvas id="mapCanvas" width="1000" height="720" role="application" aria-label="Drone positions and paths"></canvas>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <div class="small" id="mapHint" style="margin-left:auto">Click drone to view | Shift+Click to add waypoint globally</div>
+          <div class="small" id="mapHint" style="margin-left:auto">Click a drone to view it. Hold Shift+Click to add a global waypoint for all drones.</div>
         </div>
       </section>
 
@@ -126,6 +175,7 @@
         <h3 style="margin:0 0 10px 0">Telemetry</h3>
         <div id="selectedDroneName" style="font-weight:700">—</div>
         <dl style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between"><div class="meta">Type</div><div id="sel_type" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Status</div><div id="sel_status" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Battery</div><div id="sel_batt" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Altitude</div><div id="sel_alt" class="meta">—</div></div>
@@ -137,7 +187,7 @@
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <button id="btnCmdLaunch" class="btn small" disabled>Launch</button>
           <button id="btnCmdLand" class="btn small" disabled>Land</button>
-          <button id="btnCmdReturn" class="btn small" disabled>Return</button>
+          <button id="btnCmdReturn" class="btn small" disabled>Recall</button>
           <button id="btnCmdAbort" class="btn small danger" disabled>Abort</button>
         </div>
 
@@ -165,10 +215,11 @@
 
   <script>
   (function(){
-    /* Enhanced client-side drone playground (updated)
-       - Larger responsive center screen
-       - Coordinate input to send drones to exact PX or % positions
-       - window.droneConsole.goToCoords(...) API
+    /* Kid-friendly drone deck:
+       - Replace "Local Simulation" with ship badge
+       - Drone types (explorer, defender, scout) and simple "quests"
+       - "Spawn Wave" to add many drones
+       - Autolaunch (autoPilot) will launch drones when created
     */
 
     // Elements
@@ -176,26 +227,30 @@
       droneList: document.getElementById('droneList'),
       mapCanvas: document.getElementById('mapCanvas'),
       selectedName: document.getElementById('selectedDroneName'),
+      sel_type: document.getElementById('sel_type'),
       sel_status: document.getElementById('sel_status'),
       sel_batt: document.getElementById('sel_batt'),
       sel_alt: document.getElementById('sel_alt'),
       sel_spd: document.getElementById('sel_spd'),
       log: document.getElementById('log'),
-      btnLaunchAll: document.getElementById('btnLaunchAll'),
-      btnRecallAll: document.getElementById('btnRecallAll'),
-      btnAbortAll: document.getElementById('btnAbortAll'),
       btnNewDrone: document.getElementById('btnNewDrone'),
+      btnSpawnWave: document.getElementById('btnSpawnWave'),
+      btnShuffle: document.getElementById('btnShuffle'),
+      btnSaveMission: document.getElementById('btnSaveMission'),
+      btnLoadMission: document.getElementById('btnLoadMission'),
+      btnClearWaypoints: document.getElementById('btnClearWaypoints'),
+      btnQuestExplore: document.getElementById('btnQuestExplore'),
+      btnQuestDefend: document.getElementById('btnQuestDefend'),
+      btnQuestScout: document.getElementById('btnQuestScout'),
+      btnCenter: document.getElementById('btnCenter'),
+      btnShowPaths: document.getElementById('btnShowPaths'),
+      btnToggleTrails: document.getElementById('btnToggleTrails'),
       btnCmdLaunch: document.getElementById('btnCmdLaunch'),
       btnCmdLand: document.getElementById('btnCmdLand'),
       btnCmdReturn: document.getElementById('btnCmdReturn'),
       btnCmdAbort: document.getElementById('btnCmdAbort'),
-      btnCenter: document.getElementById('btnCenter'),
-      btnShowPaths: document.getElementById('btnShowPaths'),
-      btnToggleTrails: document.getElementById('btnToggleTrails'),
-      btnSaveMission: document.getElementById('btnSaveMission'),
-      btnLoadMission: document.getElementById('btnLoadMission'),
-      btnClearWaypoints: document.getElementById('btnClearWaypoints'),
-      btnShuffle: document.getElementById('btnShuffle'),
+      newDroneType: document.getElementById('newDroneType'),
+      autoPilot: document.getElementById('autoPilot'),
       camCanvas: document.getElementById('camCanvas'),
       joystick: document.getElementById('joystick'),
       knob: document.getElementById('knob'),
@@ -209,11 +264,12 @@
     const camCtx = el.camCanvas.getContext('2d');
 
     // Simulation state
-    let drones = []; // full model {id,name,x,y,px,py,vx,vy,alt,battery,status,path[],waypoints[]}
+    let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints}
     let selected = null;
     let showPaths = true;
     let trailsEnabled = true;
-    let trails = {}; // id -> array of {x,y,ttl}
+    let trails = {};
+    let intruders = []; // simple enemies for defenders
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
 
     function generateId(){ return 'd-'+Math.random().toString(36).slice(2,9); }
@@ -229,53 +285,52 @@
     function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
     function lerp(a,b,t){ return a + (b-a)*t; }
 
-    // Canvas resize for crispness & responsive size
+    // Canvas resize
     function resizeMapCanvas(){
       const DPR = window.devicePixelRatio || 1;
       const cw = el.mapCanvas.clientWidth;
-      // use 64vh in CSS, so get clientHeight
       const ch = el.mapCanvas.clientHeight;
       el.mapCanvas.width = Math.max(320, Math.round(cw * DPR));
       el.mapCanvas.height = Math.max(240, Math.round(ch * DPR));
-      // drawing transforms so our logical coords use client pixels
       ctx.setTransform(DPR,0,0,DPR,0,0);
       mapSize.w = cw;
       mapSize.h = ch;
-      // recenter drones if newly created with default center
       drones.forEach(d => {
         d.x = clamp(d.x, 6, mapSize.w-6);
         d.y = clamp(d.y, 6, mapSize.h-6);
       });
     }
-    window.addEventListener('resize', () => { resizeMapCanvas(); });
+    window.addEventListener('resize', resizeMapCanvas);
 
-    // Create drone
-    function addDrone(name){
-      // ensure map size known
-      if(!mapSize.w || !mapSize.h){ resizeMapCanvas(); }
+    // Create drone (with type)
+    function addDrone(name, type){
+      if(!mapSize.w || !mapSize.h) resizeMapCanvas();
       const d = {
         id: generateId(),
-        name: name || ('Drone ' + (drones.length+1)),
+        name: name || (type.charAt(0).toUpperCase()+type.slice(1) + ' ' + (drones.length+1)),
+        type: type || 'explorer',
         x: mapSize.w/2 + (Math.random()-0.5)*300,
         y: mapSize.h/2 + (Math.random()-0.5)*200,
-        px: 0, py:0,
         vx: 0, vy: 0,
         targetVx: 0, targetVy: 0,
         alt: Math.floor(10 + Math.random()*90),
         battery: 70 + Math.floor(Math.random()*30),
         status: 'idle',
-        path: [],
         waypoints: [],
         lastUpdate: now()
       };
       drones.push(d);
       trails[d.id] = [];
-      log(`Created ${d.name}`);
+      log(`Created ${d.name} (${d.type})`);
       renderList();
+      // autolaunch if autopilot checked
+      if(el.autoPilot.checked){
+        launchDrone(d.id);
+      }
       return d;
     }
 
-    // List / UI
+    // List UI
     function renderList(){
       el.droneList.innerHTML = '';
       drones.forEach(d => {
@@ -284,7 +339,7 @@
         tile.innerHTML = `
           <div>
             <div style="font-weight:700">${d.name}</div>
-            <div class="meta">${d.status} • ${Math.round(d.battery)}% • alt ${Math.round(d.alt)}m</div>
+            <div class="meta">${d.type} • ${d.status} • ${Math.round(d.battery)}%</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn small" data-action="select" data-id="${d.id}">Select</button>
@@ -299,6 +354,7 @@
       selected = drones.find(x => x.id === id) || null;
       if(selected){
         el.selectedName.textContent = `${selected.name} — ${selected.id}`;
+        el.sel_type.textContent = selected.type;
         el.sel_status.textContent = selected.status;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
@@ -309,14 +365,11 @@
         el.btnCmdAbort.disabled = selected.status === 'idle';
       } else {
         el.selectedName.textContent = '—';
+        el.sel_type.textContent = '—';
         el.sel_status.textContent = '—';
         el.sel_batt.textContent = '—';
         el.sel_alt.textContent = '—';
         el.sel_spd.textContent = '—';
-        el.btnCmdLaunch.disabled = true;
-        el.btnCmdLand.disabled = true;
-        el.btnCmdReturn.disabled = true;
-        el.btnCmdAbort.disabled = true;
       }
       renderMap();
     }
@@ -326,9 +379,11 @@
       const d = drones.find(x => x.id === id);
       if(!d) return;
       d.status = 'flying';
-      d.alt = 50;
-      d.targetVx = (Math.random()-0.5) * 1.4;
-      d.targetVy = (Math.random()-0.5) * 1.4;
+      d.alt = Math.max(d.alt, 30);
+      // type influences velocity
+      const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
+      d.targetVx = (Math.random()-0.5) * speedBase;
+      d.targetVy = (Math.random()-0.5) * speedBase;
       log(`Launched ${d.name}`);
       renderList();
     }
@@ -342,7 +397,7 @@
         d.status = 'idle';
         d.alt = 0;
         renderList();
-      }, 1600);
+      }, 1200);
     }
     function recallDrone(id){
       const d = drones.find(x => x.id === id);
@@ -391,26 +446,86 @@
       } catch(e){ alert('Failed to load mission'); }
     }
 
-    // Programmatic: go-to-coords, percent mode optional
-    function goToCoords(id, x, y, opts = { percent: false }){
-      // if percent mode, x,y are 0..100
-      const d = drones.find(z => z.id === id);
-      if(!d) return;
-      let targetX = x, targetY = y;
-      if(opts.percent){
-        targetX = (x/100) * mapSize.w;
-        targetY = (y/100) * mapSize.h;
-      }
-      // clamp
-      targetX = clamp(targetX, 6, mapSize.w-6);
-      targetY = clamp(targetY, 6, mapSize.h-6);
-      // add waypoint
-      d.waypoints.push({ x: targetX, y: targetY, id: generateId() });
-      d.status = 'flying';
-      log(`Ordered ${d.name} to go to ${opts.percent ? `${x}% , ${y}%` : `${Math.round(targetX)},${Math.round(targetY)}`}`);
+    // Quests (kid-friendly behaviors)
+    function assignExplore(targetAll=false){
+      const list = targetAll ? drones : (selected ? [selected] : []);
+      if(list.length === 0) { alert('Select a drone or press Spawn Wave for multiple.'); return; }
+      list.forEach(d => {
+        if(d.type !== 'explorer') return;
+        d.waypoints = [];
+        const n = 4;
+        for(let i=0;i<n;i++){
+          d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
+        }
+        d.status = 'flying';
+        log(`${d.name} assigned Explore Sector`);
+      });
     }
 
-    // Trails: append points as drone moves
+    function assignDefend(targetAll=false){
+      const list = targetAll ? drones : (selected ? [selected] : []);
+      if(list.length === 0) { alert('Select a drone or press Spawn Wave for multiple.'); return; }
+      list.forEach(d => {
+        if(d.type !== 'defender') return;
+        // defenders circle ship: create waypoints in a small ring around center
+        d.waypoints = [];
+        const cx = mapSize.w/2, cy = mapSize.h/2, r = Math.min(mapSize.w, mapSize.h) * 0.22;
+        for(let a=0;a<6;a++){
+          const ang = (a/6) * Math.PI*2;
+          d.waypoints.push({ x: cx + Math.cos(ang)*r + (Math.random()-0.5)*30, y: cy + Math.sin(ang)*r + (Math.random()-0.5)*30, id: generateId() });
+        }
+        d.status = 'flying';
+        log(`${d.name} assigned Defend Perimeter`);
+      });
+    }
+
+    function assignScout(targetAll=false){
+      const list = targetAll ? drones : (selected ? [selected] : []);
+      if(list.length === 0) { alert('Select a drone or press Spawn Wave for multiple.'); return; }
+      list.forEach(d => {
+        if(d.type !== 'scout') return;
+        d.waypoints = [];
+        // single long waypoint near edge and back
+        const edgeX = Math.random()>0.5 ? (Math.random()*80 + mapSize.w*0.9) : (Math.random()*80 + 20);
+        const edgeY = Math.random()>0.5 ? (Math.random()*80 + mapSize.h*0.9) : (Math.random()*80 + 20);
+        d.waypoints.push({ x: edgeX, y: edgeY, id: generateId() });
+        d.waypoints.push({ x: mapSize.w/2, y: mapSize.h/2, id: generateId() });
+        d.status = 'flying';
+        log(`${d.name} assigned Scout Ahead`);
+      });
+    }
+
+    // Spawn a wave of N drones of selected type
+    function spawnWave(count = 6){
+      const type = el.newDroneType.value || 'explorer';
+      for(let i=0;i<count;i++){
+        const d = addDrone(`${type.charAt(0).toUpperCase()+type.slice(1)} ${drones.length+1}`, type);
+        // give type-specific default mission
+        if(type === 'explorer'){
+          d.waypoints = [{ x: Math.random()*(mapSize.w-80)+40, y: Math.random()*(mapSize.h-80)+40, id: generateId() }];
+        } else if(type === 'defender'){
+          // defenders orbit
+          const a = (i/count) * Math.PI*2;
+          const r = Math.min(mapSize.w,mapSize.h)*0.2;
+          d.waypoints = [{ x: mapSize.w/2 + Math.cos(a)*r, y: mapSize.h/2 + Math.sin(a)*r, id: generateId() }];
+        } else if(type === 'scout'){
+          d.waypoints = [{ x: Math.random()*(mapSize.w-80)+40, y: Math.random()*(mapSize.h-80)+40, id: generateId() }];
+        }
+        if(el.autoPilot.checked) launchDrone(d.id);
+      }
+      log(`Spawned wave of ${count} ${el.newDroneType.value}s`);
+    }
+
+    // Intruders spawn occasionally for defenders to chase
+    function spawnIntruder(){
+      const x = Math.random()*(mapSize.w-40)+20;
+      const y = Math.random()*(mapSize.h-40)+20;
+      const id = 'intr-'+Math.random().toString(36).slice(2,8);
+      intruders.push({ id, x, y, ttl: 8000 });
+      log(`Intruder detected!`);
+    }
+
+    // Trails management
     function pushTrail(d){
       const t = trails[d.id] || (trails[d.id]=[]);
       t.push({ x:d.x, y:d.y, ttl: 2000 + Math.random()*800 });
@@ -426,14 +541,29 @@
       });
     }
 
-    // Map rendering
+    // Render
     function renderMap(){
       const c = ctx;
       c.clearRect(0,0,mapSize.w,mapSize.h);
-
-      // background
       c.fillStyle = '#041217';
       c.fillRect(0,0,mapSize.w,mapSize.h);
+
+      // ship in center
+      c.fillStyle = '#0f4f6f';
+      c.beginPath();
+      c.arc(mapSize.w/2, mapSize.h/2, 26, 0, Math.PI*2);
+      c.fill();
+      c.fillStyle = '#fff';
+      c.font = '12px system-ui';
+      c.fillText('OBSIDIAN', mapSize.w/2 - 28, mapSize.h/2 + 4);
+
+      // intruders
+      intruders.forEach(i => {
+        c.beginPath();
+        c.fillStyle = 'rgba(255,80,80,0.95)';
+        c.arc(i.x, i.y, 8, 0, Math.PI*2);
+        c.fill();
+      });
 
       // trails
       if(trailsEnabled){
@@ -441,7 +571,7 @@
           for(let i=1;i<arr.length;i++){
             const a = arr[i-1], b = arr[i];
             c.beginPath();
-            c.strokeStyle = `rgba(155,231,198,${0.08 + ((b.ttl||1000)/3000)})`;
+            c.strokeStyle = `rgba(155,231,198,${0.06 + ((b.ttl||1000)/3000)})`;
             c.lineWidth = 2;
             c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke();
           }
@@ -459,7 +589,6 @@
             d.waypoints.forEach(w => c.lineTo(w.x,w.y));
             c.stroke();
 
-            // draw waypoint markers
             d.waypoints.forEach(w => {
               c.beginPath();
               c.fillStyle = '#ffb482';
@@ -474,10 +603,12 @@
       drones.forEach(d => {
         c.beginPath();
         const isSel = selected && selected.id === d.id;
-        c.fillStyle = isSel ? '#ffd47a' : '#9be7c6';
-        c.strokeStyle = isSel ? '#ffc66a' : '#0b1e22';
+        // colour by type
+        const color = d.type === 'defender' ? '#ffd47a' : (d.type === 'scout' ? '#7ad1ff' : '#9be7c6');
+        c.fillStyle = isSel ? '#fff8dc' : color;
+        c.strokeStyle = isSel ? '#ffb84d' : '#03181b';
         c.lineWidth = isSel ? 2 : 1;
-        c.arc(d.x, d.y, isSel ? 9 : 7, 0, Math.PI*2);
+        c.arc(d.x, d.y, isSel ? 10 : 7, 0, Math.PI*2);
         c.fill();
         c.stroke();
 
@@ -488,27 +619,57 @@
       });
     }
 
-    // Simulation physics step
+    // Physics / behaviors
     let lastFrame = now();
     function step(){
       const t = now();
       const dt = t - lastFrame;
       lastFrame = t;
 
+      // intruder TTL
+      for(let i = intruders.length-1; i >= 0; --i){
+        intruders[i].ttl -= dt;
+        if(intruders[i].ttl <= 0) intruders.splice(i,1);
+      }
+
+      // for defenders: if intruder present, assign temporary waypoint to nearest intruder
+      const currentIntruder = intruders.length ? intruders[0] : null;
+
       drones.forEach(d => {
+        // defenders auto-target intruders when flying
+        if(d.type === 'defender' && currentIntruder){
+          // set waypoint to intruder position if not already near it
+          const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
+          const dist = Math.hypot(dx,dy);
+          if(dist > 14){
+            d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
+            // keep small
+            if(d.waypoints.length > 6) d.waypoints.length = 6;
+            d.status = 'flying';
+          } else {
+            // "catch" intruder
+            if(currentIntruder){
+              log(`${d.name} intercepted an intruder!`);
+              intruders.splice(0,1);
+            }
+          }
+        }
+
         // waypoint seeking
         if(d.waypoints && d.waypoints.length){
           const wp = d.waypoints[0];
           const dx = wp.x - d.x, dy = wp.y - d.y;
           const dist = Math.hypot(dx,dy) || 1;
-          const desiredV = 0.9 + (d.status==='flying'?1.6:0);
+          const base = d.type === 'scout' ? 1.6 : (d.type === 'defender' ? 1.2 : 1.0);
+          const desiredV = 0.9 + base;
           const tx = (dx / dist) * desiredV;
           const ty = (dy / dist) * desiredV;
-          d.targetVx = lerp(d.targetVx, tx, 0.06);
-          d.targetVy = lerp(d.targetVy, ty, 0.06);
-          if(dist < 8){
+          d.targetVx = lerp(d.targetVx, tx, 0.07);
+          d.targetVy = lerp(d.targetVy, ty, 0.07);
+          if(dist < 10){
             d.waypoints.shift();
-            log(`${d.name} reached waypoint`);
+            // explorers announce arrival
+            if(d.type === 'explorer') log(`${d.name} scanned a point`);
           }
         } else {
           d.targetVx = lerp(d.targetVx, 0, 0.02);
@@ -523,9 +684,8 @@
         d.x = clamp(d.x, 6, mapSize.w-6);
         d.y = clamp(d.y, 6, mapSize.h-6);
 
-        if(d.status === 'flying' || d.status === 'returning'){
-          d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
-        }
+        // battery drain when moving
+        if(Math.hypot(d.vx,d.vy) > 0.1) d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
 
         pushTrail(d);
       });
@@ -544,7 +704,7 @@
       requestAnimationFrame(step);
     }
 
-    // Simple simulated camera display
+    // Camera
     function renderCamera(){
       const c = camCtx;
       const cw = el.camCanvas.width, ch = el.camCanvas.height;
@@ -595,7 +755,7 @@
     });
 
     // Coordinate Go To button
-    el.btnGotoCoords.addEventListener('click', () => {
+    el.btnGotoCoords && el.btnGotoCoords.addEventListener('click', () => {
       if(!selected){ alert('Select a drone first'); return; }
       const rawX = el.coordX.value.trim();
       const rawY = el.coordY.value.trim();
@@ -605,17 +765,33 @@
       let y = parseFloat(rawY.replace('%',''));
       if(Number.isNaN(x) || Number.isNaN(y)){ alert('Invalid numbers'); return; }
       if(mode === '%'){ goToCoords(selected.id, x, y, { percent: true }); }
-      else { // px
-        // clamp px to current mapSize
+      else {
         x = clamp(x, 6, mapSize.w-6);
         y = clamp(y, 6, mapSize.h-6);
         goToCoords(selected.id, x, y, { percent: false });
       }
     });
 
+    // goToCoords helper
+    function goToCoords(id, x, y, opts = { percent: false }){
+      const d = drones.find(z => z.id === id);
+      if(!d) return;
+      let targetX = x, targetY = y;
+      if(opts.percent){
+        targetX = (x/100) * mapSize.w;
+        targetY = (y/100) * mapSize.h;
+      }
+      targetX = clamp(targetX, 6, mapSize.w-6);
+      targetY = clamp(targetY, 6, mapSize.h-6);
+      d.waypoints.push({ x: targetX, y: targetY, id: generateId() });
+      d.status = 'flying';
+      log(`Ordered ${d.name} to go to ${opts.percent ? `${x}% , ${y}%` : `${Math.round(targetX)},${Math.round(targetY)}`}`);
+    }
+
     // Joystick (pointer)
     (function initJoystick(){
       const js = el.joystick, knob = el.knob;
+      if(!js) return;
       let active = false, origin = { x:0, y:0 }, radius = 46;
       function updateOrigin(){
         const r = js.getBoundingClientRect();
@@ -696,10 +872,27 @@
       if(act === 'select') selectDrone(id);
       if(act === 'launch') launchDrone(id);
     });
-    el.btnNewDrone.addEventListener('click', () => { addDrone(); renderList(); });
-    el.btnLaunchAll.addEventListener('click', () => drones.forEach(d => d.status==='idle' && launchDrone(d.id)));
-    el.btnRecallAll.addEventListener('click', () => drones.forEach(d => d.status==='flying' && recallDrone(d.id)));
-    el.btnAbortAll.addEventListener('click', () => drones.forEach(d => abortDrone(d.id)));
+    el.btnNewDrone.addEventListener('click', () => {
+      const type = el.newDroneType.value || 'explorer';
+      addDrone('', type);
+      renderList();
+    });
+    el.btnSpawnWave.addEventListener('click', () => spawnWave(6));
+    el.btnShuffle.addEventListener('click', () => { drones.forEach(d => { d.x = Math.random()*mapSize.w; d.y = Math.random()*mapSize.h; }); log('Shuffled drones'); });
+
+    el.btnSaveMission.addEventListener('click', saveMission);
+    el.btnLoadMission.addEventListener('click', loadMission);
+    el.btnClearWaypoints.addEventListener('click', clearWaypoints);
+
+    el.btnQuestExplore.addEventListener('click', () => assignExplore(false));
+    el.btnQuestDefend.addEventListener('click', () => assignDefend(false));
+    el.btnQuestScout.addEventListener('click', () => assignScout(false));
+
+    // optionally offer assign-to-all on long-press (or double-click). For simplicity add ctrl+click assign-to-all behavior:
+    el.btnQuestExplore.addEventListener('dblclick', () => assignExplore(true));
+    el.btnQuestDefend.addEventListener('dblclick', () => assignDefend(true));
+    el.btnQuestScout.addEventListener('dblclick', () => assignScout(true));
+
     el.btnCmdLaunch.addEventListener('click', () => selected && launchDrone(selected.id));
     el.btnCmdLand.addEventListener('click', () => selected && landDrone(selected.id));
     el.btnCmdReturn.addEventListener('click', () => selected && recallDrone(selected.id));
@@ -710,10 +903,6 @@
     });
     el.btnShowPaths.addEventListener('click', ()=> { showPaths = !showPaths; el.btnShowPaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths'; });
     el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
-    el.btnSaveMission.addEventListener('click', saveMission);
-    el.btnLoadMission.addEventListener('click', loadMission);
-    el.btnClearWaypoints.addEventListener('click', clearWaypoints);
-    el.btnShuffle.addEventListener('click', () => { drones.forEach(d => { d.x = Math.random()*mapSize.w; d.y = Math.random()*mapSize.h; }); log('Shuffled drones'); });
 
     // Dragging waypoints
     (function initWaypointDrag(){
@@ -741,31 +930,35 @@
       window.addEventListener('pointerup', (ev) => { if(dragging){ log(`Waypoint moved for ${dragging.d.name}`); dragging = null; }});
     })();
 
-    // Expose API
+    // Expose API to console
     window.droneConsole = {
-      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, status:d.status, battery: Math.round(d.battery) })),
+      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, type:d.type, status:d.status, battery: Math.round(d.battery) })),
       getStatus: (id) => drones.find(d => d.id === id) || null,
       launchDrone: (id) => launchDrone(id),
       landDrone: (id) => landDrone(id),
       recallDrone: (id) => recallDrone(id),
-      createDrone: (name) => addDrone(name),
+      createDrone: (name,type) => addDrone(name,type),
       saveMissionFor: (id) => { const d = drones.find(x=>x.id===id); if(d) localStorage.setItem('mission:'+id, JSON.stringify(d.waypoints)); },
       loadMissionFor: (id) => { const d = drones.find(x=>x.id===id); if(d){ const raw = localStorage.getItem('mission:'+id); if(raw) d.waypoints = JSON.parse(raw); } },
       goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts)
     };
 
+    // Intruder spawn interval
+    setInterval(()=> {
+      if(Math.random() < 0.08) spawnIntruder();
+    }, 2500);
+
     // Initialization
     resizeMapCanvas();
-    addDrone('Alpha-1'); addDrone('Beta-3'); addDrone('Scout-02');
+    // seed a few drones
+    addDrone('Alpha-1','explorer'); addDrone('Beta-3','defender'); addDrone('Scout-02','scout');
     renderList();
     lastFrame = now();
     requestAnimationFrame(step);
     renderCamera();
 
-    // Expose debug state
-    window._drones = { state: () => drones.slice(), mapSize: () => Object.assign({}, mapSize) };
-
-    // Small safety: when switching device DPR or resizing, keep canvas in sync
+    // debug
+    window._drones = { state: () => drones.slice(), mapSize: () => Object.assign({}, mapSize), intruders: () => intruders.slice() };
     setTimeout(() => { resizeMapCanvas(); }, 120);
 
   })();
