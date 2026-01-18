@@ -169,7 +169,7 @@
         const ret = origLand(id);
         const d = getDroneObj(id);
         if(d){
-          spawnConfetti(d.x, d.y, 18);
+          spawnParticles(d.x, d.y, '#9be7c6', 18, 2);
           play('land');
         }
         return ret;
@@ -207,7 +207,7 @@
         logEl.scrollTop = logEl.scrollHeight;
       }
       play('pickup');
-      spawnConfetti(pick.x, pick.y, 22);
+      spawnParticles(pick.x, pick.y, '#ffb482', 22, 2);
     } else if(pick.type === 'battery'){
       d.battery = Math.min(100, (d.battery || 10) + 18 + Math.random()*14);
       if(logEl) {
