@@ -194,7 +194,7 @@
     const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
     const MAX_POIS_ON_SCREEN = 4; // Maximum POIs before scout finishes
     const SCOUT_WAYPOINT_DISTANCE = 150; // Distance between scout patrol waypoints
-    const EXPLORER_DISCOVERY_PROBABILITY = 0.001; // Low probability for explorer discoveries
+    const EXPLORER_DISCOVERY_PROBABILITY = 0.4; // 40% chance for explorer to find items (increased from 0.001)
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -260,7 +260,7 @@
 
     // Generate random points of interest types
     function generatePOI(){
-      const types = ['asteroid', 'moon fragment', 'planet debris', 'space junk', 'derelict probe', 'crystal formation'];
+      const types = ['asteroid', 'moon fragment', 'planet debris', 'space junk', 'derelict probe', 'crystal formation', 'alien flora', 'mineral deposit', 'ancient wreckage'];
       const type = types[Math.floor(Math.random() * types.length)];
       const x = Math.random() * (mapSize.w - 80) + 40;
       const y = Math.random() * (mapSize.h - 80) + 40;
@@ -281,32 +281,67 @@
         'asteroid': [
           { name: 'Rare Mineral Sample', mundane: false },
           { name: 'Iron Ore', mundane: true },
-          { name: 'Crystalline Fragment', mundane: false }
+          { name: 'Crystalline Fragment', mundane: false },
+          { name: 'Titanium Ore', mundane: true },
+          { name: 'Platinum Deposit', mundane: false }
         ],
         'moon fragment': [
           { name: 'Ancient Moon Rock', mundane: false },
           { name: 'Sensor Module', mundane: true },
-          { name: 'Lunar Ice Sample', mundane: false }
+          { name: 'Lunar Ice Sample', mundane: false },
+          { name: 'Solar Panel', mundane: true },
+          { name: 'Battery', mundane: true }
         ],
         'planet debris': [
           { name: 'Atmospheric Analyzer', mundane: true },
           { name: 'Alien Artifact', mundane: false },
-          { name: 'Power Cell', mundane: true }
+          { name: 'Power Cell', mundane: true },
+          { name: 'Oxygen Filter', mundane: true },
+          { name: 'Engine Component', mundane: true }
         ],
         'space junk': [
           { name: 'Hull Plate', mundane: true },
           { name: 'Antenna', mundane: true },
-          { name: 'Navigation Computer Fragment', mundane: false }
+          { name: 'Navigation Computer Fragment', mundane: false },
+          { name: 'Thruster', mundane: true },
+          { name: 'Coolant Pump', mundane: true }
         ],
         'derelict probe': [
           { name: 'Data Core', mundane: false },
           { name: 'Thruster Component', mundane: true },
-          { name: 'Communication Array', mundane: true }
+          { name: 'Communication Array', mundane: true },
+          { name: 'Navigation Computer', mundane: true },
+          { name: 'Sensor Module', mundane: true },
+          { name: 'Engine', mundane: true }
         ],
         'crystal formation': [
           { name: 'Energy Crystal', mundane: false },
           { name: 'Quantum Resonator', mundane: false },
-          { name: 'Coolant Pump', mundane: true }
+          { name: 'Coolant Pump', mundane: true },
+          { name: 'Kyber Crystal', mundane: false },
+          { name: 'Dilithium Shard', mundane: false }
+        ],
+        'alien flora': [
+          { name: 'Bioluminescent Plant', mundane: false },
+          { name: 'Medicinal Herb', mundane: false },
+          { name: 'Alien Spore Sample', mundane: false },
+          { name: 'Oxygen-Producing Algae', mundane: false },
+          { name: 'Exotic Fungus', mundane: false }
+        ],
+        'mineral deposit': [
+          { name: 'Copper Ore', mundane: true },
+          { name: 'Gold Nugget', mundane: false },
+          { name: 'Rare Earth Metals', mundane: false },
+          { name: 'Uranium Sample', mundane: false },
+          { name: 'Diamond', mundane: false }
+        ],
+        'ancient wreckage': [
+          { name: 'Ancient Technology', mundane: false },
+          { name: 'Hull Plate', mundane: true },
+          { name: 'Power Cell', mundane: true },
+          { name: 'Engine', mundane: true },
+          { name: 'Alien Relic', mundane: false },
+          { name: 'Thruster', mundane: true }
         ]
       };
       const pool = itemPool[poiType] || itemPool['space junk'];
@@ -681,47 +716,33 @@
 
       // points of interest
       pointsOfInterest.forEach(poi => {
-        // If scanned and empty, show as green circle with exclamation mark (no bubble)
-        if(poi.scanned && poi.isEmpty){
-          c.beginPath();
-          c.fillStyle = 'rgba(79,209,197,0.8)'; // Green color
-          c.strokeStyle = 'rgba(79,209,197,1.0)';
-          c.lineWidth = 2;
-          c.arc(poi.x, poi.y, 8, 0, Math.PI*2); // Smaller circle
-          c.fill();
-          c.stroke();
-          
-          // Draw exclamation mark
-          c.fillStyle = '#fff';
-          c.font = 'bold 12px system-ui';
-          c.fillText('!', poi.x - 3, poi.y + 4);
+        // Only render POIs that have items or are unscanned
+        c.beginPath();
+        if(poi.scanned){
+          // Scanned POIs with items
+          c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
+          c.strokeStyle = 'rgba(79,209,197,0.8)';
         } else {
-          // Normal display for unscanned or scanned with items
-          c.beginPath();
-          if(poi.scanned){
-            c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
-            c.strokeStyle = 'rgba(79,209,197,0.8)';
-          } else {
-            c.fillStyle = 'rgba(255,200,80,0.5)';
-            c.strokeStyle = 'rgba(255,200,80,0.8)';
-          }
-          c.lineWidth = 2;
-          c.arc(poi.x, poi.y, 10, 0, Math.PI*2);
-          c.fill();
-          c.stroke();
-          
-          // Draw icon based on type
-          c.fillStyle = '#fff';
-          c.font = 'bold 14px system-ui';
-          const icon = poi.scanned ? '✓' : '?';
-          c.fillText(icon, poi.x - 5, poi.y + 5);
-          
-          // Draw "Object Found" label for unscanned POIs discovered by scouts
-          if(!poi.scanned && poi.discoveredBy){
-            c.fillStyle = 'rgba(255,255,255,0.7)';
-            c.font = '10px system-ui';
-            c.fillText('Object Found', poi.x - 24, poi.y - 15);
-          }
+          // Unscanned POIs discovered by scouts
+          c.fillStyle = 'rgba(255,200,80,0.5)';
+          c.strokeStyle = 'rgba(255,200,80,0.8)';
+        }
+        c.lineWidth = 2;
+        c.arc(poi.x, poi.y, 10, 0, Math.PI*2);
+        c.fill();
+        c.stroke();
+        
+        // Draw icon based on type
+        c.fillStyle = '#fff';
+        c.font = 'bold 14px system-ui';
+        const icon = poi.scanned ? '✓' : '?';
+        c.fillText(icon, poi.x - 5, poi.y + 5);
+        
+        // Draw "Object Found" label for unscanned POIs discovered by scouts
+        if(!poi.scanned && poi.discoveredBy){
+          c.fillStyle = 'rgba(255,255,255,0.7)';
+          c.font = '10px system-ui';
+          c.fillText('Object Found', poi.x - 24, poi.y - 15);
         }
       });
 
@@ -877,7 +898,9 @@
         if(d.type === 'explorer'){
           // Check if near a POI to scan it
           let scannedSomething = false;
-          pointsOfInterest.forEach(poi => {
+          // Process POIs in reverse order so we can safely remove items during iteration
+          for(let i = pointsOfInterest.length - 1; i >= 0; i--){
+            const poi = pointsOfInterest[i];
             if(!poi.scanned && !scannedSomething){
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
@@ -885,26 +908,24 @@
                 poi.scanned = true;
                 poi.discoveredBy = d.name;
                 
-                // Occasionally make a discovery (low frequency to keep it fun)
+                // Check if explorer finds items (increased probability)
                 const foundItems = Math.random() < EXPLORER_DISCOVERY_PROBABILITY;
                 if(foundItems){
                   poi.items = generateItems(poi.type);
-                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
+                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i+1}`;
                   const itemList = poi.items.map(it => it.name).join(', ');
                   log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
                   updateStatusPrompt(`${poi.name} scanned - items identified`);
                 } else {
-                  // Mark as having no items - will change appearance on map
-                  poi.items = [];
-                  poi.isEmpty = true; // Flag to indicate nothing was found
-                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
-                  log(`${d.name} scanned ${poi.name} - Nothing of value`);
-                  updateStatusPrompt(`${poi.name} scanned - no items`);
+                  // Nothing found - remove the POI from the map
+                  log(`${d.name} scanned ${poi.type} - Nothing found, removing marker`);
+                  updateStatusPrompt(`${poi.type} scanned - empty location`);
+                  pointsOfInterest.splice(i, 1); // Remove empty POI
                 }
                 scannedSomething = true;
               }
             }
-          });
+          }
           
           // Auto-navigate to next unscanned POI if no waypoints
           if(d.waypoints.length === 0 && d.status === 'flying'){
