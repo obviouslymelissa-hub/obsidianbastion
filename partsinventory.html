@@ -1017,20 +1017,18 @@
           }
         }
         
-        // Update local inventory
+        // Update local inventory to match storage
         inventory = newInventory;
         
-        // Show notification for added items
+        // Show notification for added items (only for items added from research)
         if (showNotifications && addedItems.length > 0) {
           addedItems.forEach(item => {
             showToast('Item Added from Research', `${item.added} × ${capitalizeLabel(item.key)} stored in inventory`, { delay: 4000 });
           });
         }
         
-        // Refresh UI if there were changes
-        if (addedItems.length > 0) {
-          refreshUI();
-        }
+        // Always refresh UI to stay in sync (even if no items were added - items may have been removed elsewhere)
+        refreshUI();
       } catch (err) {
         console.error('Failed to sync inventory from storage:', err);
       }
