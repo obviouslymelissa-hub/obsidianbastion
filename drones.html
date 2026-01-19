@@ -51,7 +51,7 @@
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <h1>Launch Bay — Drone Deck</h1>
-        <div class="hint">Captain! Build your drone fleet, choose a mission and send them out from the Obsidian Cruiser. Click a drone on the map to select it. Space = land, R = recall.</div>
+        <div class="hint">Captain! Deploy scouts to discover points of interest, explorers to scan them, and collectors to retrieve items. Click a drone on the map to select it. Space = land, R = recall.</div>
       </div>
       <div class="controls">
         <div class="controls-row">
@@ -90,7 +90,7 @@
           <div class="quest">
             <div style="flex:1">
               <strong>Explore Sector</strong>
-              <div class="hint">Explorer drones visit several points and report back.</div>
+              <div class="hint">Explorer drones investigate and scan discovered points of interest.</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button id="btnQuestExplore" class="btn small">Assign</button>
@@ -112,7 +112,7 @@
           <div class="quest">
             <div style="flex:1">
               <strong>Scout Ahead</strong>
-              <div class="hint">Scouts sprint to the edge and return with a ping.</div>
+              <div class="hint">Scouts patrol and randomly discover points of interest.</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button id="btnQuestScout" class="btn small">Assign</button>
@@ -123,8 +123,7 @@
           <div class="quest">
             <div style="flex:1">
               <strong>Collect Objects</strong>
-              <div class="hint">Collectors roam and gather resources.</div>
-              <input id="collectTargetItem" type="text" placeholder="Specific item to collect (optional)" style="width:100%;margin-top:6px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);font-size:0.9rem;" title="Enter a specific item for the collector to find">
+              <div class="hint">Collectors retrieve items from scanned locations.</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
               <button id="btnQuestCollect" class="btn small">Assign</button>
@@ -222,7 +221,6 @@
       btnCmdReturn: document.getElementById('btnCmdReturn'),
       newDroneType: document.getElementById('newDroneType'),
       customDroneNumber: document.getElementById('customDroneNumber'),
-      collectTargetItem: document.getElementById('collectTargetItem'),
       autoPilot: document.getElementById('autoPilot'),
       camCanvas: document.getElementById('camCanvas'),
       joystick: document.getElementById('joystick'),
@@ -236,6 +234,7 @@
     const COLLECT_TIMEOUT_MS = 120000; // 2 minutes
     const RING_BASE_OPACITY = 0.08;
     const RING_MIN_OPACITY = 0.01;
+    const STORAGE_KEY_COLLECTED = 'drones:collected:v1';
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -244,6 +243,8 @@
     let trailsEnabled = true;
     let trails = {};
     let intruders = [];
+    let pointsOfInterest = []; // {id,x,y,type,scanned,name,items,discoveredBy}
+    let collectedItems = loadCollectedItems();
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
     
     // Helper to get primary drone of a specific type
@@ -263,6 +264,131 @@
     }
     function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
     function lerp(a,b,t){ return a + (b-a)*t; }
+
+    // Load/save collected items
+    function loadCollectedItems(){
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_COLLECTED);
+        return raw ? JSON.parse(raw) : [];
+      } catch(e){
+        return [];
+      }
+    }
+    function saveCollectedItems(){
+      try {
+        localStorage.setItem(STORAGE_KEY_COLLECTED, JSON.stringify(collectedItems));
+      } catch(e){
+        console.error('Failed to save collected items:', e);
+      }
+    }
+
+    // Generate random points of interest types
+    function generatePOI(){
+      const types = ['asteroid', 'moon fragment', 'planet debris', 'space junk', 'derelict probe', 'crystal formation'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const x = Math.random() * (mapSize.w - 80) + 40;
+      const y = Math.random() * (mapSize.h - 80) + 40;
+      return {
+        id: 'poi-' + generateId(),
+        x, y,
+        type,
+        scanned: false,
+        name: null,
+        items: null,
+        discoveredBy: null
+      };
+    }
+
+    // Generate items for a scanned POI
+    function generateItems(poiType){
+      const itemPool = {
+        'asteroid': [
+          { name: 'Rare Mineral Sample', mundane: false },
+          { name: 'Iron Ore', mundane: true },
+          { name: 'Crystalline Fragment', mundane: false }
+        ],
+        'moon fragment': [
+          { name: 'Ancient Moon Rock', mundane: false },
+          { name: 'Sensor Module', mundane: true },
+          { name: 'Lunar Ice Sample', mundane: false }
+        ],
+        'planet debris': [
+          { name: 'Atmospheric Analyzer', mundane: true },
+          { name: 'Alien Artifact', mundane: false },
+          { name: 'Power Cell', mundane: true }
+        ],
+        'space junk': [
+          { name: 'Hull Plate', mundane: true },
+          { name: 'Antenna', mundane: true },
+          { name: 'Navigation Computer Fragment', mundane: false }
+        ],
+        'derelict probe': [
+          { name: 'Data Core', mundane: false },
+          { name: 'Thruster Component', mundane: true },
+          { name: 'Communication Array', mundane: true }
+        ],
+        'crystal formation': [
+          { name: 'Energy Crystal', mundane: false },
+          { name: 'Quantum Resonator', mundane: false },
+          { name: 'Coolant Pump', mundane: true }
+        ]
+      };
+      const pool = itemPool[poiType] || itemPool['space junk'];
+      const numItems = 1 + Math.floor(Math.random() * 2); // 1-2 items
+      const items = [];
+      for(let i = 0; i < numItems; i++){
+        const item = pool[Math.floor(Math.random() * pool.length)];
+        items.push({ ...item });
+      }
+      return items;
+    }
+
+    // Add item to research log
+    function addToResearch(itemName, description){
+      try {
+        const RESEARCH_KEY = 'research:items:v1';
+        const raw = localStorage.getItem(RESEARCH_KEY);
+        const items = raw ? JSON.parse(raw) : [];
+        
+        // Check if item already exists
+        if(items.find(i => i.name === itemName)){
+          return; // Don't add duplicates
+        }
+        
+        const newItem = {
+          id: 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+          name: itemName,
+          description: description,
+          status: 'not-started',
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        items.push(newItem);
+        localStorage.setItem(RESEARCH_KEY, JSON.stringify(items));
+        log(`Added ${itemName} to Research Lab`);
+      } catch(e){
+        console.error('Failed to add to research:', e);
+      }
+    }
+
+    // Add item to parts inventory
+    function addToPartsInventory(itemName){
+      try {
+        const INVENTORY_KEY = 'ship.inventory.v1';
+        const raw = localStorage.getItem(INVENTORY_KEY);
+        const inventory = raw ? JSON.parse(raw) : {};
+        
+        // Normalize item name to match inventory keys
+        const key = itemName.toLowerCase();
+        if(inventory[key] == null) inventory[key] = 0;
+        inventory[key] += 1;
+        
+        localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+        log(`Added ${itemName} to Parts Inventory`);
+      } catch(e){
+        console.error('Failed to add to inventory:', e);
+      }
+    }
 
     // Canvas resize
     function resizeMapCanvas(){
@@ -462,53 +588,48 @@
       list.forEach(d => {
         if(d.type !== 'scout') return;
         d.waypoints = [];
-        const edgeX = Math.random()>0.5 ? (Math.random()*80 + mapSize.w*0.9) : (Math.random()*80 + 20);
-        const edgeY = Math.random()>0.5 ? (Math.random()*80 + mapSize.h*0.9) : (Math.random()*80 + 20);
-        d.waypoints.push({ x: edgeX, y: edgeY, id: generateId() });
-        d.waypoints.push({ x: mapSize.w/2, y: mapSize.h/2, id: generateId() });
+        // Scouts patrol looking for POIs
+        const n = 8;
+        for(let i=0;i<n;i++){
+          d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
+        }
         d.status = 'flying';
-        log(`${d.name} assigned Scout Ahead`);
+        log(`${d.name} assigned Scout Ahead - searching for points of interest`);
       });
     }
 
     function assignCollect(targetAll=false){
       const list = targetAll ? drones : (selected ? [selected] : []);
       if(list.length === 0) { alert('Select a drone or spawn a wave.'); return; }
-      const targetItem = el.collectTargetItem.value.trim();
       
       list.forEach(d => {
         if(d.type !== 'collector') return;
         
-        // Clear any existing timeout for this drone
-        if(d.collectTimeoutId){
-          clearTimeout(d.collectTimeoutId);
-          d.collectTimeoutId = null;
-        }
-        
         d.waypoints = [];
-        const n = 6;
-        for(let i=0;i<n;i++){
-          d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
+        // Collectors patrol looking for scanned POIs with items
+        const scannedPOIs = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+        if(scannedPOIs.length > 0){
+          // Go to the nearest scanned POI
+          const nearest = scannedPOIs.reduce((closest, poi) => {
+            const dist = Math.hypot(poi.x - d.x, poi.y - d.y);
+            if(!closest || dist < closest.dist){
+              return { poi, dist };
+            }
+            return closest;
+          }, null);
+          if(nearest){
+            d.waypoints.push({ x: nearest.poi.x, y: nearest.poi.y, id: generateId() });
+            log(`${d.name} assigned to collect from ${nearest.poi.name}`);
+          }
+        } else {
+          // No scanned POIs yet, just patrol
+          const n = 6;
+          for(let i=0;i<n;i++){
+            d.waypoints.push({ x: Math.random()*(mapSize.w-40)+20, y: Math.random()*(mapSize.h-40)+20, id: generateId() });
+          }
+          log(`${d.name} patrolling for collection opportunities`);
         }
         d.status = 'flying';
-        
-        if(targetItem){
-          d.collectTarget = targetItem;
-          d.collectStartTime = now();
-          log(`${d.name} assigned to collect "${targetItem}"`);
-          
-          // Set up 2-minute timeout
-          d.collectTimeoutId = setTimeout(() => {
-            if(d.collectTarget === targetItem && d.status !== 'idle'){
-              log(`${d.name} reports: "${targetItem}" not found after 2 minutes`);
-              d.collectTarget = null;
-              d.collectStartTime = null;
-              d.collectTimeoutId = null;
-            }
-          }, COLLECT_TIMEOUT_MS);
-        } else {
-          log(`${d.name} assigned Collect Objects`);
-        }
       });
     }
 
@@ -598,6 +719,28 @@
         c.fill();
       });
 
+      // points of interest
+      pointsOfInterest.forEach(poi => {
+        c.beginPath();
+        if(poi.scanned){
+          c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
+          c.strokeStyle = 'rgba(79,209,197,0.8)';
+        } else {
+          c.fillStyle = 'rgba(255,200,80,0.5)';
+          c.strokeStyle = 'rgba(255,200,80,0.8)';
+        }
+        c.lineWidth = 2;
+        c.arc(poi.x, poi.y, 10, 0, Math.PI*2);
+        c.fill();
+        c.stroke();
+        
+        // Draw icon based on type
+        c.fillStyle = '#fff';
+        c.font = 'bold 14px system-ui';
+        const icon = poi.scanned ? '✓' : '?';
+        c.fillText(icon, poi.x - 5, poi.y + 5);
+      });
+
       // trails
       if(trailsEnabled){
         Object.values(trails).forEach(arr => {
@@ -682,6 +825,74 @@
           }
         }
 
+        // Scout: Check for nearby POIs to discover
+        if(d.type === 'scout'){
+          // Random chance to discover a new POI when scouting
+          if(Math.random() < 0.005 && d.status === 'flying'){
+            const newPOI = generatePOI();
+            pointsOfInterest.push(newPOI);
+            log(`${d.name} discovered ${newPOI.type} at (${Math.round(newPOI.x)},${Math.round(newPOI.y)})`);
+          }
+        }
+
+        // Explorer: Check for nearby unscanned POIs
+        if(d.type === 'explorer'){
+          pointsOfInterest.forEach(poi => {
+            if(!poi.scanned){
+              const dx = poi.x - d.x, dy = poi.y - d.y;
+              const dist = Math.hypot(dx,dy);
+              if(dist < 15){
+                poi.scanned = true;
+                poi.discoveredBy = d.name;
+                poi.items = generateItems(poi.type);
+                poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
+                const itemList = poi.items.map(it => it.name).join(', ');
+                log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+              }
+            }
+          });
+        }
+
+        // Collector: Check for nearby scanned POIs with items
+        if(d.type === 'collector'){
+          for(let i = pointsOfInterest.length - 1; i >= 0; i--){
+            const poi = pointsOfInterest[i];
+            if(poi.scanned && poi.items && poi.items.length > 0){
+              const dx = poi.x - d.x, dy = poi.y - d.y;
+              const dist = Math.hypot(dx,dy);
+              if(dist < 15){
+                // Collect all items from this POI
+                poi.items.forEach(item => {
+                  const collectedItem = {
+                    id: 'item-' + generateId(),
+                    name: item.name,
+                    mundane: item.mundane,
+                    source: poi.name,
+                    collectedBy: d.name,
+                    timestamp: Date.now()
+                  };
+                  collectedItems.push(collectedItem);
+                  
+                  // Add to appropriate storage
+                  if(item.mundane){
+                    // Add to parts inventory
+                    addToPartsInventory(item.name);
+                  } else {
+                    // Add to research log
+                    addToResearch(item.name, `Found at ${poi.name}. Collected by ${d.name}.`);
+                  }
+                  
+                  log(`${d.name} collected ${item.name} from ${poi.name}`);
+                });
+                saveCollectedItems();
+                // Remove POI after collection
+                pointsOfInterest.splice(i, 1);
+                break;
+              }
+            }
+          }
+        }
+
         if(d.waypoints && d.waypoints.length){
           const wp = d.waypoints[0];
           const dx = wp.x - d.x, dy = wp.y - d.y;
@@ -694,24 +905,22 @@
           d.targetVy = lerp(d.targetVy, ty, 0.07);
           if(dist < 10){
             d.waypoints.shift();
-            if(d.type === 'explorer') log(`${d.name} scanned a point`);
-            if(d.type === 'collector'){
-              if(d.collectTarget){
-                // Random chance of finding the item
-                if(Math.random() < 0.15){
-                  log(`${d.name} found "${d.collectTarget}"!`);
-                  // Clear the timeout since item was found
-                  if(d.collectTimeoutId){
-                    clearTimeout(d.collectTimeoutId);
-                    d.collectTimeoutId = null;
-                  }
-                  d.collectTarget = null;
-                  d.collectStartTime = null;
-                } else {
-                  log(`${d.name} collected an object (still searching for "${d.collectTarget}")`);
-                }
-              } else {
-                log(`${d.name} collected an object`);
+            if(d.type === 'explorer' && d.waypoints.length === 0){
+              // Explorer finished waypoints, look for unscanned POIs
+              const unscanned = pointsOfInterest.filter(p => !p.scanned);
+              if(unscanned.length > 0){
+                const target = unscanned[Math.floor(Math.random() * unscanned.length)];
+                d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+                log(`${d.name} heading to investigate ${target.type}`);
+              }
+            }
+            if(d.type === 'collector' && d.waypoints.length === 0){
+              // Collector finished waypoints, look for scanned POIs with items
+              const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+              if(ready.length > 0){
+                const target = ready[Math.floor(Math.random() * ready.length)];
+                d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+                log(`${d.name} heading to collect from ${target.name}`);
               }
             }
           }
@@ -965,7 +1174,9 @@
       landDrone: (id) => landDrone(id),
       recallDrone: (id) => recallDrone(id),
       createDrone: (name,type) => addDrone(name,type),
-      goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts)
+      goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts),
+      pointsOfInterest: () => pointsOfInterest.slice(),
+      collectedItems: () => collectedItems.slice()
     };
 
     // Intruder spawn interval
