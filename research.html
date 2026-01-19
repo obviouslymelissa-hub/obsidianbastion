@@ -451,76 +451,130 @@
       { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact'] }
     ];
 
-    // Notes/interpretation templates by category (appended to research results)
-    function getTypeNotes(category, researchResults) {
-      switch (category) {
-        case 'Hardware':
-          return `Hardware Notes:
-- Structural integrity: ${researchResults.safe ? 'Stable' : 'Compromised'}.
-- Recommend corrosion check and compatibility test with ship interfaces.
-- Suggested handling: standard engineering PPE.`;
-        case 'Chemical':
-          return `Chemical Notes:
-- Composition unknown; run spectral chromatography for full breakdown.
-- ${researchResults.safe ? 'Low' : 'Elevated'} hazard potential indicated.
-- Suggested handling: isolator gloves, neutralization station.`;
-        case 'Mineral':
-          return `Mineral Notes:
-- Crystalline structure consistent with high conductivity specimens.
-- ${researchResults.safe ? 'Low' : 'Elevated'} background radiation measured.
-- Suggested handling: sample container and geologist analysis.`;
-        case 'Plant Life':
-          return `Plant Life Notes:
-- Viability unclear; spores detected.
-- ${researchResults.safe ? 'Non-pathogenic' : 'Potentially pathogenic'} marker present.
-- Suggested handling: quarantine and botanical assay.`;
-        case 'Life Form':
-          return `Life Form Notes:
-- Biological signatures detected.
-- ${researchResults.safe ? 'No immediate threat' : 'Potential biohazard'} — quarantine required.
-- Suggested handling: senior biologist review and containment.`;
-        case 'Energy Source':
-          return `Energy Source Notes:
-- Emission profile: ${researchResults.radiation || 'unknown'}.
-- ${researchResults.safe ? 'Stable' : 'Unstable'} — do not integrate without safety protocols.
-- Suggested handling: isolated storage and energy diagnostics.`;
-        case 'Other':
-        case 'Unknown':
-        default:
-          return `General Notes:
-- Material requires additional analysis for definitive classification.
-- ${researchResults.safe ? 'Low' : 'High'} risk indicators present.
-- Suggested handling: proceed with caution; escalate if necessary.`;
-      }
-    }
-
-    // Infer a category from a name using keyword heuristics (returns a category or 'Unknown')
-    function inferCategoryFromName(name) {
-      if (!name || typeof name !== 'string') return 'Unknown';
-      const lower = name.toLowerCase();
-      for (const entry of INFERENCE_KEYWORDS) {
-        for (const kw of entry.keywords) {
-          const re = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
-          if (re.test(lower)) {
-            return entry.category;
-          }
+    // New: category-specific note pools. Each entry is a function that returns a string and optionally
+    // sets properties on researchResults to capture structured findings (edible, medicinal, pathogen, etc).
+    const NOTE_POOLS = {
+      'Plant Life': [
+        function(results){
+          // medicinal possibility
+          const medicinal = Math.random() < 0.35 && results.safe;
+          const edible = !medicinal && Math.random() < (results.safe ? 0.25 : 0.05);
+          const toxic = !edible && (Math.random() < (results.safe ? 0.05 : 0.6));
+          results.flags = results.flags || {};
+          results.flags.medicinal = !!medicinal;
+          results.flags.edible = !!edible;
+          results.flags.toxic = !!toxic;
+          if(medicinal) return `Plant Notes: Contains compounds with potential medicinal properties. Recommend extraction and biochemical analysis for pharmacological use. Do NOT consume raw.`;
+          if(edible) return `Plant Notes: Preliminary tests suggest parts are edible after cooking/processing. Recommend toxicity and allergen assays before consumption.`;
+          if(toxic) return `Plant Notes: Toxin markers detected. Not safe for consumption. Use strict quarantine and protective handling.`;
+          return `Plant Notes: Biological material detected; spores are present. Quarantine sample and run extended botanical assays before any handling.`;
+        },
+        function(results){
+          // fermentation/food-starter possibility
+          const fermentable = Math.random() < 0.15 && results.safe;
+          results.flags = results.flags || {};
+          results.flags.fermentable = !!fermentable;
+          if(fermentable) return `Plant Notes: Contains fermentable sugars — potential food-starter or biochemical feedstock after lab processing.`;
+          return `Plant Notes: Cellular structure fragile; preserve tissue samples for microscopy and DNA barcoding.`;
         }
-      }
-      // fallback: try partial matches for common stems
-      if (lower.includes('spore') || lower.includes('flora') || lower.includes('plant')) return 'Plant Life';
-      if (lower.includes('alien') || lower.includes('organism') || lower.includes('larva')) return 'Life Form';
-      if (lower.includes('crystal') || lower.includes('ore') || lower.includes('gem')) return 'Mineral';
-      if (lower.includes('chip') || lower.includes('module') || lower.includes('sensor') || lower.includes('engine')) return 'Hardware';
-      if (lower.includes('acid') || lower.includes('solvent') || lower.includes('chemical')) return 'Chemical';
-      if (lower.includes('battery') || lower.includes('reactor') || lower.includes('power')) return 'Energy Source';
-      return 'Unknown';
-    }
-
-    // Choose a random category from CATEGORY_LIST
-    function chooseRandomCategory() {
-      const i = Math.floor(Math.random() * CATEGORY_LIST.length);
-      return CATEGORY_LIST[i];
-    }
+      ],
+      'Life Form': [
+        function(results){
+          // pathogen detection
+          const pathogen = Math.random() < 0.45 && !results.safe;
+          results.flags = results.flags || {};
+          results.flags.pathogen = !!pathogen;
+          if(pathogen) return `Life Form Notes: Pathogenic signatures detected. Treat as biohazard; immediate containment required. Do NOT attempt contact without bio-safety protocols.`;
+          // non-pathogenic but parasitic
+          const symbiont = !pathogen && Math.random() < 0.25;
+          results.flags.symbiont = !!symbiont;
+          if(symbiont) return `Life Form Notes: Signs of symbiotic behavior found. May interact with host organisms non-lethally — further behavioral assays recommended.`;
+          // edible possibility (rare)
+          const edible = !pathogen && Math.random() < 0.08;
+          results.flags.edible = !!edible;
+          if(edible) return `Life Form Notes: Certain tissues appear nutritionally rich after proper preparation; however, ingestion is not recommended until toxicity and immunogenicity are ruled out.`;
+          return `Life Form Notes: Biological signatures confirmed. Recommend containment, DNA sequencing, and consultation with senior xenobiology officers.`;
+        }
+      ],
+      'Hardware': [
+        function(results){
+          // utility
+          const reusable = Math.random() < 0.5;
+          results.flags = results.flags || {};
+          results.flags.reusable = !!reusable;
+          if(reusable) return `Hardware Notes: Component appears structurally sound and potentially reusable with minor refurbishment. Run interface compatibility checks before integration.`;
+          return `Hardware Notes: Corrosion or degradation detected; salvage may be possible for parts but full replacement recommended for safety-critical systems.`;
+        },
+        function(results){
+          const exotic = Math.random() < 0.15;
+          results.flags = results.flags || {};
+          results.flags.exoticTech = !!exotic;
+          if(exotic) return `Hardware Notes: Unexpected materials and manufacturing marks; contains non-standard architecture — recommends detailed reverse-engineering.`;
+          return `Hardware Notes: No power signature detected; internal diagnostics required to determine component integrity.`;
+        }
+      ],
+      'Chemical': [
+        function(results){
+          const reactive = Math.random() < 0.4 && !results.safe;
+          results.flags = results.flags || {};
+          results.flags.reactive = !!reactive;
+          if(reactive) return `Chemical Notes: Reactive components detected; avoid open-air exposure and consult chemistry protocols for neutralization.`;
+          return `Chemical Notes: Low volatility detected; molecular composition unclear — spectral chromatography recommended.`;
+        },
+        function(results){
+          const energetic = Math.random() < 0.12;
+          results.flags = results.flags || {};
+          results.flags.energetic = !!energetic;
+          if(energetic) return `Chemical Notes: Energetic compounds present. Store in blast-resistant containment and notify engineering.`;
+          return `Chemical Notes: Sample stable under lab conditions; treat with standard chemical safety handling.`;
+        }
+      ],
+      'Mineral': [
+        function(results){
+          const conductive = Math.random() < 0.35;
+          results.flags = results.flags || {};
+          results.flags.conductive = !!conductive;
+          if(conductive) return `Mineral Notes: Crystalline structure shows high conductivity potential — candidate for experimental energy applications.`;
+          return `Mineral Notes: Dense crystalline lattice; may be valuable for materials research. Recommend non-destructive imaging and spectrometry.`;
+        },
+        function(results){
+          const radioactive = Math.random() < 0.12 && !results.safe;
+          results.flags = results.flags || {};
+          results.flags.radioactive = !!radioactive;
+          if(radioactive) return `Mineral Notes: Elevated radioactive isotopes detected beyond background levels; use shielding for transport and storage.`;
+          return `Mineral Notes: No immediate hazard beyond trace radioactivity; proceed with geochemical assays.`;
+        }
+      ],
+      'Energy Source': [
+        function(results){
+          const unstable = Math.random() < 0.25 && !results.safe;
+          results.flags = results.flags || {};
+          results.flags.stable = !unstable;
+          if(unstable) return `Energy Notes: Instability detected in emission profile. DO NOT connect to ship systems; isolate and monitor remotely.`;
+          return `Energy Notes: Stable energy cell candidate. With conditioning and diagnostics could be integrated as auxiliary power unit.`;
+        },
+        function(results){
+          const highOutput = Math.random() < 0.15;
+          results.flags = results.flags || {};
+          results.flags.highOutput = !!highOutput;
+          if(highOutput) return `Energy Notes: High output potential observed in controlled discharge tests; recommend engineering review before handling.`;
+          return `Energy Notes: Low output but steady; useful for low-power instrumentation after certification.`;
+        }
+      ],
+      'Other': [
+        function(results){
+          return `General Notes: Object does not match known categories closely. Collect more samples and run multi-disciplinary analysis.`;
+        },
+        function(results){
+          return `General Notes: Origin unclear. Historical analysis and provenance tracking advised before any use.`;
+        }
+      ],
+      'Unknown': [
+        function(results){
+          return `General Notes: Classification uncertain; preserve sample and route to specialized labs for deeper analysis.`;
+        }
+      ]
+    };
 
     // Modal helper: shows built-in interface modal instead of window.confirm/alert
     function showModal({ title = 'Confirm', message = '', confirmText = 'OK', cancelText = 'Cancel', showCancel = true } = {}) {
@@ -653,6 +707,34 @@
       }, 250);
     }
 
+    // Infer a category from a name using keyword heuristics (returns a category or 'Unknown')
+    function inferCategoryFromName(name) {
+      if (!name || typeof name !== 'string') return 'Unknown';
+      const lower = name.toLowerCase();
+      for (const entry of INFERENCE_KEYWORDS) {
+        for (const kw of entry.keywords) {
+          const re = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+          if (re.test(lower)) {
+            return entry.category;
+          }
+        }
+      }
+      // fallback: try partial matches for common stems
+      if (lower.includes('spore') || lower.includes('flora') || lower.includes('plant')) return 'Plant Life';
+      if (lower.includes('alien') || lower.includes('organism') || lower.includes('larva')) return 'Life Form';
+      if (lower.includes('crystal') || lower.includes('ore') || lower.includes('gem')) return 'Mineral';
+      if (lower.includes('chip') || lower.includes('module') || lower.includes('sensor') || lower.includes('engine')) return 'Hardware';
+      if (lower.includes('acid') || lower.includes('solvent') || lower.includes('chemical')) return 'Chemical';
+      if (lower.includes('battery') || lower.includes('reactor') || lower.includes('power')) return 'Energy Source';
+      return 'Unknown';
+    }
+
+    // Choose a random category from CATEGORY_LIST
+    function chooseRandomCategory() {
+      const i = Math.floor(Math.random() * CATEGORY_LIST.length);
+      return CATEGORY_LIST[i];
+    }
+
     // Attempt to infer categories for existing items that are Unknown or missing a category.
     // If inference fails, assign a random category.
     // Returns true if any changes were made.
@@ -781,7 +863,21 @@
       ensureProgressTimer();
     }
 
-    // Complete research, attach results and type-specific notes
+    // Helper to pick a random note from pool for a category and apply structured flags
+    function pickTypeNoteForCategory(category, researchResults) {
+      const pool = NOTE_POOLS[category] || NOTE_POOLS['Unknown'];
+      if (!pool || pool.length === 0) return '';
+      const idx = Math.floor(Math.random() * pool.length);
+      // pool entries are functions that may mutate researchResults.flags
+      try {
+        return pool[idx](researchResults || {});
+      } catch (e) {
+        console.error('Note generation failed for', category, e);
+        return '';
+      }
+    }
+
+    // Complete research, attach results and randomized category-specific notes (no duplication)
     function completeResearch(itemId) {
       const item = items.find(i => i.id === itemId);
       if(!item) return;
@@ -797,21 +893,23 @@
       const contamination = isSafe ? 'No significant contamination detected.' : 'Hazardous residues detected; handle with caution.';
       const notes = isSafe ? 'Artifact appears chemically stable and can be used for non-critical ship modifications.' : 'Not recommended for use. Quarantine required.';
       
+      // base research results
       item.researchResults = {
         safe: isSafe,
         radiation,
         contamination,
         notes,
-        completedAt: Date.now()
+        completedAt: Date.now(),
+        flags: {} // will be filled by category note generator
       };
 
-      // Generate and attach type-specific notes (kept only in researchResults and appended once to report)
-      const typeNotes = getTypeNotes(item.category || 'Unknown', item.researchResults);
-      item.researchResults.typeNotes = typeNotes;
+      // Generate and attach one random type-specific note (and structured flags)
+      const typeNote = pickTypeNoteForCategory(item.category || 'Unknown', item.researchResults);
+      item.researchResults.typeNotes = typeNote || '';
 
       // update status and attach report (do not change array order)
       item.status = 'complete';
-      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}\n\n${typeNotes}`;
+      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}\n\n${item.researchResults.typeNotes || ''}`;
       // Ensure report appends only once: if report already includes this exact resultText, skip appending.
       if (!item.report || !item.report.includes(resultText)) {
         item.report = (item.report ? item.report + '\n\n' : '') + resultText;
