@@ -449,6 +449,8 @@
       d.status = 'flying';
       d.alt = Math.max(d.alt, 30);
       d.taskCompleted = false;
+      d.lastDiscoveryTime = now(); // Initialize discovery time when launching
+      d.launchTime = now(); // Track when drone was launched
       const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
       d.targetVx = (Math.random()-0.5) * speedBase;
       d.targetVy = (Math.random()-0.5) * speedBase;
@@ -734,8 +736,10 @@
         
         // Check if scout completed without finding anything
         if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying' && d.waypoints.length === 0){
-          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
-          if(timeSinceLastDiscovery > 60000){ // After 60 seconds with no discovery
+          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || t);
+          const timeFlying = t - (d.launchTime || t);
+          // Only mark as completed if been flying for at least 30 seconds AND no waypoints
+          if(timeFlying > 30000 && timeSinceLastDiscovery > 30000){ 
             d.taskCompleted = true;
             d.status = 'hovering';
             d.targetVx = 0;
@@ -873,6 +877,14 @@
 
         d.vx = lerp(d.vx, d.targetVx, 0.12);
         d.vy = lerp(d.vy, d.targetVy, 0.12);
+
+        // Force stop if status is idle, hovering, or landing (landed at base)
+        if(d.status === 'idle' || d.status === 'landing' || d.status === 'hovering'){
+          d.vx = 0;
+          d.vy = 0;
+          d.targetVx = 0;
+          d.targetVy = 0;
+        }
 
         d.x += d.vx * (dt/16);
         d.y += d.vy * (dt/16);
