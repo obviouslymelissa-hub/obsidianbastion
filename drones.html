@@ -179,6 +179,11 @@
     const RING_BASE_OPACITY = 0.08;
     const RING_MIN_OPACITY = 0.01;
     const STORAGE_KEY_COLLECTED = 'drones:collected:v1';
+    const DISCOVERY_COOLDOWN = 30000; // 30 seconds
+    const DISCOVERY_PROBABILITY = 0.001; // Probability per frame
+    const SCOUT_PATROL_DURATION = 30000; // 30 seconds
+    const RETURN_STOP_THRESHOLD = 30; // Distance to stop when returning to base
+    const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -718,9 +723,8 @@
         if(d.type === 'scout' && !d.taskCompleted){
           // Much slower discovery rate - check every 30 seconds minimum
           const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
-          const DISCOVERY_COOLDOWN = 30000; // 30 seconds
           
-          if(timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < 0.001 && d.status === 'flying'){
+          if(timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < DISCOVERY_PROBABILITY && d.status === 'flying'){
             const newPOI = generatePOI();
             pointsOfInterest.push(newPOI);
             d.lastDiscoveryTime = t;
@@ -739,7 +743,7 @@
           const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || t);
           const timeFlying = t - (d.launchTime || t);
           // Only mark as completed if been flying for at least 30 seconds AND no waypoints
-          if(timeFlying > 30000 && timeSinceLastDiscovery > 30000){ 
+          if(timeFlying > SCOUT_PATROL_DURATION && timeSinceLastDiscovery > SCOUT_PATROL_DURATION){ 
             d.taskCompleted = true;
             d.status = 'hovering';
             d.targetVx = 0;
@@ -830,7 +834,7 @@
           d.targetVy = lerp(d.targetVy, ty, 0.07);
           
           // Increase detection radius to stop at center (within ship circle)
-          const stopThreshold = d.status === 'returning' ? 30 : 10;
+          const stopThreshold = d.status === 'returning' ? RETURN_STOP_THRESHOLD : DEFAULT_STOP_THRESHOLD;
           
           if(dist < stopThreshold){
             d.waypoints.shift();
