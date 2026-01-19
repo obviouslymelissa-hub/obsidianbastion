@@ -578,6 +578,21 @@
         // Generate initial patrol waypoints
         generateScoutPatrolWaypoints(d, 3);
       }
+
+      // Collector: immediately assign waypoints to scanned POIs with items (nearest-first)
+      if(d.type === 'collector'){
+        const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+        // sort by distance to the collector
+        ready.sort((a,b) => {
+          const da = Math.hypot(a.x - d.x, a.y - d.y);
+          const db = Math.hypot(b.x - d.x, b.y - d.y);
+          return da - db;
+        });
+        d.waypoints = ready.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
+        if(d.waypoints.length > 0){
+          log(`${d.name} launched and assigned to ${d.waypoints.length} collect target(s)`);
+        }
+      }
       
       const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
       d.targetVx = (Math.random()-0.5) * speedBase;
