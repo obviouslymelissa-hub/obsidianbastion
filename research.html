@@ -217,6 +217,34 @@
       font-size:1.1rem;
       margin:0;
     }
+
+    /* Modal (in-page confirmations and alerts) */
+    .modal-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:1200;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 180ms ease;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:auto; }
+    .modal {
+      width:clamp(320px, 40vw, 640px);
+      background:var(--bg-panel);
+      border-radius:10px;
+      padding:18px;
+      border:1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      color:var(--text-main);
+    }
+    .modal h4 { margin:0 0 8px 0; font-size:1.05rem; color:var(--accent); }
+    .modal .modal-body { color:var(--text-muted); font-size:0.95rem; white-space:pre-wrap; }
+    .modal .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+    .modal .btn.secondary { background:rgba(255,255,255,0.06); }
   </style>
 </head>
 <body>
@@ -324,6 +352,18 @@
     </div>
   </div>
 
+  <!-- In-page modal used for confirms and alerts -->
+  <div id="modalOverlay" class="modal-overlay" role="dialog" aria-hidden="true" aria-modal="true" style="display:none;">
+    <div class="modal" role="document" aria-labelledby="modalTitle">
+      <h4 id="modalTitle">Confirm</h4>
+      <div class="modal-body" id="modalBody">Message</div>
+      <div class="modal-actions" id="modalActions">
+        <button class="btn secondary" id="modalCancel">Cancel</button>
+        <button class="btn" id="modalConfirm">OK</button>
+      </div>
+    </div>
+  </div>
+
   <footer style="text-align:center;color:var(--muted);padding:24px 0 40px;border-top:1px solid rgba(255,255,255,0.03);margin-top:32px;font-style:italic;">
     <div style="margin-bottom:12px">
       <a href="index.html" style="color:var(--accent);text-decoration:none;font-weight:600">Vessel Profile</a>
@@ -355,6 +395,13 @@
     const collectedListEl = document.getElementById('collectedList');
     const archiveListEl = document.getElementById('archiveList');
 
+    // Modal elements
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalConfirm = document.getElementById('modalConfirm');
+    const modalCancel = document.getElementById('modalCancel');
+
     // State
     let items = loadItems();
     let collected = loadCollectedItems();
@@ -363,7 +410,54 @@
     // Progress update timer
     let progressTimer = null;
 
-    // Load items from localStorage
+    // Modal helper: shows built-in interface modal instead of window.confirm/alert
+    // showConfirm returns a Promise<boolean>. showAlert returns Promise<void>.
+    function showModal({ title = 'Confirm', message = '', confirmText = 'OK', cancelText = 'Cancel', showCancel = true } = {}) {
+      return new Promise(resolve => {
+        modalTitle.textContent = title;
+        modalBody.textContent = message;
+        modalConfirm.textContent = confirmText;
+        modalCancel.textContent = cancelText;
+        modalCancel.style.display = showCancel ? '' : 'none';
+        modalOverlay.style.display = 'flex';
+        requestAnimationFrame(() => modalOverlay.classList.add('open'));
+        modalOverlay.setAttribute('aria-hidden', 'false');
+
+        function cleanup(result) {
+          modalOverlay.classList.remove('open');
+          modalOverlay.setAttribute('aria-hidden', 'true');
+          // small delay for transition
+          setTimeout(() => {
+            modalOverlay.style.display = 'none';
+          }, 180);
+          modalConfirm.removeEventListener('click', onConfirm);
+          modalCancel.removeEventListener('click', onCancel);
+          document.removeEventListener('keydown', onKeyDown);
+          resolve(result);
+        }
+        function onConfirm() { cleanup(true); }
+        function onCancel() { cleanup(false); }
+        function onKeyDown(e) {
+          if(e.key === 'Escape') { cleanup(false); }
+          if(e.key === 'Enter') { cleanup(true); }
+        }
+
+        modalConfirm.addEventListener('click', onConfirm);
+        modalCancel.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKeyDown);
+
+        // Focus the confirm button for quick keyboard interaction
+        modalConfirm.focus();
+      });
+    }
+    async function showConfirm(message, title = 'Confirm') {
+      return await showModal({ title, message, confirmText: 'Confirm', cancelText: 'Cancel', showCancel: true });
+    }
+    async function showAlert(message, title = 'Notice') {
+      await showModal({ title, message, confirmText: 'OK', cancelText: '','showCancel': false });
+    }
+
+    // Utilities
     function loadItems() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -373,8 +467,6 @@
         return [];
       }
     }
-
-    // Save items to localStorage
     function saveItems() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -382,8 +474,6 @@
         console.error('Failed to save items:', e);
       }
     }
-
-    // Collected items (from drones)
     function loadCollectedItems() {
       try {
         const raw = localStorage.getItem(COLLECTED_KEY);
@@ -400,8 +490,6 @@
         console.error('Failed to save collected items:', e);
       }
     }
-
-    // Archive
     function loadArchiveItems() {
       try {
         const raw = localStorage.getItem(ARCHIVE_KEY);
@@ -418,8 +506,6 @@
         console.error('Failed to save archive:', e);
       }
     }
-
-    // Inventory helper
     function addToPartsInventory(itemName){
       try {
         const raw = localStorage.getItem(INVENTORY_KEY);
@@ -435,13 +521,9 @@
         console.error('Failed to add to inventory:', e);
       }
     }
-
-    // Generate unique ID
     function generateId() {
       return 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     }
-
-    // Logging utility (console)
     function log(msg){
       console.log('[Research Lab] ' + msg);
     }
@@ -478,7 +560,7 @@
         row.innerHTML = `
           <div>
             <div style="font-weight:700">${escapeHtml(ci.name || ci.itemName || 'Unknown')}</div>
-            <div class="meta">${escapeHtml(ci.source || ci.source || '')} ${ci.mundane === false ? '• Interesting' : ''}</div>
+            <div class="meta">${escapeHtml(ci.source || '')} ${ci.mundane === false ? '• Interesting' : ''}</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn small" onclick="researchCollectedItem('${ci.id}')">Research</button>
@@ -504,11 +586,11 @@
         createdAt: Date.now(),
         updatedAt: Date.now(),
         researchResults: null,
-        // research timing fields (will be set by simulateResearch)
         researchStartedAt: null,
         researchDuration: null,
         researchTimeoutId: null
       };
+      // Add to the end of the items array — we intentionally preserve array order and never reorder on status changes
       items.push(newItem);
       saveItems();
 
@@ -523,10 +605,11 @@
     };
 
     // Discard collected item directly from collected panel
-    window.discardCollectedItem = function(colId) {
+    window.discardCollectedItem = async function(colId) {
       const idx = collected.findIndex(c => c.id === colId);
       if(idx === -1) return;
-      if(confirm('Discard this collected item? This cannot be undone.')) {
+      const confirm = await showConfirm('Discard this collected item? This cannot be undone.', 'Discard Collected Item');
+      if(confirm) {
         collected.splice(idx,1);
         saveCollectedItems();
         renderCollected();
@@ -545,7 +628,6 @@
       saveItems();
       // store timeout id so we can cancel if needed
       item.researchTimeoutId = setTimeout(() => {
-        // remove timeout id since it fired
         item.researchTimeoutId = null;
         completeResearch(itemId);
       }, duration);
@@ -556,10 +638,8 @@
     function completeResearch(itemId) {
       const item = items.find(i => i.id === itemId);
       if(!item) return;
-      // Randomized results to make it interesting
       const safetyChance = 0.7; // 70% chance safe
       const isSafe = Math.random() < safetyChance;
-      // Radiation level in mSv (example ranges)
       let radiation;
       if(isSafe) {
         radiation = (Math.random() * 0.5).toFixed(2) + ' mSv';
@@ -577,12 +657,11 @@
         notes,
         completedAt: Date.now()
       };
+      // IMPORTANT: do not change item's position in the items array — only update status and data
       item.status = 'complete';
-      // Append results to description for visibility
       item.description = (item.description ? item.description + '\n\n' : '') +
         `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
       item.updatedAt = Date.now();
-      // clear timing fields (keep them if you want to show history)
       item.researchStartedAt = item.researchStartedAt || null;
       item.researchDuration = item.researchDuration || null;
       if(item.researchTimeoutId){
@@ -614,26 +693,24 @@
     };
 
     // Store as inventory
-    window.storeAsInventory = function(id) {
+    window.storeAsInventory = async function(id) {
       const idx = items.findIndex(i => i.id === id);
       if(idx === -1) return;
       const it = items[idx];
-      // Use inventory helper
       addToPartsInventory(it.name);
-      // After storing as inventory, remove from research list
       items.splice(idx,1);
       saveItems();
       render();
-      alert(`${it.name} stored in ship inventory.`);
+      await showAlert(`${it.name} stored in ship inventory.`, 'Stored');
     };
 
     // Discard research item
-    window.discardItem = function(id) {
+    window.discardItem = async function(id) {
       const idx = items.findIndex(i => i.id === id);
       if(idx === -1) return;
       const it = items[idx];
-      if(confirm(`Discard "${it.name}"? This will permanently remove it from records.`)) {
-        // clear any pending research timeout
+      const confirmed = await showConfirm(`Discard "${it.name}"? This will permanently remove it from records.`, 'Discard Item');
+      if(confirmed) {
         if(it.researchTimeoutId){
           clearTimeout(it.researchTimeoutId);
           it.researchTimeoutId = null;
@@ -666,7 +743,7 @@
       });
     }
 
-    // Render all research items
+    // Render all research items — preserve the items array order so status changes don't reorder the list
     function render() {
       researchList.innerHTML = '';
       
@@ -680,13 +757,9 @@
         itemCount.textContent = `(${items.length})`;
       }
       
-      // Sort: in-progress first, then not-started, then complete
-      const sorted = [...items].sort((a, b) => {
-        const order = { 'in-progress': 0, 'not-started': 1, 'complete': 2 };
-        return (order[a.status] || 9) - (order[b.status] || 9);
-      });
-      
-      sorted.forEach(item => {
+      // IMPORTANT: render in array order (preserve insertion/arrangement). This prevents items jumping to a different
+      // position when their status changes.
+      items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'research-item';
         
@@ -755,10 +828,11 @@
     };
 
     // Cancel research (best-effort: clear timeout and mark not-started)
-    window.cancelResearch = function(id) {
+    window.cancelResearch = async function(id) {
       const it = items.find(i => i.id === id);
       if(!it) return;
-      if(confirm('Cancel current research? Item will be returned to Not Started.')) {
+      const confirmed = await showConfirm('Cancel current research? Item will be returned to Not Started.', 'Cancel Research');
+      if(confirmed){
         if(it.researchTimeoutId){
           clearTimeout(it.researchTimeoutId);
           it.researchTimeoutId = null;
@@ -790,12 +864,12 @@
       itemName.focus();
     };
 
-    window.deleteItem = function(id) {
+    window.deleteItem = async function(id) {
       const item = items.find(i => i.id === id);
       if (!item) return;
       
-      if (confirm(`Delete "${item.name}"? This cannot be undone.`)) {
-        // clear pending timeout if any
+      const confirmed = await showConfirm(`Delete "${item.name}"? This cannot be undone.`, 'Delete Research Item');
+      if (confirmed) {
         if(item.researchTimeoutId){
           clearTimeout(item.researchTimeoutId);
         }
@@ -864,6 +938,7 @@
           researchDuration: null,
           researchTimeoutId: null
         };
+        // push to items array — order preserved
         items.push(newItem);
 
         // If user selected to start research immediately, simulate
@@ -885,7 +960,7 @@
     // Start progress timer if there are already in-progress items on load
     if(anyInProgress()) ensureProgressTimer();
 
-    // Expose minimal API for console debugging
+    // Expose minimal API for console debugging (async clear uses modal)
     window.researchLab = {
       items: () => items,
       collected: () => collected,
@@ -896,8 +971,9 @@
         saveCollectedItems();
         renderCollected();
       },
-      clearCollected: () => {
-        if(confirm('Clear all collected items?')) {
+      clearCollected: async () => {
+        const confirmed = await showConfirm('Clear all collected items?', 'Clear Collected Items');
+        if(confirmed){
           collected = [];
           saveCollectedItems();
           renderCollected();
