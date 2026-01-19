@@ -249,8 +249,7 @@
           const before = d.waypoints.length;
           d.waypoints = d.waypoints.filter(w => w.poiId !== poiId);
           if(d.waypoints.length !== before){
-            // If we removed the first/active waypoint, ensure the drone doesn't keep a stale target
-            // (we don't force an idle state; drones will pick up new waypoints naturally)
+            // nothing else required here — drones will pick new targets naturally
           }
         }
       });
@@ -1113,22 +1112,46 @@
       requestAnimationFrame(step);
     }
 
-    // Camera
+    // Camera: simulate a basic live feed for the selected drone
     function renderCamera(){
       const c = camCtx;
       const cw = el.camCanvas.width, ch = el.camCanvas.height;
       c.clearRect(0,0,cw,ch);
+      // background
       c.fillStyle = '#000';
       c.fillRect(0,0,cw,ch);
-      c.fillStyle = '#444';
+
+      // header
+      c.fillStyle = 'rgba(255,255,255,0.9)';
       c.font = '12px system-ui';
-      c.fillText('No active camera feed', 8, ch/2);
+      if(selected){
+        c.fillText(`Camera: ${selected.name} (${selected.type})`, 8, 14);
+        // simulated scene background
+        c.fillStyle = '#071217';
+        c.fillRect(6,22,cw-12,ch-36);
+
+        // simulate a "drone cursor" using drone's position relative to map
+        const px = clamp(Math.round((selected.x / Math.max(1,mapSize.w)) * (cw - 40)) + 20, 12, cw-12);
+        const py = clamp(Math.round((selected.y / Math.max(1,mapSize.h)) * (ch - 40)) + 20, 12, ch-12);
+        const color = selected.type === 'defender' ? '#ffd47a' : (selected.type === 'scout' ? '#7ad1ff' : (selected.type === 'collector' ? '#d47aff' : '#9be7c6'));
+        c.fillStyle = color;
+        c.beginPath(); c.arc(px, py, 8, 0, Math.PI*2); c.fill();
+
+        // status overlay
+        c.fillStyle = 'rgba(255,255,255,0.9)';
+        c.font = '11px system-ui';
+        c.fillText(`${selected.status} • ${Math.round(selected.battery)}%`, 8, ch-8);
+      } else {
+        c.fillStyle = '#444';
+        c.font = '12px system-ui';
+        c.fillText('No active camera feed', 8, ch/2);
+      }
     }
 
     // Initial setup
     resizeMapCanvas();
-    // spawn a few starter drones
-    addDrone('Scout-01','scout'); addDrone('Explorer-01','explorer'); addDrone('Collector-01','collector');
+    // spawn a few starter drones (re-added Defender so it shows in the list)
+    addDrone('Scout-01','scout'); addDrone('Explorer-01','explorer'); addDrone('Collector-01','collector'); addDrone('Defender-01','defender');
 
     // Controls (basic)
     el.btnNewDrone.addEventListener('click', () => {
