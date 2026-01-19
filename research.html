@@ -437,15 +437,18 @@
       'Other': '📦'
     };
 
+    // Master category list for random assignment (exclude 'Unknown')
+    const CATEGORY_LIST = ['Hardware','Chemical','Mineral','Plant Life','Life Form','Energy Source','Other'];
+
     // Heuristic keyword map for inferring category from name
     const INFERENCE_KEYWORDS = [
       { category: 'Plant Life', keywords: ['plant', 'flora', 'spore', 'leaf', 'seed', 'fungus', 'fungi', 'moss'] },
       { category: 'Life Form', keywords: ['organism', 'lifeform', 'life form', 'creature', 'alien', 'worm', 'larva', 'specimen', 'beast'] },
       { category: 'Mineral', keywords: ['crystal', 'mineral', 'ore', 'rock', 'stone', 'gem', 'quartz'] },
-      { category: 'Hardware', keywords: ['circuit', 'chip', 'antenna', 'module', 'computer', 'thruster', 'engine', 'plate', 'hull', 'sensor', 'processor', 'antenna'] },
+      { category: 'Hardware', keywords: ['circuit', 'chip', 'antenna', 'module', 'computer', 'thruster', 'engine', 'plate', 'hull', 'sensor', 'processor'] },
       { category: 'Chemical', keywords: ['acid', 'chemical', 'compound', 'solvent', 'liquid', 'gas', 'substance', 'reagent'] },
       { category: 'Energy Source', keywords: ['battery', 'cell', 'reactor', 'core', 'capacitor', 'power'] },
-      { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact', 'artifact'] }
+      { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact'] }
     ];
 
     // Notes/interpretation templates by category (appended to research results)
@@ -511,6 +514,12 @@
       if (lower.includes('acid') || lower.includes('solvent') || lower.includes('chemical')) return 'Chemical';
       if (lower.includes('battery') || lower.includes('reactor') || lower.includes('power')) return 'Energy Source';
       return 'Unknown';
+    }
+
+    // Choose a random category from CATEGORY_LIST
+    function chooseRandomCategory() {
+      const i = Math.floor(Math.random() * CATEGORY_LIST.length);
+      return CATEGORY_LIST[i];
     }
 
     // Modal helper: shows built-in interface modal instead of window.confirm/alert
@@ -645,6 +654,7 @@
     }
 
     // Attempt to infer categories for existing items that are Unknown or missing a category.
+    // If inference fails, assign a random category.
     // Returns true if any changes were made.
     function inferUnknownCategoriesOnLoad() {
       let changed = false;
@@ -653,6 +663,13 @@
           const inferred = inferCategoryFromName(item.name || '');
           if (inferred && inferred !== 'Unknown') {
             item.category = inferred;
+            item._categoryAssigned = 'inferred';
+            changed = true;
+          } else {
+            // assign random if cannot infer
+            const rand = chooseRandomCategory();
+            item.category = rand;
+            item._categoryAssigned = 'random';
             changed = true;
           }
         }
@@ -696,13 +713,18 @@
       if(idx === -1) return;
       const col = collected[idx];
 
-      // Determine category: prefer the provided category, otherwise infer from name
+      // Determine category: prefer the provided category, otherwise infer from name; if inference fails, assign random
       let category = col.category || col.type || 'Unknown';
       if (!category || category === 'Unknown') {
-        category = inferCategoryFromName(col.name || col.itemName || '');
+        const inferred = inferCategoryFromName(col.name || col.itemName || '');
+        if (inferred && inferred !== 'Unknown') {
+          category = inferred;
+        } else {
+          category = chooseRandomCategory();
+        }
       }
 
-      // Create research item — include inferred category
+      // Create research item — include inferred/random category
       const newItem = {
         id: generateId(),
         name: col.name || col.itemName || 'Unknown Artifact',
@@ -944,7 +966,7 @@
           <div class="research-header">
             <div>
               <h4 class="research-title"><span class="icon">${escapeHtml(icon)}</span><span>${escapeHtml(item.name)}</span></h4>
-              <div class="research-meta">${item.category ? escapeHtml(item.category) : 'Unknown'}</div>
+              <div class="research-meta">${item.category ? escapeHtml(item.category) : 'Unknown'}${item._categoryAssigned ? ' • ' + escapeHtml(item._categoryAssigned) : ''}</div>
             </div>
             <div><div class="research-status ${statusClass}">${statusLabel}</div></div>
           </div>
@@ -1044,7 +1066,7 @@
       return div.innerHTML;
     }
 
-    // Form submit — add or update (infer category when Unknown)
+    // Form submit — add or update (infer category when Unknown, or assign random if inference fails)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -1058,9 +1080,13 @@
       }
       
       if (!category || category === 'Unknown') {
-        // infer if user left it as Unknown
+        // infer if user left it as Unknown; otherwise assign random
         const inferred = inferCategoryFromName(name);
-        if (inferred && inferred !== 'Unknown') category = inferred;
+        if (inferred && inferred !== 'Unknown') {
+          category = inferred;
+        } else {
+          category = chooseRandomCategory();
+        }
       }
 
       if (id) {
@@ -1069,6 +1095,8 @@
         if (item) {
           item.name = name;
           item.category = category;
+          // mark how the category was assigned
+          item._categoryAssigned = (inferCategoryFromName(name) === category) ? 'inferred' : 'manual';
           item.updatedAt = Date.now();
         }
       } else {
@@ -1085,7 +1113,8 @@
           researchResults: null,
           researchStartedAt: null,
           researchDuration: null,
-          researchTimeoutId: null
+          researchTimeoutId: null,
+          _categoryAssigned: (inferCategoryFromName(name) === category) ? 'inferred' : 'manual'
         };
         // push to items array — order preserved
         items.push(newItem);
@@ -1098,7 +1127,7 @@
 
     // On load: infer categories for existing unknown items, render everything
     (function init() {
-      // if some items are missing category or marked Unknown, try to infer one from the name
+      // if some items are missing category or marked Unknown, try to infer one from the name or assign random
       inferUnknownCategoriesOnLoad();
       renderCollected();
       render();
