@@ -188,7 +188,7 @@
     const RING_MIN_OPACITY = 0.01;
     const STORAGE_KEY_COLLECTED = 'drones:collected:v1';
     const DISCOVERY_COOLDOWN = 10000; // 10 seconds between discoveries
-    const DISCOVERY_PROBABILITY = 0.003; // Higher probability per frame to find things more often
+    const SCOUT_DISCOVERY_PROBABILITY = 0.003; // Higher probability per frame to find things more often
     const SCOUT_PATROL_DURATION = 45000; // 45 seconds of scouting
     const RETURN_STOP_THRESHOLD = 30; // Distance to stop when returning to base
     const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
@@ -227,6 +227,17 @@
     function updateStatusPrompt(msg){
       if(el.statusPrompt){
         el.statusPrompt.textContent = msg;
+      }
+    }
+    
+    // Generate scout patrol waypoints
+    function generateScoutPatrolWaypoints(drone, count = 3){
+      for(let i = 0; i < count; i++){
+        const angle = Math.random() * Math.PI * 2;
+        const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
+        const wx = clamp(drone.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+        const wy = clamp(drone.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+        drone.waypoints.push({ x: wx, y: wy, id: generateId() });
       }
     }
 
@@ -457,7 +468,8 @@
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
         
         // Show scout action buttons if scout completed without finding anything
-        if(el.scoutActionButtons && selected.type === 'scout' && selected.taskCompleted && (selected.poiDiscoveryCount || 0) === 0){
+        const isScoutWithNoFinds = selected.type === 'scout' && selected.taskCompleted && (selected.poiDiscoveryCount || 0) === 0;
+        if(el.scoutActionButtons && isScoutWithNoFinds){
           el.scoutActionButtons.style.display = 'flex';
         } else if(el.scoutActionButtons){
           el.scoutActionButtons.style.display = 'none';
@@ -491,13 +503,7 @@
       if(d.type === 'scout'){
         d.waypoints = [];
         // Generate initial patrol waypoints
-        for(let i = 0; i < 3; i++){
-          const angle = Math.random() * Math.PI * 2;
-          const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
-          const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
-          const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
-          d.waypoints.push({ x: wx, y: wy, id: generateId() });
-        }
+        generateScoutPatrolWaypoints(d, 3);
       }
       
       const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
@@ -781,7 +787,7 @@
           const currentPOICount = pointsOfInterest.length;
           
           // Only discover if we have less than max POIs and cooldown passed
-          if(currentPOICount < MAX_POIS_ON_SCREEN && timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < DISCOVERY_PROBABILITY){
+          if(currentPOICount < MAX_POIS_ON_SCREEN && timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < SCOUT_DISCOVERY_PROBABILITY){
             const newPOI = generatePOI();
             // Place POI near the scout
             newPOI.x = clamp(d.x + (Math.random() - 0.5) * 60, 40, mapSize.w - 40);
@@ -1205,13 +1211,7 @@
           selected.status = 'flying';
           selected.waypoints = [];
           // Generate initial patrol waypoints
-          for(let i = 0; i < 3; i++){
-            const angle = Math.random() * Math.PI * 2;
-            const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
-            const wx = clamp(selected.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
-            const wy = clamp(selected.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
-            selected.waypoints.push({ x: wx, y: wy, id: generateId() });
-          }
+          generateScoutPatrolWaypoints(selected, 3);
           log(`${selected.name} continuing exploration`);
           updateStatusPrompt('Scouting...');
           el.scoutActionButtons.style.display = 'none';
