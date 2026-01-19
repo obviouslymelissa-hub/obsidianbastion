@@ -72,10 +72,10 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <label class="hint" style="margin-right:6px">New Drone Type</label>
           <select id="newDroneType" style="padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
-            <option value="explorer">Explorer</option>
-            <option value="defender">Defender</option>
             <option value="scout">Scout</option>
+            <option value="explorer">Explorer</option>
             <option value="collector">Collector</option>
+            <option value="defender">Defender</option>
           </select>
           <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
@@ -116,6 +116,11 @@
 
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <button id="btnCmdReturn" class="btn small">Recall</button>
+        </div>
+        
+        <div id="scoutActionButtons" style="display:none;gap:8px;margin-bottom:8px;flex-direction:column;">
+          <button id="btnReturnToBase" class="btn small">Return to Base</button>
+          <button id="btnContinueExploring" class="btn small">Continue Exploring</button>
         </div>
 
         <div style="margin-bottom:8px">
@@ -168,7 +173,10 @@
       camCanvas: document.getElementById('camCanvas'),
       joystick: document.getElementById('joystick'),
       knob: document.getElementById('knob'),
-      statusPrompt: document.getElementById('statusPrompt')
+      statusPrompt: document.getElementById('statusPrompt'),
+      scoutActionButtons: document.getElementById('scoutActionButtons'),
+      btnReturnToBase: document.getElementById('btnReturnToBase'),
+      btnContinueExploring: document.getElementById('btnContinueExploring')
     };
 
     const ctx = el.mapCanvas.getContext('2d');
@@ -179,11 +187,14 @@
     const RING_BASE_OPACITY = 0.08;
     const RING_MIN_OPACITY = 0.01;
     const STORAGE_KEY_COLLECTED = 'drones:collected:v1';
-    const DISCOVERY_COOLDOWN = 30000; // 30 seconds
-    const DISCOVERY_PROBABILITY = 0.001; // Probability per frame
-    const SCOUT_PATROL_DURATION = 30000; // 30 seconds
+    const DISCOVERY_COOLDOWN = 10000; // 10 seconds between discoveries
+    const SCOUT_DISCOVERY_PROBABILITY = 0.003; // Higher probability per frame to find things more often
+    const SCOUT_PATROL_DURATION = 45000; // 45 seconds of scouting
     const RETURN_STOP_THRESHOLD = 30; // Distance to stop when returning to base
     const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
+    const MAX_POIS_ON_SCREEN = 4; // Maximum POIs before scout finishes
+    const SCOUT_WAYPOINT_DISTANCE = 150; // Distance between scout patrol waypoints
+    const EXPLORER_DISCOVERY_PROBABILITY = 0.001; // Low probability for explorer discoveries
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -216,6 +227,17 @@
     function updateStatusPrompt(msg){
       if(el.statusPrompt){
         el.statusPrompt.textContent = msg;
+      }
+    }
+    
+    // Generate scout patrol waypoints
+    function generateScoutPatrolWaypoints(drone, count = 3){
+      for(let i = 0; i < count; i++){
+        const angle = Math.random() * Math.PI * 2;
+        const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
+        const wx = clamp(drone.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+        const wy = clamp(drone.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+        drone.waypoints.push({ x: wx, y: wy, id: generateId() });
       }
     }
 
@@ -409,7 +431,15 @@
     // List UI
     function renderList(){
       el.droneList.innerHTML = '';
-      drones.forEach(d => {
+      // Sort drones by type order: scout, explorer, collector, defender
+      const typeOrder = { 'scout': 1, 'explorer': 2, 'collector': 3, 'defender': 4 };
+      const sortedDrones = drones.slice().sort((a, b) => {
+        const orderA = typeOrder[a.type] || 999;
+        const orderB = typeOrder[b.type] || 999;
+        return orderA - orderB;
+      });
+      
+      sortedDrones.forEach(d => {
         const tile = document.createElement('div');
         tile.className = 'tile';
         const followerText = d.followers > 0 ? ` (${d.followers} follower${d.followers !== 1 ? 's' : ''})` : '';
@@ -436,6 +466,14 @@
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
+        
+        // Show scout action buttons if scout completed without finding anything
+        const isScoutWithNoFinds = selected.type === 'scout' && selected.taskCompleted && (selected.poiDiscoveryCount || 0) === 0;
+        if(el.scoutActionButtons && isScoutWithNoFinds){
+          el.scoutActionButtons.style.display = 'flex';
+        } else if(el.scoutActionButtons){
+          el.scoutActionButtons.style.display = 'none';
+        }
       } else {
         el.selectedName.textContent = '—';
         el.sel_type.textContent = '—';
@@ -443,6 +481,9 @@
         el.sel_batt.textContent = '—';
         el.sel_alt.textContent = '—';
         el.sel_spd.textContent = '—';
+        if(el.scoutActionButtons){
+          el.scoutActionButtons.style.display = 'none';
+        }
       }
       renderMap();
     }
@@ -456,10 +497,24 @@
       d.taskCompleted = false;
       d.lastDiscoveryTime = now(); // Initialize discovery time when launching
       d.launchTime = now(); // Track when drone was launched
+      d.poiDiscoveryCount = 0; // Track how many POIs discovered this session
+      
+      // Scout: Set up initial patrol waypoints
+      if(d.type === 'scout'){
+        d.waypoints = [];
+        // Generate initial patrol waypoints
+        generateScoutPatrolWaypoints(d, 3);
+      }
+      
       const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
       d.targetVx = (Math.random()-0.5) * speedBase;
       d.targetVy = (Math.random()-0.5) * speedBase;
       log(`Launched ${d.name}`);
+      
+      // Hide scout action buttons when launching
+      if(el.scoutActionButtons && d.type === 'scout'){
+        el.scoutActionButtons.style.display = 'none';
+      }
       
       // Update status prompt based on drone type
       if(d.type === 'scout'){
@@ -633,6 +688,13 @@
         c.font = 'bold 14px system-ui';
         const icon = poi.scanned ? '✓' : '?';
         c.fillText(icon, poi.x - 5, poi.y + 5);
+        
+        // Draw discovered by scout indicator (show which scout found it)
+        if(poi.discoveredBy){
+          c.fillStyle = 'rgba(255,255,255,0.7)';
+          c.font = '10px system-ui';
+          c.fillText(poi.discoveredBy, poi.x - 20, poi.y - 15);
+        }
       });
 
       // trails
@@ -719,65 +781,111 @@
           }
         }
 
-        // Scout: Check for nearby POIs to discover - only one at a time, slower frequency
-        if(d.type === 'scout' && !d.taskCompleted){
-          // Much slower discovery rate - check every 30 seconds minimum
+        // Scout: Check for nearby POIs to discover - only one at a time, limit to 4 max
+        if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying'){
           const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
+          const currentPOICount = pointsOfInterest.length;
           
-          if(timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < DISCOVERY_PROBABILITY && d.status === 'flying'){
+          // Only discover if we have less than max POIs and cooldown passed
+          if(currentPOICount < MAX_POIS_ON_SCREEN && timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < SCOUT_DISCOVERY_PROBABILITY){
             const newPOI = generatePOI();
+            // Place POI near the scout
+            newPOI.x = clamp(d.x + (Math.random() - 0.5) * 60, 40, mapSize.w - 40);
+            newPOI.y = clamp(d.y + (Math.random() - 0.5) * 60, 40, mapSize.h - 40);
+            newPOI.discoveredBy = d.name;
             pointsOfInterest.push(newPOI);
             d.lastDiscoveryTime = t;
+            d.poiDiscoveryCount = (d.poiDiscoveryCount || 0) + 1;
+            log(`${d.name} discovered ${newPOI.type} at (${Math.round(newPOI.x)},${Math.round(newPOI.y)})`);
+            updateStatusPrompt('Unidentified object located');
+            
+            // If reached max POIs, mark as completed
+            if(currentPOICount + 1 >= MAX_POIS_ON_SCREEN){
+              d.taskCompleted = true;
+              d.status = 'hovering';
+              d.targetVx = 0;
+              d.targetVy = 0;
+              log(`${d.name} scouting complete - maximum objects found`);
+              updateStatusPrompt('Scouting complete - max objects found');
+            }
+          }
+          
+          // Generate new waypoint when reaching current one to keep moving
+          if(d.waypoints.length === 0 && !d.taskCompleted){
+            const angle = Math.random() * Math.PI * 2;
+            const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
+            const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+            const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+            d.waypoints.push({ x: wx, y: wy, id: generateId() });
+          }
+          
+          // Check if scouting duration completed
+          const timeFlying = t - (d.launchTime || t);
+          if(timeFlying > SCOUT_PATROL_DURATION && !d.taskCompleted){
             d.taskCompleted = true;
             d.status = 'hovering';
             d.targetVx = 0;
             d.targetVy = 0;
             d.waypoints = [];
-            log(`${d.name} discovered ${newPOI.type} at (${Math.round(newPOI.x)},${Math.round(newPOI.y)})`);
-            updateStatusPrompt('Unidentified object located');
-          }
-        }
-        
-        // Check if scout completed without finding anything
-        if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying' && d.waypoints.length === 0){
-          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || t);
-          const timeFlying = t - (d.launchTime || t);
-          // Only mark as completed if been flying for at least 30 seconds AND no waypoints
-          if(timeFlying > SCOUT_PATROL_DURATION && timeSinceLastDiscovery > SCOUT_PATROL_DURATION){ 
-            d.taskCompleted = true;
-            d.status = 'hovering';
-            d.targetVx = 0;
-            d.targetVy = 0;
-            updateStatusPrompt('No interesting points found');
+            const foundCount = d.poiDiscoveryCount || 0;
+            if(foundCount === 0){
+              log(`${d.name} scouting complete - no objects found`);
+              updateStatusPrompt('No interesting points found');
+              // Show scout action buttons if this is the selected drone
+              if(selected && selected.id === d.id && el.scoutActionButtons){
+                el.scoutActionButtons.style.display = 'flex';
+              }
+            } else {
+              log(`${d.name} scouting complete - ${foundCount} object(s) found`);
+              updateStatusPrompt(`Scouting complete - ${foundCount} object(s) found`);
+            }
           }
         }
 
-        // Explorer: Check for nearby unscanned POIs
-        if(d.type === 'explorer' && !d.taskCompleted){
+        // Explorer: Check for nearby unscanned POIs and auto-track between them
+        if(d.type === 'explorer'){
+          // Check if near a POI to scan it
+          let scannedSomething = false;
           pointsOfInterest.forEach(poi => {
-            if(!poi.scanned){
+            if(!poi.scanned && !scannedSomething){
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
               if(dist < 15){
                 poi.scanned = true;
                 poi.discoveredBy = d.name;
-                poi.items = generateItems(poi.type);
-                poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
-                const itemList = poi.items.map(it => it.name).join(', ');
-                log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
-                d.taskCompleted = true;
-                d.status = 'hovering';
-                d.targetVx = 0;
-                d.targetVy = 0;
-                d.waypoints = [];
-                updateStatusPrompt(`${poi.name} scanned - items identified`);
+                
+                // Occasionally make a discovery (low frequency to keep it fun)
+                const foundItems = Math.random() < EXPLORER_DISCOVERY_PROBABILITY;
+                if(foundItems){
+                  poi.items = generateItems(poi.type);
+                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
+                  const itemList = poi.items.map(it => it.name).join(', ');
+                  log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+                  updateStatusPrompt(`${poi.name} scanned - items identified`);
+                } else {
+                  poi.items = [];
+                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
+                  log(`${d.name} scanned ${poi.name} - Nothing of value`);
+                  updateStatusPrompt(`${poi.name} scanned - no items`);
+                }
+                scannedSomething = true;
               }
             }
           });
+          
+          // Auto-navigate to next unscanned POI if no waypoints
+          if(d.waypoints.length === 0 && d.status === 'flying'){
+            const unscanned = pointsOfInterest.filter(p => !p.scanned);
+            if(unscanned.length > 0){
+              const target = unscanned[Math.floor(Math.random() * unscanned.length)];
+              d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+              log(`${d.name} heading to investigate ${target.type}`);
+            }
+          }
         }
 
         // Collector: Check for nearby scanned POIs with items
-        if(d.type === 'collector' && !d.taskCompleted){
+        if(d.type === 'collector'){
           for(let i = pointsOfInterest.length - 1; i >= 0; i--){
             const poi = pointsOfInterest[i];
             if(poi.scanned && poi.items && poi.items.length > 0){
@@ -808,14 +916,17 @@
                   log(`${d.name} collected ${item.name} from ${poi.name}`);
                 });
                 saveCollectedItems();
-                d.taskCompleted = true;
-                d.status = 'hovering';
-                d.targetVx = 0;
-                d.targetVy = 0;
-                d.waypoints = [];
                 updateStatusPrompt(`Items collected from ${poi.name}`);
                 // Remove POI after collection
                 pointsOfInterest.splice(i, 1);
+                
+                // Look for next target immediately
+                const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+                if(ready.length > 0 && d.status === 'flying'){
+                  const target = ready[Math.floor(Math.random() * ready.length)];
+                  d.waypoints = [{ x: target.x, y: target.y, id: generateId() }];
+                  log(`${d.name} heading to collect from ${target.name}`);
+                }
                 break;
               }
             }
@@ -849,17 +960,8 @@
               updateStatusPrompt(`${d.name} landed at base`);
             }
             
-            if(d.type === 'explorer' && d.waypoints.length === 0 && d.status !== 'hovering'){
-              // Explorer finished waypoints, look for unscanned POIs
-              const unscanned = pointsOfInterest.filter(p => !p.scanned);
-              if(unscanned.length > 0){
-                const target = unscanned[Math.floor(Math.random() * unscanned.length)];
-                d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
-                log(`${d.name} heading to investigate ${target.type}`);
-              }
-            }
-            if(d.type === 'collector' && d.waypoints.length === 0 && d.status !== 'hovering'){
-              // Collector finished waypoints, look for scanned POIs with items
+            // Collector looks for scanned POIs with items
+            if(d.type === 'collector' && d.waypoints.length === 0 && d.status === 'flying'){
               const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
               if(ready.length > 0){
                 const target = ready[Math.floor(Math.random() * ready.length)];
@@ -1088,6 +1190,34 @@
 
     el.btnCmdReturn.addEventListener('click', () => recallAllDrones());
     el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
+    
+    // Scout action buttons
+    if(el.btnReturnToBase){
+      el.btnReturnToBase.addEventListener('click', () => {
+        if(selected && selected.type === 'scout'){
+          recallDrone(selected.id);
+          el.scoutActionButtons.style.display = 'none';
+        }
+      });
+    }
+    if(el.btnContinueExploring){
+      el.btnContinueExploring.addEventListener('click', () => {
+        if(selected && selected.type === 'scout'){
+          // Reset scout and restart exploration
+          selected.taskCompleted = false;
+          selected.launchTime = now();
+          selected.lastDiscoveryTime = now();
+          selected.poiDiscoveryCount = 0;
+          selected.status = 'flying';
+          selected.waypoints = [];
+          // Generate initial patrol waypoints
+          generateScoutPatrolWaypoints(selected, 3);
+          log(`${selected.name} continuing exploration`);
+          updateStatusPrompt('Scouting...');
+          el.scoutActionButtons.style.display = 'none';
+        }
+      });
+    }
 
     // Dragging waypoints
     (function initWaypointDrag(){
@@ -1135,10 +1265,10 @@
 
     // Initialization
     resizeMapCanvas();
-    addDrone('Explorer-01','explorer'); 
-    addDrone('Defender-01','defender'); 
     addDrone('Scout-01','scout');
+    addDrone('Explorer-01','explorer'); 
     addDrone('Collector-01','collector');
+    addDrone('Defender-01','defender'); 
     renderList();
     lastFrame = now();
     requestAnimationFrame(step);
