@@ -1008,6 +1008,58 @@
       }, USAGE_TICK_MS);
     });
 
+    // Function to sync inventory from localStorage and detect changes
+    function syncInventoryFromStorage(showNotifications = false) {
+      try {
+        const newInventory = loadInventory();
+        // Find items that were added (increased quantity)
+        const addedItems = [];
+        for (const key in newInventory) {
+          const oldQty = inventory[key] || 0;
+          const newQty = newInventory[key] || 0;
+          if (newQty > oldQty) {
+            addedItems.push({ key, added: newQty - oldQty });
+          }
+        }
+        
+        // Update local inventory
+        inventory = newInventory;
+        
+        // Show notification for added items
+        if (showNotifications && addedItems.length > 0) {
+          addedItems.forEach(item => {
+            showToast('Item Added from Research', `${item.added} × ${capitalizeLabel(item.key)} stored in inventory`, { delay: 4000 });
+          });
+        }
+        
+        // Refresh UI if there were changes
+        if (addedItems.length > 0) {
+          refreshCharts();
+          renderRestockSuggestions();
+          populateUseItemDropdown();
+        }
+      } catch (err) {
+        console.error('Failed to sync inventory from storage:', err);
+      }
+    }
+
+    // Listen for storage changes from other tabs/windows (e.g., research.html adding items)
+    window.addEventListener('storage', (e) => {
+      // Only respond to changes in the inventory key
+      if (e.key === STORAGE_KEYS.INVENTORY && e.newValue) {
+        syncInventoryFromStorage(true);
+      }
+    });
+
+    // Listen for page visibility changes (when user returns to this tab)
+    // This catches updates made in the same tab (e.g., navigate to research.html, store item, come back)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // Page became visible - check for inventory updates
+        syncInventoryFromStorage(true);
+      }
+    });
+
     // Expose small helper to console for testing
     window.shipInventory = {
       inventory, orders, usage, customParts, placeOrder, deliverOrder, refreshCharts, renderRestockSuggestions, generateRandomInventory
