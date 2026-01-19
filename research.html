@@ -872,12 +872,11 @@
           descHtml += `<div class="research-description">${escapeHtml(item.description)}</div>`;
         }
         if(item.report) {
+          // report already contains the researchResults and type-specific notes (if generated) — render it once
           descHtml += `<div class="research-report">${escapeHtml(item.report)}</div>`;
         }
-        // Also display type-specific notes if available
-        if(item.researchResults && item.researchResults.typeNotes) {
-          descHtml += `<div class="research-report" style="margin-top:10px;background:rgba(255,255,255,0.02)">${escapeHtml(item.researchResults.typeNotes)}</div>`;
-        }
+        // NOTE: removed separate rendering of researchResults.typeNotes to prevent duplicate notes.
+        // The type-specific notes are included in item.report at completion time.
 
         card.innerHTML = `
           <div class="research-header">
