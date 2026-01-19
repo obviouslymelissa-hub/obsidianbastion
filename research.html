@@ -146,6 +146,11 @@
       color:var(--text-main);
       margin:0 0 6px 0;
     }
+    .research-meta {
+      color:var(--muted);
+      font-size:0.9rem;
+      margin-top:4px;
+    }
     .research-status {
       padding:4px 10px;
       border-radius:6px;
@@ -163,6 +168,15 @@
       font-size:0.95rem;
       line-height:1.45;
       margin-bottom:12px;
+      white-space:pre-wrap;
+    }
+    .research-report {
+      color:var(--text-main);
+      background:rgba(0,0,0,0.06);
+      padding:10px;
+      border-radius:8px;
+      font-size:0.9rem;
+      margin-top:8px;
       white-space:pre-wrap;
     }
     .research-actions {
@@ -300,20 +314,16 @@
           </div>
 
           <div class="form-group">
-            <label for="itemDescription">Description</label>
-            <textarea 
-              id="itemDescription" 
-              placeholder="Notes about this item, where it was found, what it might be used for..."
-              maxlength="500"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="itemStatus">Research Status</label>
-            <select id="itemStatus">
-              <option value="not-started">Not Started</option>
-              <option value="in-progress">In Progress</option>
-              <option value="complete">Complete</option>
+            <label for="itemCategory">Item Type</label>
+            <select id="itemCategory">
+              <option value="Unknown">Unknown</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Chemical">Chemical</option>
+              <option value="Mineral">Mineral</option>
+              <option value="Plant Life">Plant Life</option>
+              <option value="Life Form">Life Form</option>
+              <option value="Energy Source">Energy Source</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -383,8 +393,8 @@
     const form = document.getElementById('researchForm');
     const formTitle = document.getElementById('formTitle');
     const itemName = document.getElementById('itemName');
-    const itemDescription = document.getElementById('itemDescription');
-    const itemStatus = document.getElementById('itemStatus');
+    const itemCategory = document.getElementById('itemCategory');
+    const itemStatus = document.getElementById('itemStatus') || null; // legacy
     const editingId = document.getElementById('editingId');
     const submitBtn = document.getElementById('submitBtn');
     const cancelBtn = document.getElementById('cancelBtn');
@@ -411,7 +421,6 @@
     let progressTimer = null;
 
     // Modal helper: shows built-in interface modal instead of window.confirm/alert
-    // showConfirm returns a Promise<boolean>. showAlert returns Promise<void>.
     function showModal({ title = 'Confirm', message = '', confirmText = 'OK', cancelText = 'Cancel', showCancel = true } = {}) {
       return new Promise(resolve => {
         modalTitle.textContent = title;
@@ -426,10 +435,7 @@
         function cleanup(result) {
           modalOverlay.classList.remove('open');
           modalOverlay.setAttribute('aria-hidden', 'true');
-          // small delay for transition
-          setTimeout(() => {
-            modalOverlay.style.display = 'none';
-          }, 180);
+          setTimeout(() => { modalOverlay.style.display = 'none'; }, 180);
           modalConfirm.removeEventListener('click', onConfirm);
           modalCancel.removeEventListener('click', onCancel);
           document.removeEventListener('keydown', onKeyDown);
@@ -446,7 +452,6 @@
         modalCancel.addEventListener('click', onCancel);
         document.addEventListener('keydown', onKeyDown);
 
-        // Focus the confirm button for quick keyboard interaction
         modalConfirm.focus();
       });
     }
@@ -454,7 +459,7 @@
       return await showModal({ title, message, confirmText: 'Confirm', cancelText: 'Cancel', showCancel: true });
     }
     async function showAlert(message, title = 'Notice') {
-      await showModal({ title, message, confirmText: 'OK', cancelText: '','showCancel': false });
+      await showModal({ title, message, confirmText: 'OK', cancelText: '', showCancel: false });
     }
 
     // Utilities
@@ -539,8 +544,7 @@
           clearInterval(progressTimer);
           progressTimer = null;
         }
-        // partial update: re-render to update progress bars and remaining time
-        render();
+        render(); // update progress bars
       }, 250);
     }
 
@@ -577,11 +581,13 @@
       if(idx === -1) return;
       const col = collected[idx];
 
-      // Create research item
+      // Create research item — include a category if drone supplied one, otherwise Unknown
       const newItem = {
         id: generateId(),
         name: col.name || col.itemName || 'Unknown Artifact',
-        description: (col.description ? col.description + '\n' : '') + `Source: ${col.source || 'Collected by drone'}`,
+        category: col.category || col.type || 'Unknown',
+        description: col.description || '', // optional free-form description from collector
+        report: '', // research output / appended results
         status: 'in-progress',
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -590,7 +596,7 @@
         researchDuration: null,
         researchTimeoutId: null
       };
-      // Add to the end of the items array — we intentionally preserve array order and never reorder on status changes
+      // preserve insertion order: push to items array
       items.push(newItem);
       saveItems();
 
@@ -608,8 +614,8 @@
     window.discardCollectedItem = async function(colId) {
       const idx = collected.findIndex(c => c.id === colId);
       if(idx === -1) return;
-      const confirm = await showConfirm('Discard this collected item? This cannot be undone.', 'Discard Collected Item');
-      if(confirm) {
+      const confirmed = await showConfirm('Discard this collected item? This cannot be undone.', 'Discard Collected Item');
+      if(confirmed) {
         collected.splice(idx,1);
         saveCollectedItems();
         renderCollected();
@@ -620,13 +626,10 @@
     function simulateResearch(itemId) {
       const item = items.find(i => i.id === itemId);
       if(!item) return;
-      // Small randomized research duration (4-10s)
       const duration = 4000 + Math.floor(Math.random() * 6000);
-      // store start & duration for progress UI
       item.researchStartedAt = Date.now();
       item.researchDuration = duration;
       saveItems();
-      // store timeout id so we can cancel if needed
       item.researchTimeoutId = setTimeout(() => {
         item.researchTimeoutId = null;
         completeResearch(itemId);
@@ -638,13 +641,13 @@
     function completeResearch(itemId) {
       const item = items.find(i => i.id === itemId);
       if(!item) return;
-      const safetyChance = 0.7; // 70% chance safe
+      const safetyChance = 0.7;
       const isSafe = Math.random() < safetyChance;
       let radiation;
       if(isSafe) {
         radiation = (Math.random() * 0.5).toFixed(2) + ' mSv';
       } else {
-        const r = 1 + Math.random() * 9; // 1 - 10 mSv
+        const r = 1 + Math.random() * 9;
         radiation = r.toFixed(2) + ' mSv';
       }
       const contamination = isSafe ? 'No significant contamination detected.' : 'Hazardous residues detected; handle with caution.';
@@ -657,13 +660,11 @@
         notes,
         completedAt: Date.now()
       };
-      // IMPORTANT: do not change item's position in the items array — only update status and data
+      // update status and attach report (do not change array order)
       item.status = 'complete';
-      item.description = (item.description ? item.description + '\n\n' : '') +
-        `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
+      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
+      item.report = (item.report ? item.report + '\n\n' : '') + resultText;
       item.updatedAt = Date.now();
-      item.researchStartedAt = item.researchStartedAt || null;
-      item.researchDuration = item.researchDuration || null;
       if(item.researchTimeoutId){
         clearTimeout(item.researchTimeoutId);
         item.researchTimeoutId = null;
@@ -680,12 +681,13 @@
       archive.push({
         id: it.id,
         name: it.name,
+        category: it.category,
         description: it.description,
+        report: it.report,
         researchResults: it.researchResults,
         archivedAt: Date.now()
       });
       saveArchiveItems();
-      // remove from research list
       items.splice(idx,1);
       saveItems();
       render();
@@ -736,14 +738,14 @@
         node.className = 'archive-item';
         node.innerHTML = `
           <div style="font-weight:700">${escapeHtml(a.name)}</div>
-          <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
-          <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}</div>
+          <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.category ? escapeHtml(a.category) + ' • ' : ''}${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
+          <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}${a.report ? '\n\n' + escapeHtml(a.report) : ''}</div>
         `;
         archiveListEl.appendChild(node);
       });
     }
 
-    // Render all research items — preserve the items array order so status changes don't reorder the list
+    // Render all research items — preserve array order
     function render() {
       researchList.innerHTML = '';
       
@@ -757,14 +759,12 @@
         itemCount.textContent = `(${items.length})`;
       }
       
-      // IMPORTANT: render in array order (preserve insertion/arrangement). This prevents items jumping to a different
-      // position when their status changes.
       items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'research-item';
         
         const statusClass = `status-${item.status}`;
-        const statusLabel = item.status.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const statusLabel = (item.status || 'not-started').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         
         // Build action buttons depending on status
         let actionsHtml = '';
@@ -798,14 +798,24 @@
           `;
         }
 
+        // Compose description/report display
+        let descHtml = '';
+        if(item.description) {
+          descHtml += `<div class="research-description">${escapeHtml(item.description)}</div>`;
+        }
+        if(item.report) {
+          descHtml += `<div class="research-report">${escapeHtml(item.report)}</div>`;
+        }
+
         card.innerHTML = `
           <div class="research-header">
             <div>
               <h4 class="research-title">${escapeHtml(item.name)}</h4>
-              <div class="research-status ${statusClass}">${statusLabel}</div>
+              <div class="research-meta">${item.category ? escapeHtml(item.category) : 'Unknown'}</div>
             </div>
+            <div><div class="research-status ${statusClass}">${statusLabel}</div></div>
           </div>
-          ${item.description ? `<div class="research-description">${escapeHtml(item.description)}</div>` : ''}
+          ${descHtml}
           ${progressHtml}
           <div class="research-actions">
             ${actionsHtml}
@@ -853,8 +863,7 @@
       
       editingId.value = item.id;
       itemName.value = item.name;
-      itemDescription.value = item.description || '';
-      itemStatus.value = item.status;
+      itemCategory.value = item.category || 'Unknown';
       
       formTitle.textContent = 'Edit Research Item';
       submitBtn.textContent = 'Update Item';
@@ -908,21 +917,20 @@
       
       const id = editingId.value;
       const name = itemName.value.trim();
-      const description = itemDescription.value.trim();
-      const status = itemStatus.value;
-      
+      const category = itemCategory.value || 'Unknown';
+      const statusVal = 'not-started';
+
       if (!name) {
         itemName.focus();
         return;
       }
       
       if (id) {
-        // Update existing item
+        // Update existing item (only name/category editable here)
         const item = items.find(i => i.id === id);
         if (item) {
           item.name = name;
-          item.description = description;
-          item.status = status;
+          item.category = category;
           item.updatedAt = Date.now();
         }
       } else {
@@ -930,10 +938,13 @@
         const newItem = {
           id: generateId(),
           name,
-          description,
-          status,
+          category,
+          description: '', // no free-form description on manual add (as requested)
+          report: '',
+          status: statusVal,
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          researchResults: null,
           researchStartedAt: null,
           researchDuration: null,
           researchTimeoutId: null
@@ -941,10 +952,7 @@
         // push to items array — order preserved
         items.push(newItem);
 
-        // If user selected to start research immediately, simulate
-        if(status === 'in-progress') {
-          simulateResearch(newItem.id);
-        }
+        // default: not-started; user can start research manually
       }
       
       saveItems();
@@ -960,13 +968,13 @@
     // Start progress timer if there are already in-progress items on load
     if(anyInProgress()) ensureProgressTimer();
 
-    // Expose minimal API for console debugging (async clear uses modal)
+    // Expose minimal API for console debugging
     window.researchLab = {
       items: () => items,
       collected: () => collected,
       archive: () => archive,
-      addCollectedForTesting: (name, source, mundane=false) => {
-        const c = { id: 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name, source, mundane };
+      addCollectedForTesting: (name, source, category='Unknown', mundane=false) => {
+        const c = { id: 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name, source, category, mundane };
         collected.push(c);
         saveCollectedItems();
         renderCollected();
