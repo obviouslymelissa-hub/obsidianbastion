@@ -476,6 +476,12 @@
           results.flags.fermentable = !!fermentable;
           if(fermentable) return `Plant Notes: Contains fermentable sugars — potential food-starter or biochemical feedstock after lab processing.`;
           return `Plant Notes: Cellular structure fragile; preserve tissue samples for microscopy and DNA barcoding.`;
+        },
+        function(results){
+          // explicit: not useful for ship components
+          results.flags = results.flags || {};
+          results.flags.usableForShip = false;
+          return `Plant Notes: Not suitable for ship component fabrication. Best candidates are biochemical or agricultural study, not engineering use.`;
         }
       ],
       'Life Form': [
@@ -494,6 +500,14 @@
           results.flags.edible = !!edible;
           if(edible) return `Life Form Notes: Certain tissues appear nutritionally rich after proper preparation; however, ingestion is not recommended until toxicity and immunogenicity are ruled out.`;
           return `Life Form Notes: Biological signatures confirmed. Recommend containment, DNA sequencing, and consultation with senior xenobiology officers.`;
+        },
+        function(results){
+          // reproduction/behavior notes
+          const aggressive = Math.random() < 0.18 && !results.safe;
+          results.flags = results.flags || {};
+          results.flags.aggressive = !!aggressive;
+          if(aggressive) return `Life Form Notes: Aggressive behavior indicators observed. Keep at a safe distance and prioritize containment.`;
+          return `Life Form Notes: No immediate threat observed; further study of behavior and diet recommended before any interaction.`;
         }
       ],
       'Hardware': [
@@ -890,15 +904,16 @@
         const r = 1 + Math.random() * 9;
         radiation = r.toFixed(2) + ' mSv';
       }
+      // contamination remains useful - keep it
       const contamination = isSafe ? 'No significant contamination detected.' : 'Hazardous residues detected; handle with caution.';
-      const notes = isSafe ? 'Artifact appears chemically stable and can be used for non-critical ship modifications.' : 'Not recommended for use. Quarantine required.';
       
-      // base research results
+      // base research results - note removed so we don't default a generic message
       item.researchResults = {
         safe: isSafe,
         radiation,
         contamination,
-        notes,
+        // notes left intentionally blank; category-specific notes will provide context
+        notes: '',
         completedAt: Date.now(),
         flags: {} // will be filled by category note generator
       };
@@ -909,7 +924,19 @@
 
       // update status and attach report (do not change array order)
       item.status = 'complete';
-      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}\n\n${item.researchResults.typeNotes || ''}`;
+      // Build the report without inserting the old generic "Artifact appears chemically stable..." text.
+      // Report will include safety, radiation, contamination and the category-specific note.
+      const resultTextParts = [
+        '-- Research Results --',
+        `Safe to use: ${isSafe ? 'Yes' : 'No'}`,
+        `Radiation: ${radiation}`,
+        `${contamination}`
+      ];
+      if (item.researchResults.typeNotes) {
+        resultTextParts.push('', item.researchResults.typeNotes);
+      }
+      const resultText = resultTextParts.join('\n');
+
       // Ensure report appends only once: if report already includes this exact resultText, skip appending.
       if (!item.report || !item.report.includes(resultText)) {
         item.report = (item.report ? item.report + '\n\n' : '') + resultText;
