@@ -437,6 +437,17 @@
       'Other': '📦'
     };
 
+    // Heuristic keyword map for inferring category from name
+    const INFERENCE_KEYWORDS = [
+      { category: 'Plant Life', keywords: ['plant', 'flora', 'spore', 'leaf', 'seed', 'fungus', 'fungi', 'moss'] },
+      { category: 'Life Form', keywords: ['organism', 'lifeform', 'life form', 'creature', 'alien', 'worm', 'larva', 'specimen', 'beast'] },
+      { category: 'Mineral', keywords: ['crystal', 'mineral', 'ore', 'rock', 'stone', 'gem', 'quartz'] },
+      { category: 'Hardware', keywords: ['circuit', 'chip', 'antenna', 'module', 'computer', 'thruster', 'engine', 'plate', 'hull', 'sensor', 'processor', 'antenna'] },
+      { category: 'Chemical', keywords: ['acid', 'chemical', 'compound', 'solvent', 'liquid', 'gas', 'substance', 'reagent'] },
+      { category: 'Energy Source', keywords: ['battery', 'cell', 'reactor', 'core', 'capacitor', 'power'] },
+      { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact', 'artifact'] }
+    ];
+
     // Notes/interpretation templates by category (appended to research results)
     function getTypeNotes(category, researchResults) {
       switch (category) {
@@ -478,6 +489,28 @@
 - ${researchResults.safe ? 'Low' : 'High'} risk indicators present.
 - Suggested handling: proceed with caution; escalate if necessary.`;
       }
+    }
+
+    // Infer a category from a name using keyword heuristics (returns a category or 'Unknown')
+    function inferCategoryFromName(name) {
+      if (!name || typeof name !== 'string') return 'Unknown';
+      const lower = name.toLowerCase();
+      for (const entry of INFERENCE_KEYWORDS) {
+        for (const kw of entry.keywords) {
+          const re = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+          if (re.test(lower)) {
+            return entry.category;
+          }
+        }
+      }
+      // fallback: try partial matches for common stems
+      if (lower.includes('spore') || lower.includes('flora') || lower.includes('plant')) return 'Plant Life';
+      if (lower.includes('alien') || lower.includes('organism') || lower.includes('larva')) return 'Life Form';
+      if (lower.includes('crystal') || lower.includes('ore') || lower.includes('gem')) return 'Mineral';
+      if (lower.includes('chip') || lower.includes('module') || lower.includes('sensor') || lower.includes('engine')) return 'Hardware';
+      if (lower.includes('acid') || lower.includes('solvent') || lower.includes('chemical')) return 'Chemical';
+      if (lower.includes('battery') || lower.includes('reactor') || lower.includes('power')) return 'Energy Source';
+      return 'Unknown';
     }
 
     // Modal helper: shows built-in interface modal instead of window.confirm/alert
@@ -522,11 +555,12 @@
       await showModal({ title, message, confirmText: 'OK', cancelText: '', showCancel: false });
     }
 
-    // Utilities: load/save
+    // Utilities: load/save with safe fallbacks
     function loadItems() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
       } catch (e) {
         console.error('Failed to load items:', e);
         return [];
@@ -542,7 +576,8 @@
     function loadCollectedItems() {
       try {
         const raw = localStorage.getItem(COLLECTED_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
       } catch (e) {
         console.error('Failed to load collected items:', e);
         return [];
@@ -558,7 +593,8 @@
     function loadArchiveItems() {
       try {
         const raw = localStorage.getItem(ARCHIVE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
       } catch (e) {
         console.error('Failed to load archive:', e);
         return [];
@@ -608,6 +644,25 @@
       }, 250);
     }
 
+    // Attempt to infer categories for existing items that are Unknown or missing a category.
+    // Returns true if any changes were made.
+    function inferUnknownCategoriesOnLoad() {
+      let changed = false;
+      for (const item of items) {
+        if (!item.category || item.category === 'Unknown') {
+          const inferred = inferCategoryFromName(item.name || '');
+          if (inferred && inferred !== 'Unknown') {
+            item.category = inferred;
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        saveItems();
+      }
+      return changed;
+    }
+
     // Render collected items (top panel)
     function renderCollected() {
       collectedListEl.innerHTML = '';
@@ -641,11 +696,17 @@
       if(idx === -1) return;
       const col = collected[idx];
 
-      // Create research item — include a category if drone supplied one, otherwise Unknown
+      // Determine category: prefer the provided category, otherwise infer from name
+      let category = col.category || col.type || 'Unknown';
+      if (!category || category === 'Unknown') {
+        category = inferCategoryFromName(col.name || col.itemName || '');
+      }
+
+      // Create research item — include inferred category
       const newItem = {
         id: generateId(),
         name: col.name || col.itemName || 'Unknown Artifact',
-        category: col.category || col.type || 'Unknown',
+        category: category || 'Unknown',
         description: col.description || '',
         report: '',
         status: 'in-progress',
@@ -722,14 +783,17 @@
         completedAt: Date.now()
       };
 
-      // Generate and attach type-specific notes
+      // Generate and attach type-specific notes (kept only in researchResults and appended once to report)
       const typeNotes = getTypeNotes(item.category || 'Unknown', item.researchResults);
       item.researchResults.typeNotes = typeNotes;
 
       // update status and attach report (do not change array order)
       item.status = 'complete';
       const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}\n\n${typeNotes}`;
-      item.report = (item.report ? item.report + '\n\n' : '') + resultText;
+      // Ensure report appends only once: if report already includes this exact resultText, skip appending.
+      if (!item.report || !item.report.includes(resultText)) {
+        item.report = (item.report ? item.report + '\n\n' : '') + resultText;
+      }
       item.updatedAt = Date.now();
       if(item.researchTimeoutId){
         clearTimeout(item.researchTimeoutId);
@@ -875,8 +939,6 @@
           // report already contains the researchResults and type-specific notes (if generated) — render it once
           descHtml += `<div class="research-report">${escapeHtml(item.report)}</div>`;
         }
-        // NOTE: removed separate rendering of researchResults.typeNotes to prevent duplicate notes.
-        // The type-specific notes are included in item.report at completion time.
 
         card.innerHTML = `
           <div class="research-header">
@@ -982,19 +1044,25 @@
       return div.innerHTML;
     }
 
-    // Form submit — add or update
+    // Form submit — add or update (infer category when Unknown)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
       const id = editingId.value;
       const name = itemName.value.trim();
-      const category = itemCategory.value || 'Unknown';
+      let category = itemCategory.value || 'Unknown';
 
       if (!name) {
         itemName.focus();
         return;
       }
       
+      if (!category || category === 'Unknown') {
+        // infer if user left it as Unknown
+        const inferred = inferCategoryFromName(name);
+        if (inferred && inferred !== 'Unknown') category = inferred;
+      }
+
       if (id) {
         // Update existing item (only name/category editable here)
         const item = items.find(i => i.id === id);
@@ -1028,13 +1096,15 @@
       resetForm();
     });
 
-    // Initial render
-    renderCollected();
-    render();
-    renderArchive();
-
-    // Start progress timer if there are already in-progress items on load
-    if(anyInProgress()) ensureProgressTimer();
+    // On load: infer categories for existing unknown items, render everything
+    (function init() {
+      // if some items are missing category or marked Unknown, try to infer one from the name
+      inferUnknownCategoriesOnLoad();
+      renderCollected();
+      render();
+      renderArchive();
+      if (anyInProgress()) ensureProgressTimer();
+    })();
 
     // Expose minimal API for console debugging
     window.researchLab = {
