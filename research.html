@@ -6,10 +6,31 @@
   <title>Research Lab — Obsidian Bastion</title>
   <link rel="stylesheet" href="app.css">
   <style>
+    :root{
+      --base-font-size:15px;
+      --muted:#9aa6b2;
+      --text-main:#e6eef6;
+      --text-muted:#9aa6b2;
+      --accent:#4fd1c5;
+      --bg-panel:#151821;
+    }
+
+    /* Base typography and sizing (standardized) */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-size: var(--base-font-size);
+      color: var(--text-main);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    h1 { font-size: 1.6rem; margin:0; }
+    h2 { font-size: 0.85rem; margin:0; font-weight:400; color:var(--muted); }
+    .page-header h1 { font-size: 1.6rem; }
+    .panel-card h3 { font-size: 1.05rem; }
+
     /* Page-specific layout and styling */
     .wrap { max-width:1200px; margin:24px auto; padding:0 18px; }
     .page-header { margin-bottom:24px; }
-    .page-header h1 { margin:0 0 8px 0; font-size:1.8rem; color:var(--text-main); }
     .hint { color:var(--muted); font-size:0.95rem; line-height:1.5; }
     
     /* Grid layout: form on left, list on right */
@@ -20,7 +41,7 @@
     
     /* Panel card styling */
     .panel-card { 
-      background:var(--bg-panel, #151821); 
+      background:var(--bg-panel); 
       padding:20px; 
       border-radius:12px; 
       border:1px solid rgba(255,255,255,0.06);
@@ -28,12 +49,11 @@
     }
     .panel-card h3 { 
       margin:0 0 16px 0; 
-      font-size:1.2rem; 
       color:var(--accent); 
       font-weight:700; 
     }
     
-    /* Form styling */
+    /* Form styling (standardized sizes) */
     .form-group { margin-bottom:16px; }
     .form-group label { 
       display:block; 
@@ -52,7 +72,8 @@
       background:rgba(255,255,255,0.02);
       color:var(--text-main);
       font-family:inherit;
-      font-size:0.95rem;
+      font-size:1rem; /* standardized input size */
+      line-height:1.3;
     }
     .form-group textarea {
       min-height:100px;
@@ -108,6 +129,7 @@
       border-radius:10px;
       border:1px solid rgba(255,255,255,0.04);
       transition:background 0.2s ease;
+      font-size:1rem; /* standardized */
     }
     .research-item:hover {
       background:rgba(255,255,255,0.04);
@@ -119,7 +141,7 @@
       margin-bottom:10px;
     }
     .research-title {
-      font-size:1.1rem;
+      font-size:1rem;
       font-weight:700;
       color:var(--text-main);
       margin:0 0 6px 0;
@@ -127,7 +149,7 @@
     .research-status {
       padding:4px 10px;
       border-radius:6px;
-      font-size:0.8rem;
+      font-size:0.78rem;
       font-weight:600;
       text-transform:uppercase;
       letter-spacing:0.5px;
@@ -138,16 +160,36 @@
     
     .research-description {
       color:var(--text-muted);
-      font-size:0.9rem;
-      line-height:1.5;
+      font-size:0.95rem;
+      line-height:1.45;
       margin-bottom:12px;
+      white-space:pre-wrap;
     }
     .research-actions {
       display:flex;
       gap:8px;
       flex-wrap:wrap;
+      margin-top:8px;
     }
     
+    /* Progress bar */
+    .progress {
+      width:100%;
+      background:rgba(255,255,255,0.04);
+      border-radius:8px;
+      height:10px;
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .progress .fill {
+      height:100%;
+      background:linear-gradient(90deg,var(--accent), #7ad1ff);
+      width:0%;
+      transition:width 200ms linear;
+    }
+    .time-remaining { margin-top:6px; }
+    .time-remaining small { color:var(--muted); font-size:0.85rem; }
+
     /* Collected items panel */
     .collected-panel { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.03); }
     .collected-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
@@ -157,7 +199,7 @@
     /* Archive */
     .archive-panel { margin-top:20px; }
     .archive-list { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:12px; }
-    .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); }
+    .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); font-size:0.95rem; }
     
     /* Empty state */
     .empty-state {
@@ -318,6 +360,9 @@
     let collected = loadCollectedItems();
     let archive = loadArchiveItems();
 
+    // Progress update timer
+    let progressTimer = null;
+
     // Load items from localStorage
     function loadItems() {
       try {
@@ -396,9 +441,25 @@
       return 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     }
 
-    // Logging utility (console & on-page minimal)
+    // Logging utility (console)
     function log(msg){
       console.log('[Research Lab] ' + msg);
+    }
+
+    // Progress timer control
+    function anyInProgress() {
+      return items.some(i => i.status === 'in-progress');
+    }
+    function ensureProgressTimer() {
+      if(progressTimer) return;
+      progressTimer = setInterval(() => {
+        if(!anyInProgress()){
+          clearInterval(progressTimer);
+          progressTimer = null;
+        }
+        // partial update: re-render to update progress bars and remaining time
+        render();
+      }, 250);
     }
 
     // Render collected items (top panel)
@@ -442,7 +503,11 @@
         status: 'in-progress',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        researchResults: null
+        researchResults: null,
+        // research timing fields (will be set by simulateResearch)
+        researchStartedAt: null,
+        researchDuration: null,
+        researchTimeoutId: null
       };
       items.push(newItem);
       saveItems();
@@ -470,9 +535,22 @@
 
     // Simulate research: after a delay, update item with results
     function simulateResearch(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if(!item) return;
       // Small randomized research duration (4-10s)
       const duration = 4000 + Math.floor(Math.random() * 6000);
-      setTimeout(() => completeResearch(itemId), duration);
+      // store start & duration for progress UI
+      item.researchStartedAt = Date.now();
+      item.researchDuration = duration;
+      saveItems();
+      // store timeout id so we can cancel if needed
+      item.researchTimeoutId = setTimeout(() => {
+        // remove timeout id since it fired
+        item.researchTimeoutId = null;
+        completeResearch(itemId);
+      }, duration);
+      saveItems();
+      ensureProgressTimer();
     }
 
     function completeResearch(itemId) {
@@ -504,6 +582,13 @@
       item.description = (item.description ? item.description + '\n\n' : '') +
         `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
       item.updatedAt = Date.now();
+      // clear timing fields (keep them if you want to show history)
+      item.researchStartedAt = item.researchStartedAt || null;
+      item.researchDuration = item.researchDuration || null;
+      if(item.researchTimeoutId){
+        clearTimeout(item.researchTimeoutId);
+        item.researchTimeoutId = null;
+      }
       saveItems();
       render();
     }
@@ -548,6 +633,11 @@
       if(idx === -1) return;
       const it = items[idx];
       if(confirm(`Discard "${it.name}"? This will permanently remove it from records.`)) {
+        // clear any pending research timeout
+        if(it.researchTimeoutId){
+          clearTimeout(it.researchTimeoutId);
+          it.researchTimeoutId = null;
+        }
         items.splice(idx,1);
         saveItems();
         render();
@@ -618,6 +708,23 @@
           actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Delete</button>`;
         }
 
+        // Progress UI for in-progress items
+        let progressHtml = '';
+        if(item.status === 'in-progress') {
+          const now = Date.now();
+          let percent = 0;
+          let remaining = null;
+          if(item.researchStartedAt && item.researchDuration){
+            const elapsed = now - item.researchStartedAt;
+            percent = Math.min(100, Math.round((elapsed / item.researchDuration) * 100));
+            remaining = Math.max(0, Math.ceil((item.researchDuration - elapsed) / 1000));
+          }
+          progressHtml = `
+            <div class="progress" aria-hidden="true"><div class="fill" style="width:${percent}%"></div></div>
+            <div class="time-remaining"><small>${percent}%${remaining !== null ? ' • ' + remaining + 's remaining' : ''}</small></div>
+          `;
+        }
+
         card.innerHTML = `
           <div class="research-header">
             <div>
@@ -626,6 +733,7 @@
             </div>
           </div>
           ${item.description ? `<div class="research-description">${escapeHtml(item.description)}</div>` : ''}
+          ${progressHtml}
           <div class="research-actions">
             ${actionsHtml}
           </div>
@@ -646,12 +754,18 @@
       simulateResearch(it.id);
     };
 
-    // Cancel research (best-effort: mark not-started again)
+    // Cancel research (best-effort: clear timeout and mark not-started)
     window.cancelResearch = function(id) {
       const it = items.find(i => i.id === id);
       if(!it) return;
       if(confirm('Cancel current research? Item will be returned to Not Started.')) {
+        if(it.researchTimeoutId){
+          clearTimeout(it.researchTimeoutId);
+          it.researchTimeoutId = null;
+        }
         it.status = 'not-started';
+        it.researchStartedAt = null;
+        it.researchDuration = null;
         it.updatedAt = Date.now();
         saveItems();
         render();
@@ -681,6 +795,10 @@
       if (!item) return;
       
       if (confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+        // clear pending timeout if any
+        if(item.researchTimeoutId){
+          clearTimeout(item.researchTimeoutId);
+        }
         items = items.filter(i => i.id !== id);
         saveItems();
         render();
@@ -741,7 +859,10 @@
           description,
           status,
           createdAt: Date.now(),
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
+          researchStartedAt: null,
+          researchDuration: null,
+          researchTimeoutId: null
         };
         items.push(newItem);
 
@@ -760,6 +881,9 @@
     renderCollected();
     render();
     renderArchive();
+
+    // Start progress timer if there are already in-progress items on load
+    if(anyInProgress()) ensureProgressTimer();
 
     // Expose minimal API for console debugging
     window.researchLab = {
