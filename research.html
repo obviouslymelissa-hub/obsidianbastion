@@ -145,7 +145,11 @@
       font-weight:700;
       color:var(--text-main);
       margin:0 0 6px 0;
+      display:flex;
+      gap:8px;
+      align-items:center;
     }
+    .research-title .icon { font-size:1.1rem; opacity:0.95; }
     .research-meta {
       color:var(--muted);
       font-size:0.9rem;
@@ -214,7 +218,9 @@
     .archive-panel { margin-top:20px; }
     .archive-list { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:12px; }
     .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); font-size:0.95rem; }
-    
+    .archive-item .archive-title { display:flex; gap:8px; align-items:center; font-weight:700; }
+    .archive-item .archive-icon { font-size:1.25rem; }
+
     /* Empty state */
     .empty-state {
       text-align:center;
@@ -394,7 +400,6 @@
     const formTitle = document.getElementById('formTitle');
     const itemName = document.getElementById('itemName');
     const itemCategory = document.getElementById('itemCategory');
-    const itemStatus = document.getElementById('itemStatus') || null; // legacy
     const editingId = document.getElementById('editingId');
     const submitBtn = document.getElementById('submitBtn');
     const cancelBtn = document.getElementById('cancelBtn');
@@ -419,6 +424,61 @@
 
     // Progress update timer
     let progressTimer = null;
+
+    // Icon map for categories (used in archive & list decorations)
+    const CATEGORY_ICONS = {
+      'Hardware': '🔧',
+      'Chemical': '⚗️',
+      'Mineral': '🪨',
+      'Plant Life': '🌿',
+      'Life Form': '🧬',
+      'Energy Source': '⚡',
+      'Unknown': '❓',
+      'Other': '📦'
+    };
+
+    // Notes/interpretation templates by category (appended to research results)
+    function getTypeNotes(category, researchResults) {
+      switch (category) {
+        case 'Hardware':
+          return `Hardware Notes:
+- Structural integrity: ${researchResults.safe ? 'Stable' : 'Compromised'}.
+- Recommend corrosion check and compatibility test with ship interfaces.
+- Suggested handling: standard engineering PPE.`;
+        case 'Chemical':
+          return `Chemical Notes:
+- Composition unknown; run spectral chromatography for full breakdown.
+- ${researchResults.safe ? 'Low' : 'Elevated'} hazard potential indicated.
+- Suggested handling: isolator gloves, neutralization station.`;
+        case 'Mineral':
+          return `Mineral Notes:
+- Crystalline structure consistent with high conductivity specimens.
+- ${researchResults.safe ? 'Low' : 'Elevated'} background radiation measured.
+- Suggested handling: sample container and geologist analysis.`;
+        case 'Plant Life':
+          return `Plant Life Notes:
+- Viability unclear; spores detected.
+- ${researchResults.safe ? 'Non-pathogenic' : 'Potentially pathogenic'} marker present.
+- Suggested handling: quarantine and botanical assay.`;
+        case 'Life Form':
+          return `Life Form Notes:
+- Biological signatures detected.
+- ${researchResults.safe ? 'No immediate threat' : 'Potential biohazard'} — quarantine required.
+- Suggested handling: senior biologist review and containment.`;
+        case 'Energy Source':
+          return `Energy Source Notes:
+- Emission profile: ${researchResults.radiation || 'unknown'}.
+- ${researchResults.safe ? 'Stable' : 'Unstable'} — do not integrate without safety protocols.
+- Suggested handling: isolated storage and energy diagnostics.`;
+        case 'Other':
+        case 'Unknown':
+        default:
+          return `General Notes:
+- Material requires additional analysis for definitive classification.
+- ${researchResults.safe ? 'Low' : 'High'} risk indicators present.
+- Suggested handling: proceed with caution; escalate if necessary.`;
+      }
+    }
 
     // Modal helper: shows built-in interface modal instead of window.confirm/alert
     function showModal({ title = 'Confirm', message = '', confirmText = 'OK', cancelText = 'Cancel', showCancel = true } = {}) {
@@ -462,7 +522,7 @@
       await showModal({ title, message, confirmText: 'OK', cancelText: '', showCancel: false });
     }
 
-    // Utilities
+    // Utilities: load/save
     function loadItems() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -564,7 +624,7 @@
         row.innerHTML = `
           <div>
             <div style="font-weight:700">${escapeHtml(ci.name || ci.itemName || 'Unknown')}</div>
-            <div class="meta">${escapeHtml(ci.source || '')} ${ci.mundane === false ? '• Interesting' : ''}</div>
+            <div class="meta">${escapeHtml(ci.source || '')} ${ci.category ? '• ' + escapeHtml(ci.category) : ''} ${ci.mundane === false ? '• Interesting' : ''}</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn small" onclick="researchCollectedItem('${ci.id}')">Research</button>
@@ -586,8 +646,8 @@
         id: generateId(),
         name: col.name || col.itemName || 'Unknown Artifact',
         category: col.category || col.type || 'Unknown',
-        description: col.description || '', // optional free-form description from collector
-        report: '', // research output / appended results
+        description: col.description || '',
+        report: '',
         status: 'in-progress',
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -638,6 +698,7 @@
       ensureProgressTimer();
     }
 
+    // Complete research, attach results and type-specific notes
     function completeResearch(itemId) {
       const item = items.find(i => i.id === itemId);
       if(!item) return;
@@ -660,9 +721,14 @@
         notes,
         completedAt: Date.now()
       };
+
+      // Generate and attach type-specific notes
+      const typeNotes = getTypeNotes(item.category || 'Unknown', item.researchResults);
+      item.researchResults.typeNotes = typeNotes;
+
       // update status and attach report (do not change array order)
       item.status = 'complete';
-      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
+      const resultText = `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}\n\n${typeNotes}`;
       item.report = (item.report ? item.report + '\n\n' : '') + resultText;
       item.updatedAt = Date.now();
       if(item.researchTimeoutId){
@@ -723,7 +789,7 @@
       }
     };
 
-    // Render archived items
+    // Render archived items (with icons)
     function renderArchive() {
       archiveListEl.innerHTML = '';
       if(!archive || archive.length === 0) {
@@ -734,10 +800,11 @@
         return;
       }
       archive.forEach(a => {
+        const icon = CATEGORY_ICONS[a.category] || CATEGORY_ICONS['Unknown'];
         const node = document.createElement('div');
         node.className = 'archive-item';
         node.innerHTML = `
-          <div style="font-weight:700">${escapeHtml(a.name)}</div>
+          <div class="archive-title"><span class="archive-icon">${escapeHtml(icon)}</span><span>${escapeHtml(a.name)}</span></div>
           <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.category ? escapeHtml(a.category) + ' • ' : ''}${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
           <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}${a.report ? '\n\n' + escapeHtml(a.report) : ''}</div>
         `;
@@ -765,7 +832,8 @@
         
         const statusClass = `status-${item.status}`;
         const statusLabel = (item.status || 'not-started').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        
+        const icon = CATEGORY_ICONS[item.category] || CATEGORY_ICONS['Unknown'];
+
         // Build action buttons depending on status
         let actionsHtml = '';
         if(item.status === 'in-progress') {
@@ -806,11 +874,15 @@
         if(item.report) {
           descHtml += `<div class="research-report">${escapeHtml(item.report)}</div>`;
         }
+        // Also display type-specific notes if available
+        if(item.researchResults && item.researchResults.typeNotes) {
+          descHtml += `<div class="research-report" style="margin-top:10px;background:rgba(255,255,255,0.02)">${escapeHtml(item.researchResults.typeNotes)}</div>`;
+        }
 
         card.innerHTML = `
           <div class="research-header">
             <div>
-              <h4 class="research-title">${escapeHtml(item.name)}</h4>
+              <h4 class="research-title"><span class="icon">${escapeHtml(icon)}</span><span>${escapeHtml(item.name)}</span></h4>
               <div class="research-meta">${item.category ? escapeHtml(item.category) : 'Unknown'}</div>
             </div>
             <div><div class="research-status ${statusClass}">${statusLabel}</div></div>
@@ -918,7 +990,6 @@
       const id = editingId.value;
       const name = itemName.value.trim();
       const category = itemCategory.value || 'Unknown';
-      const statusVal = 'not-started';
 
       if (!name) {
         itemName.focus();
@@ -939,9 +1010,9 @@
           id: generateId(),
           name,
           category,
-          description: '', // no free-form description on manual add (as requested)
+          description: '',
           report: '',
-          status: statusVal,
+          status: 'not-started',
           createdAt: Date.now(),
           updatedAt: Date.now(),
           researchResults: null,
@@ -951,8 +1022,6 @@
         };
         // push to items array — order preserved
         items.push(newItem);
-
-        // default: not-started; user can start research manually
       }
       
       saveItems();
