@@ -492,6 +492,17 @@
     function launchDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
+      
+      // Check if collector has any items to collect
+      if(d.type === 'collector'){
+        const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+        if(ready.length === 0){
+          updateStatusPrompt('Awaiting collection orders - no items available');
+          log(`${d.name} awaiting collection orders - no items to collect`);
+          return; // Don't launch if there's nothing to collect
+        }
+      }
+      
       d.status = 'flying';
       d.alt = Math.max(d.alt, 30);
       d.taskCompleted = false;
@@ -670,30 +681,47 @@
 
       // points of interest
       pointsOfInterest.forEach(poi => {
-        c.beginPath();
-        if(poi.scanned){
-          c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
-          c.strokeStyle = 'rgba(79,209,197,0.8)';
+        // If scanned and empty, show as green circle with exclamation mark (no bubble)
+        if(poi.scanned && poi.isEmpty){
+          c.beginPath();
+          c.fillStyle = 'rgba(79,209,197,0.8)'; // Green color
+          c.strokeStyle = 'rgba(79,209,197,1.0)';
+          c.lineWidth = 2;
+          c.arc(poi.x, poi.y, 8, 0, Math.PI*2); // Smaller circle
+          c.fill();
+          c.stroke();
+          
+          // Draw exclamation mark
+          c.fillStyle = '#fff';
+          c.font = 'bold 12px system-ui';
+          c.fillText('!', poi.x - 3, poi.y + 4);
         } else {
-          c.fillStyle = 'rgba(255,200,80,0.5)';
-          c.strokeStyle = 'rgba(255,200,80,0.8)';
-        }
-        c.lineWidth = 2;
-        c.arc(poi.x, poi.y, 10, 0, Math.PI*2);
-        c.fill();
-        c.stroke();
-        
-        // Draw icon based on type
-        c.fillStyle = '#fff';
-        c.font = 'bold 14px system-ui';
-        const icon = poi.scanned ? '✓' : '?';
-        c.fillText(icon, poi.x - 5, poi.y + 5);
-        
-        // Draw discovered by scout indicator (show which scout found it)
-        if(poi.discoveredBy){
-          c.fillStyle = 'rgba(255,255,255,0.7)';
-          c.font = '10px system-ui';
-          c.fillText(poi.discoveredBy, poi.x - 20, poi.y - 15);
+          // Normal display for unscanned or scanned with items
+          c.beginPath();
+          if(poi.scanned){
+            c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
+            c.strokeStyle = 'rgba(79,209,197,0.8)';
+          } else {
+            c.fillStyle = 'rgba(255,200,80,0.5)';
+            c.strokeStyle = 'rgba(255,200,80,0.8)';
+          }
+          c.lineWidth = 2;
+          c.arc(poi.x, poi.y, 10, 0, Math.PI*2);
+          c.fill();
+          c.stroke();
+          
+          // Draw icon based on type
+          c.fillStyle = '#fff';
+          c.font = 'bold 14px system-ui';
+          const icon = poi.scanned ? '✓' : '?';
+          c.fillText(icon, poi.x - 5, poi.y + 5);
+          
+          // Draw "Object Found" label for unscanned POIs discovered by scouts
+          if(!poi.scanned && poi.discoveredBy){
+            c.fillStyle = 'rgba(255,255,255,0.7)';
+            c.font = '10px system-ui';
+            c.fillText('Object Found', poi.x - 24, poi.y - 15);
+          }
         }
       });
 
@@ -802,11 +830,13 @@
             // If reached max POIs, mark as completed
             if(currentPOICount + 1 >= MAX_POIS_ON_SCREEN){
               d.taskCompleted = true;
-              d.status = 'hovering';
-              d.targetVx = 0;
-              d.targetVy = 0;
+              d.waypoints = [];
               log(`${d.name} scouting complete - maximum objects found`);
               updateStatusPrompt('Scouting complete - max objects found');
+              // Automatically return to base
+              d.status = 'returning';
+              d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+              log(`${d.name} returning to base`);
             }
           }
           
@@ -823,9 +853,6 @@
           const timeFlying = t - (d.launchTime || t);
           if(timeFlying > SCOUT_PATROL_DURATION && !d.taskCompleted){
             d.taskCompleted = true;
-            d.status = 'hovering';
-            d.targetVx = 0;
-            d.targetVy = 0;
             d.waypoints = [];
             const foundCount = d.poiDiscoveryCount || 0;
             if(foundCount === 0){
@@ -839,6 +866,10 @@
               log(`${d.name} scouting complete - ${foundCount} object(s) found`);
               updateStatusPrompt(`Scouting complete - ${foundCount} object(s) found`);
             }
+            // Automatically return to base after scouting is complete
+            d.status = 'returning';
+            d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+            log(`${d.name} returning to base`);
           }
         }
 
@@ -863,7 +894,9 @@
                   log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
                   updateStatusPrompt(`${poi.name} scanned - items identified`);
                 } else {
+                  // Mark as having no items - will change appearance on map
                   poi.items = [];
+                  poi.isEmpty = true; // Flag to indicate nothing was found
                   poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
                   log(`${d.name} scanned ${poi.name} - Nothing of value`);
                   updateStatusPrompt(`${poi.name} scanned - no items`);
