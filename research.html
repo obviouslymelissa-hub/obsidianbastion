@@ -148,6 +148,17 @@
       flex-wrap:wrap;
     }
     
+    /* Collected items panel */
+    .collected-panel { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.03); }
+    .collected-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .collected-item { display:flex; justify-content:space-between; align-items:center; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.03); }
+    .collected-item .meta { color:var(--muted); font-size:0.9rem; }
+    
+    /* Archive */
+    .archive-panel { margin-top:20px; }
+    .archive-list { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:12px; }
+    .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); }
+    
     /* Empty state */
     .empty-state {
       text-align:center;
@@ -192,8 +203,17 @@
     </div>
 
     <div class="grid" role="main">
-      <!-- Left: Add/Edit Form -->
+      <!-- Left: Collected Items + Add/Edit Form -->
       <aside class="panel-card" aria-label="Research form">
+        <!-- Collected items from drones -->
+        <div id="collectedPanel" class="collected-panel" aria-label="Collected items from drones">
+          <h4 style="margin:0 0 6px 0;color:var(--accent);font-weight:700">Collected from Drones</h4>
+          <div class="hint" style="margin-bottom:8px">Items collected by the drone deck will appear here. Click Research to move them to the Research Lab.</div>
+          <div id="collectedList" class="collected-list">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
         <h3 id="formTitle">Add New Research Item</h3>
         <form id="researchForm">
           <input type="hidden" id="editingId" value="">
@@ -244,10 +264,19 @@
 
         <div id="emptyState" class="empty-state" style="display:none;">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2[...]
           </svg>
           <p>No research items yet</p>
           <p style="font-size:0.85rem;margin-top:8px;">Add your first research item using the form on the left</p>
+        </div>
+
+        <!-- Archive / Museum -->
+        <div id="archivePanel" class="archive-panel">
+          <h4 style="margin-top:18px;color:var(--accent);font-weight:700">Archived Artifacts</h4>
+          <div class="hint" style="margin-bottom:8px">Items archived from research appear here as a museum of finds.</div>
+          <div id="archiveList" class="archive-list">
+            <!-- Filled by JS -->
+          </div>
         </div>
       </section>
     </div>
@@ -262,8 +291,11 @@
 
   <script>
   (function(){
-    // Storage key
+    // Storage keys
     const STORAGE_KEY = 'research:items:v1';
+    const COLLECTED_KEY = 'drones:collected:v1';
+    const ARCHIVE_KEY = 'research:archive:v1';
+    const INVENTORY_KEY = 'ship.inventory.v1';
     
     // Elements
     const form = document.getElementById('researchForm');
@@ -278,8 +310,13 @@
     const emptyState = document.getElementById('emptyState');
     const itemCount = document.getElementById('itemCount');
 
+    const collectedListEl = document.getElementById('collectedList');
+    const archiveListEl = document.getElementById('archiveList');
+
     // State
     let items = loadItems();
+    let collected = loadCollectedItems();
+    let archive = loadArchiveItems();
 
     // Load items from localStorage
     function loadItems() {
@@ -301,12 +338,245 @@
       }
     }
 
+    // Collected items (from drones)
+    function loadCollectedItems() {
+      try {
+        const raw = localStorage.getItem(COLLECTED_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('Failed to load collected items:', e);
+        return [];
+      }
+    }
+    function saveCollectedItems() {
+      try {
+        localStorage.setItem(COLLECTED_KEY, JSON.stringify(collected));
+      } catch (e) {
+        console.error('Failed to save collected items:', e);
+      }
+    }
+
+    // Archive
+    function loadArchiveItems() {
+      try {
+        const raw = localStorage.getItem(ARCHIVE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('Failed to load archive:', e);
+        return [];
+      }
+    }
+    function saveArchiveItems() {
+      try {
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+      } catch (e) {
+        console.error('Failed to save archive:', e);
+      }
+    }
+
+    // Inventory helper
+    function addToPartsInventory(itemName){
+      try {
+        const raw = localStorage.getItem(INVENTORY_KEY);
+        const inventory = raw ? JSON.parse(raw) : {};
+        
+        const key = itemName.toLowerCase();
+        if(inventory[key] == null) inventory[key] = 0;
+        inventory[key] += 1;
+        
+        localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+        log(`Added ${itemName} to Parts Inventory`);
+      } catch(e){
+        console.error('Failed to add to inventory:', e);
+      }
+    }
+
     // Generate unique ID
     function generateId() {
       return 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     }
 
-    // Render all items
+    // Logging utility (console & on-page minimal)
+    function log(msg){
+      console.log('[Research Lab] ' + msg);
+    }
+
+    // Render collected items (top panel)
+    function renderCollected() {
+      collectedListEl.innerHTML = '';
+      if(!collected || collected.length === 0) {
+        const p = document.createElement('div');
+        p.className = 'hint';
+        p.textContent = 'No items collected yet.';
+        collectedListEl.appendChild(p);
+        return;
+      }
+      collected.forEach(ci => {
+        const row = document.createElement('div');
+        row.className = 'collected-item';
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700">${escapeHtml(ci.name || ci.itemName || 'Unknown')}</div>
+            <div class="meta">${escapeHtml(ci.source || ci.source || '')} ${ci.mundane === false ? '• Interesting' : ''}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn small" onclick="researchCollectedItem('${ci.id}')">Research</button>
+            <button class="btn small secondary" onclick="discardCollectedItem('${ci.id}')">Discard</button>
+          </div>
+        `;
+        collectedListEl.appendChild(row);
+      });
+    }
+
+    // Move collected item into research list and start automated research
+    window.researchCollectedItem = function(colId) {
+      const idx = collected.findIndex(c => c.id === colId);
+      if(idx === -1) return;
+      const col = collected[idx];
+
+      // Create research item
+      const newItem = {
+        id: generateId(),
+        name: col.name || col.itemName || 'Unknown Artifact',
+        description: (col.description ? col.description + '\n' : '') + `Source: ${col.source || 'Collected by drone'}`,
+        status: 'in-progress',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        researchResults: null
+      };
+      items.push(newItem);
+      saveItems();
+
+      // Remove from collected
+      collected.splice(idx,1);
+      saveCollectedItems();
+      renderCollected();
+      render();
+
+      // Start automated research process (simulate)
+      simulateResearch(newItem.id);
+    };
+
+    // Discard collected item directly from collected panel
+    window.discardCollectedItem = function(colId) {
+      const idx = collected.findIndex(c => c.id === colId);
+      if(idx === -1) return;
+      if(confirm('Discard this collected item? This cannot be undone.')) {
+        collected.splice(idx,1);
+        saveCollectedItems();
+        renderCollected();
+      }
+    };
+
+    // Simulate research: after a delay, update item with results
+    function simulateResearch(itemId) {
+      // Small randomized research duration (4-10s)
+      const duration = 4000 + Math.floor(Math.random() * 6000);
+      setTimeout(() => completeResearch(itemId), duration);
+    }
+
+    function completeResearch(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if(!item) return;
+      // Randomized results to make it interesting
+      const safetyChance = 0.7; // 70% chance safe
+      const isSafe = Math.random() < safetyChance;
+      // Radiation level in mSv (example ranges)
+      let radiation;
+      if(isSafe) {
+        radiation = (Math.random() * 0.5).toFixed(2) + ' mSv';
+      } else {
+        const r = 1 + Math.random() * 9; // 1 - 10 mSv
+        radiation = r.toFixed(2) + ' mSv';
+      }
+      const contamination = isSafe ? 'No significant contamination detected.' : 'Hazardous residues detected; handle with caution.';
+      const notes = isSafe ? 'Artifact appears chemically stable and can be used for non-critical ship modifications.' : 'Not recommended for use. Quarantine required.';
+      
+      item.researchResults = {
+        safe: isSafe,
+        radiation,
+        contamination,
+        notes,
+        completedAt: Date.now()
+      };
+      item.status = 'complete';
+      // Append results to description for visibility
+      item.description = (item.description ? item.description + '\n\n' : '') +
+        `-- Research Results --\nSafe to use: ${isSafe ? 'Yes' : 'No'}\nRadiation: ${radiation}\nNotes: ${notes}\n${contamination}`;
+      item.updatedAt = Date.now();
+      saveItems();
+      render();
+    }
+
+    // Archive artifact
+    window.archiveItem = function(id) {
+      const idx = items.findIndex(i => i.id === id);
+      if(idx === -1) return;
+      const it = items[idx];
+      archive.push({
+        id: it.id,
+        name: it.name,
+        description: it.description,
+        researchResults: it.researchResults,
+        archivedAt: Date.now()
+      });
+      saveArchiveItems();
+      // remove from research list
+      items.splice(idx,1);
+      saveItems();
+      render();
+      renderArchive();
+    };
+
+    // Store as inventory
+    window.storeAsInventory = function(id) {
+      const idx = items.findIndex(i => i.id === id);
+      if(idx === -1) return;
+      const it = items[idx];
+      // Use inventory helper
+      addToPartsInventory(it.name);
+      // After storing as inventory, remove from research list
+      items.splice(idx,1);
+      saveItems();
+      render();
+      alert(`${it.name} stored in ship inventory.`);
+    };
+
+    // Discard research item
+    window.discardItem = function(id) {
+      const idx = items.findIndex(i => i.id === id);
+      if(idx === -1) return;
+      const it = items[idx];
+      if(confirm(`Discard "${it.name}"? This will permanently remove it from records.`)) {
+        items.splice(idx,1);
+        saveItems();
+        render();
+      }
+    };
+
+    // Render archived items
+    function renderArchive() {
+      archiveListEl.innerHTML = '';
+      if(!archive || archive.length === 0) {
+        const p = document.createElement('div');
+        p.className = 'hint';
+        p.textContent = 'No archived artifacts yet.';
+        archiveListEl.appendChild(p);
+        return;
+      }
+      archive.forEach(a => {
+        const node = document.createElement('div');
+        node.className = 'archive-item';
+        node.innerHTML = `
+          <div style="font-weight:700">${escapeHtml(a.name)}</div>
+          <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
+          <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}</div>
+        `;
+        archiveListEl.appendChild(node);
+      });
+    }
+
+    // Render all research items
     function render() {
       researchList.innerHTML = '';
       
@@ -314,17 +584,16 @@
         researchList.style.display = 'none';
         emptyState.style.display = 'block';
         itemCount.textContent = '(0)';
-        return;
+      } else {
+        researchList.style.display = 'flex';
+        emptyState.style.display = 'none';
+        itemCount.textContent = `(${items.length})`;
       }
-      
-      researchList.style.display = 'flex';
-      emptyState.style.display = 'none';
-      itemCount.textContent = `(${items.length})`;
       
       // Sort: in-progress first, then not-started, then complete
       const sorted = [...items].sort((a, b) => {
         const order = { 'in-progress': 0, 'not-started': 1, 'complete': 2 };
-        return order[a.status] - order[b.status];
+        return (order[a.status] || 9) - (order[b.status] || 9);
       });
       
       sorted.forEach(item => {
@@ -334,6 +603,21 @@
         const statusClass = `status-${item.status}`;
         const statusLabel = item.status.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         
+        // Build action buttons depending on status
+        let actionsHtml = '';
+        if(item.status === 'in-progress') {
+          actionsHtml += `<button class="btn small secondary" disabled>Researching…</button>`;
+          actionsHtml += `<button class="btn small secondary" onclick="cancelResearch('${item.id}')">Cancel</button>`;
+        } else if(item.status === 'complete') {
+          actionsHtml += `<button class="btn small" onclick="archiveItem('${item.id}')">Archive Artifact</button>`;
+          actionsHtml += `<button class="btn small" onclick="storeAsInventory('${item.id}')">Store as Inventory</button>`;
+          actionsHtml += `<button class="btn small danger" onclick="discardItem('${item.id}')">Discard</button>`;
+        } else {
+          actionsHtml += `<button class="btn small" onclick="startResearchItem('${item.id}')">Start Research</button>`;
+          actionsHtml += `<button class="btn small secondary" onclick="editItem('${item.id}')">Edit</button>`;
+          actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Delete</button>`;
+        }
+
         card.innerHTML = `
           <div class="research-header">
             <div>
@@ -343,8 +627,7 @@
           </div>
           ${item.description ? `<div class="research-description">${escapeHtml(item.description)}</div>` : ''}
           <div class="research-actions">
-            <button class="btn small secondary" onclick="editItem('${item.id}')">Edit</button>
-            <button class="btn small danger" onclick="deleteItem('${item.id}')">Delete</button>
+            ${actionsHtml}
           </div>
         `;
         
@@ -352,7 +635,82 @@
       });
     }
 
-    // Add or update item
+    // Start research manually on an item
+    window.startResearchItem = function(id) {
+      const it = items.find(i => i.id === id);
+      if(!it) return;
+      it.status = 'in-progress';
+      it.updatedAt = Date.now();
+      saveItems();
+      render();
+      simulateResearch(it.id);
+    };
+
+    // Cancel research (best-effort: mark not-started again)
+    window.cancelResearch = function(id) {
+      const it = items.find(i => i.id === id);
+      if(!it) return;
+      if(confirm('Cancel current research? Item will be returned to Not Started.')) {
+        it.status = 'not-started';
+        it.updatedAt = Date.now();
+        saveItems();
+        render();
+      }
+    };
+
+    // Edit & Delete from original UI (exposed for use by inline onclicks)
+    window.editItem = function(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      
+      editingId.value = item.id;
+      itemName.value = item.name;
+      itemDescription.value = item.description || '';
+      itemStatus.value = item.status;
+      
+      formTitle.textContent = 'Edit Research Item';
+      submitBtn.textContent = 'Update Item';
+      cancelBtn.style.display = 'inline-block';
+      
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      itemName.focus();
+    };
+
+    window.deleteItem = function(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      
+      if (confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+        items = items.filter(i => i.id !== id);
+        saveItems();
+        render();
+        
+        if (editingId.value === id) {
+          resetForm();
+        }
+      }
+    };
+
+    // Cancel editing
+    cancelBtn.addEventListener('click', resetForm);
+
+    // Reset form to add mode
+    function resetForm() {
+      form.reset();
+      editingId.value = '';
+      formTitle.textContent = 'Add New Research Item';
+      submitBtn.textContent = 'Add Item';
+      cancelBtn.style.display = 'none';
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Form submit — add or update
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -386,6 +744,11 @@
           updatedAt: Date.now()
         };
         items.push(newItem);
+
+        // If user selected to start research immediately, simulate
+        if(status === 'in-progress') {
+          simulateResearch(newItem.id);
+        }
       }
       
       saveItems();
@@ -393,84 +756,27 @@
       resetForm();
     });
 
-    // Edit item
-    window.editItem = function(id) {
-      const item = items.find(i => i.id === id);
-      if (!item) return;
-      
-      editingId.value = item.id;
-      itemName.value = item.name;
-      itemDescription.value = item.description || '';
-      itemStatus.value = item.status;
-      
-      formTitle.textContent = 'Edit Research Item';
-      submitBtn.textContent = 'Update Item';
-      cancelBtn.style.display = 'inline-block';
-      
-      // Scroll to form
-      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      itemName.focus();
-    };
-
-    // Delete item
-    window.deleteItem = function(id) {
-      const item = items.find(i => i.id === id);
-      if (!item) return;
-      
-      if (confirm(`Delete "${item.name}"? This cannot be undone.`)) {
-        items = items.filter(i => i.id !== id);
-        saveItems();
-        render();
-        
-        // If we were editing this item, reset the form
-        if (editingId.value === id) {
-          resetForm();
-        }
-      }
-    };
-
-    // Cancel editing
-    cancelBtn.addEventListener('click', resetForm);
-
-    // Reset form to add mode
-    function resetForm() {
-      form.reset();
-      editingId.value = '';
-      formTitle.textContent = 'Add New Research Item';
-      submitBtn.textContent = 'Add Item';
-      cancelBtn.style.display = 'none';
-    }
-
-    // Escape HTML to prevent XSS
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
     // Initial render
+    renderCollected();
     render();
+    renderArchive();
 
-    // Expose API for console debugging
+    // Expose minimal API for console debugging
     window.researchLab = {
       items: () => items,
-      add: (name, desc, status) => {
-        items.push({
-          id: generateId(),
-          name,
-          description: desc || '',
-          status: status || 'not-started',
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
-        saveItems();
-        render();
+      collected: () => collected,
+      archive: () => archive,
+      addCollectedForTesting: (name, source, mundane=false) => {
+        const c = { id: 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name, source, mundane };
+        collected.push(c);
+        saveCollectedItems();
+        renderCollected();
       },
-      clear: () => {
-        if (confirm('Clear all research items?')) {
-          items = [];
-          saveItems();
-          render();
+      clearCollected: () => {
+        if(confirm('Clear all collected items?')) {
+          collected = [];
+          saveCollectedItems();
+          renderCollected();
         }
       }
     };
