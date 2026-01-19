@@ -20,7 +20,7 @@
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
     .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
     .btn.small { padding:6px 8px; font-size:13px; }
-    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:30; }
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:9999; }
     #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
     .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
     .badge { background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:8px; font-weight:600; }
@@ -77,7 +77,7 @@
             <option value="collector">Collector</option>
             <option value="defender">Defender</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
         </div>
 
@@ -239,6 +239,34 @@
         const wy = clamp(drone.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
         drone.waypoints.push({ x: wx, y: wy, id: generateId() });
       }
+    }
+
+    // Helper: remove waypoints that reference a poiId
+    function removeWaypointsForPoi(poiId){
+      if(!poiId) return;
+      drones.forEach(d => {
+        if(d.waypoints && d.waypoints.length){
+          const before = d.waypoints.length;
+          d.waypoints = d.waypoints.filter(w => w.poiId !== poiId);
+          if(d.waypoints.length !== before){
+            // If we removed the first/active waypoint, ensure the drone doesn't keep a stale target
+            // (we don't force an idle state; drones will pick up new waypoints naturally)
+          }
+        }
+      });
+    }
+
+    // Helper: remove any waypoints near coordinates (safety for older waypoints without poiId)
+    function removeWaypointsNear(x,y,radius = 18){
+      drones.forEach(d => {
+        if(d.waypoints && d.waypoints.length){
+          d.waypoints = d.waypoints.filter(w => {
+            const dx = w.x - x;
+            const dy = w.y - y;
+            return Math.hypot(dx,dy) > radius;
+          });
+        }
+      });
     }
 
     // Load/save collected items
@@ -905,8 +933,13 @@
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
               if(dist < 15){
+                // Mark scanned
                 poi.scanned = true;
                 poi.discoveredBy = d.name;
+
+                // Remove any stale waypoints that were targeting this POI (prevents re-targeting and circling)
+                removeWaypointsForPoi(poi.id);
+                removeWaypointsNear(poi.x, poi.y, 18);
                 
                 // Check if explorer finds items (increased probability)
                 const foundItems = Math.random() < EXPLORER_DISCOVERY_PROBABILITY;
@@ -920,6 +953,9 @@
                   // Nothing found - remove the POI from the map
                   log(`${d.name} scanned ${poi.type} - Nothing found, removing marker`);
                   updateStatusPrompt(`${poi.type} scanned - empty location`);
+                  // remove waypoints for this poi (just in case) then remove the poi
+                  removeWaypointsForPoi(poi.id);
+                  removeWaypointsNear(poi.x, poi.y, 18);
                   pointsOfInterest.splice(i, 1); // Remove empty POI
                 }
                 scannedSomething = true;
@@ -932,7 +968,8 @@
             const unscanned = pointsOfInterest.filter(p => !p.scanned);
             if(unscanned.length > 0){
               const target = unscanned[Math.floor(Math.random() * unscanned.length)];
-              d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+              // store poiId in the waypoint so we can remove it if POI changes
+              d.waypoints.push({ x: target.x, y: target.y, id: generateId(), poiId: target.id });
               log(`${d.name} heading to investigate ${target.type}`);
             }
           }
@@ -971,6 +1008,11 @@
                 });
                 saveCollectedItems();
                 updateStatusPrompt(`Items collected from ${poi.name}`);
+                
+                // Remove any waypoints targeting this POI to prevent other drones from looping at the same spot
+                removeWaypointsForPoi(poi.id);
+                removeWaypointsNear(poi.x, poi.y, 18);
+                
                 // Remove POI after collection
                 pointsOfInterest.splice(i, 1);
                 
@@ -978,7 +1020,8 @@
                 const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
                 if(ready.length > 0 && d.status === 'flying'){
                   const target = ready[Math.floor(Math.random() * ready.length)];
-                  d.waypoints = [{ x: target.x, y: target.y, id: generateId() }];
+                  // include poiId so future removals clear this waypoint
+                  d.waypoints = [{ x: target.x, y: target.y, id: generateId(), poiId: target.id }];
                   log(`${d.name} heading to collect from ${target.name}`);
                 }
                 break;
@@ -1019,7 +1062,7 @@
               const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
               if(ready.length > 0){
                 const target = ready[Math.floor(Math.random() * ready.length)];
-                d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+                d.waypoints.push({ x: target.x, y: target.y, id: generateId(), poiId: target.id });
                 log(`${d.name} heading to collect from ${target.name}`);
               }
             }
@@ -1077,265 +1120,63 @@
       c.clearRect(0,0,cw,ch);
       c.fillStyle = '#000';
       c.fillRect(0,0,cw,ch);
-
-      c.strokeStyle = '#17303a';
-      c.lineWidth = 1;
-      for(let x=0;x<cw;x+=28){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,ch); c.stroke(); }
-      for(let y=0;y<ch;y+=18){ c.beginPath(); c.moveTo(0,y); c.lineTo(cw,y); c.stroke(); }
-
-      const focus = selected || drones[0];
-      if(focus){
-        c.fillStyle = '#2bbf9b';
-        c.beginPath();
-        const fx = ((focus.x / mapSize.w) * (cw*0.7)) + cw*0.15;
-        const fy = ((focus.y / mapSize.h) * (ch*0.7)) + ch*0.15;
-        c.arc(fx, fy, 8 + Math.sin(now()/300)*2, 0, Math.PI*2);
-        c.fill();
-        c.fillStyle = '#fff';
-        c.font = '11px system-ui';
-        c.fillText(focus.name, 8, ch-10);
-      } else {
-        c.fillStyle = '#666';
-        c.fillText('No drone selected', 10, ch/2);
-      }
+      c.fillStyle = '#444';
+      c.font = '12px system-ui';
+      c.fillText('No active camera feed', 8, ch/2);
     }
 
-    // Map click selects or adds waypoint
+    // Initial setup
+    resizeMapCanvas();
+    // spawn a few starter drones
+    addDrone('Scout-01','scout'); addDrone('Explorer-01','explorer'); addDrone('Collector-01','collector');
+
+    // Controls (basic)
+    el.btnNewDrone.addEventListener('click', () => {
+      const count = parseInt(el.customDroneNumber.value) || 1;
+      const type = el.newDroneType.value;
+      if(count > 1){
+        spawnWave(count);
+      } else {
+        addDrone(null, type);
+      }
+    });
+    el.btnToggleTrails.addEventListener('click', () => { trailsEnabled = !trailsEnabled; });
+    el.btnCmdReturn.addEventListener('click', () => { recallAllDrones(); });
+
+    // Map click/select
     el.mapCanvas.addEventListener('click', (ev) => {
       const rect = el.mapCanvas.getBoundingClientRect();
-      const x = (ev.clientX - rect.left);
-      const y = (ev.clientY - rect.top);
-      let nearest = null, dist = 9999;
-      drones.forEach(d => {
-        const dd = Math.hypot(d.x - x, d.y - y);
-        if(dd < dist && dd < 24){ dist = dd; nearest = d; }
-      });
-      if(nearest) {
-        selectDrone(nearest.id);
-      } else if(ev.shiftKey) {
-        drones.forEach(d => d.waypoints.push({ x,y,id:generateId() }));
-        log(`Global waypoint added`);
-      } else {
-        addWaypointToSelected(x,y);
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      // check for drone clicked
+      const clicked = drones.find(d => Math.hypot(d.x - x, d.y - y) < 12);
+      if(clicked){
+        selectDrone(clicked.id);
+        return;
       }
+      // shift+click to add waypoint to all drones
+      if(ev.shiftKey){
+        drones.forEach(d => d.waypoints.push({ x,y,id: generateId() }));
+        log(`Global waypoint added at (${Math.round(x)},${Math.round(y)})`);
+        return;
+      }
+      // otherwise add waypoint to selected drone
+      addWaypointToSelected(x,y);
     });
 
-    function goToCoords(id, x, y, opts = { percent: false }){
-      const d = drones.find(z => z.id === id);
-      if(!d) return;
-      let targetX = x, targetY = y;
-      if(opts.percent){
-        targetX = (x/100) * mapSize.w;
-        targetY = (y/100) * mapSize.h;
-      }
-      targetX = clamp(targetX, 6, mapSize.w-6);
-      targetY = clamp(targetY, 6, mapSize.h-6);
-      d.waypoints.push({ x: targetX, y: targetY, id: generateId() });
-      d.status = 'flying';
-      log(`Ordered ${d.name} to go to ${opts.percent ? `${x}% , ${y}%` : `${Math.round(targetX)},${Math.round(targetY)}`}`);
-    }
-
-    // Joystick
-    (function initJoystick(){
-      const js = el.joystick, knob = el.knob;
-      if(!js) return;
-      let active = false, origin = { x:0, y:0 }, radius = 46;
-      function updateOrigin(){
-        const r = js.getBoundingClientRect();
-        origin.x = r.left + r.width/2;
-        origin.y = r.top + r.height/2;
-      }
-      updateOrigin();
-      window.addEventListener('resize', updateOrigin);
-
-      function onPointerMove(e){
-        if(!active) return;
-        const x = e.clientX - origin.x;
-        const y = e.clientY - origin.y;
-        const dist = Math.min(radius, Math.hypot(x,y));
-        const ang = Math.atan2(y,x);
-        const dx = Math.cos(ang) * dist;
-        const dy = Math.sin(ang) * dist;
-        knob.style.transform = `translate(${dx}px, ${dy}px)`;
-        const normX = dx / radius;
-        const normY = dy / radius;
-        if(selected){
-          selected.targetVx = normX * 2.2;
-          selected.targetVy = normY * 2.2;
-          if(selected.status === 'idle'){ selected.status = 'flying'; }
-        }
-      }
-      function onPointerUp(){
-        active = false;
-        knob.style.transform = '';
-        if(selected){
-          selected.targetVx = 0; selected.targetVy = 0;
-        }
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-      }
-      js.addEventListener('pointerdown', (ev)=>{
-        active = true; updateOrigin();
-        document.addEventListener('pointermove', onPointerMove);
-        document.addEventListener('pointerup', onPointerUp);
-        ev.preventDefault();
-      });
-    })();
-
-    // Keyboard controls
-    window.addEventListener('keydown', (ev) => {
-      if(!selected) return;
-      const step = 0.6;
-      let vx = 0, vy = 0;
-      if(ev.key === ' ') { landDrone(selected.id); }
-      if(ev.key.toLowerCase() === 'r') { recallDrone(selected.id); }
-      if(ev.key === 'w' || ev.key === 'ArrowUp') vy = -step;
-      if(ev.key === 's' || ev.key === 'ArrowDown') vy = step;
-      if(ev.key === 'a' || ev.key === 'ArrowLeft') vx = -step;
-      if(ev.key === 'd' || ev.key === 'ArrowRight') vx = step;
-      if(vx || vy){ selected.targetVx = vx * 2.0; selected.targetVy = vy * 2.0; selected.status = 'flying'; }
-    });
-
-    // Gamepad polling
-    setInterval(()=> {
-      const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null;
-      if(!gp || !selected) return;
-      const axX = gp.axes[0], axY = gp.axes[1];
-      if(Math.abs(axX) > 0.12 || Math.abs(axY) > 0.12){
-        selected.targetVx = axX * 2.2;
-        selected.targetVy = axY * 2.2;
-        selected.status = 'flying';
-      } else {
-        selected.targetVx = 0; selected.targetVy = 0;
-      }
-    }, 80);
-
-    // UI bindings
+    // List buttons (delegate)
     el.droneList.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('button');
+      const btn = ev.target.closest('button[data-action]');
       if(!btn) return;
       const id = btn.dataset.id;
-      const act = btn.dataset.action;
-      if(act === 'select') selectDrone(id);
-      if(act === 'launch') launchDrone(id);
-    });
-    el.btnNewDrone.addEventListener('click', () => {
-      const type = el.newDroneType.value || 'explorer';
-      const customNum = el.customDroneNumber.value.trim();
-      let droneName = '';
-      
-      if(customNum){
-        const num = parseInt(customNum);
-        if(!isNaN(num)){
-          // Use padStart for single digits, plain number for double digits+
-          const numStr = num < 10 ? num.toString().padStart(2, '0') : num.toString();
-          droneName = `${type.charAt(0).toUpperCase()+type.slice(1)}-${numStr}`;
-        }
-      }
-      
-      addDrone(droneName, type);
-      renderList();
-      
-      // Clear the custom number input after use
-      if(customNum){
-        el.customDroneNumber.value = '';
-      }
+      if(btn.dataset.action === 'select') selectDrone(id);
+      if(btn.dataset.action === 'launch') launchDrone(id);
     });
 
-    el.btnCmdReturn.addEventListener('click', () => recallAllDrones());
-    el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
-    
-    // Scout action buttons
-    if(el.btnReturnToBase){
-      el.btnReturnToBase.addEventListener('click', () => {
-        if(selected && selected.type === 'scout'){
-          recallDrone(selected.id);
-          el.scoutActionButtons.style.display = 'none';
-        }
-      });
-    }
-    if(el.btnContinueExploring){
-      el.btnContinueExploring.addEventListener('click', () => {
-        if(selected && selected.type === 'scout'){
-          // Reset scout and restart exploration
-          selected.taskCompleted = false;
-          selected.launchTime = now();
-          selected.lastDiscoveryTime = now();
-          selected.poiDiscoveryCount = 0;
-          selected.status = 'flying';
-          selected.waypoints = [];
-          // Generate initial patrol waypoints
-          generateScoutPatrolWaypoints(selected, 3);
-          log(`${selected.name} continuing exploration`);
-          updateStatusPrompt('Scouting...');
-          el.scoutActionButtons.style.display = 'none';
-        }
-      });
-    }
-
-    // Dragging waypoints
-    (function initWaypointDrag(){
-      let dragging = null;
-      function findWaypointAt(x,y){
-        for(const d of drones){
-          for(const w of d.waypoints){
-            if(Math.hypot(w.x - x, w.y - y) < 9) return {d,w};
-          }
-        }
-        return null;
-      }
-      el.mapCanvas.addEventListener('pointerdown', (ev) => {
-        const rect = el.mapCanvas.getBoundingClientRect();
-        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
-        const hit = findWaypointAt(x,y);
-        if(hit){ dragging = { d: hit.d, w: hit.w }; ev.preventDefault(); }
-      });
-      window.addEventListener('pointermove', (ev) => {
-        if(!dragging) return;
-        const rect = el.mapCanvas.getBoundingClientRect();
-        dragging.w.x = clamp(ev.clientX - rect.left, 8, mapSize.w-8);
-        dragging.w.y = clamp(ev.clientY - rect.top, 8, mapSize.h-8);
-      });
-      window.addEventListener('pointerup', (ev) => { if(dragging){ log(`Waypoint moved for ${dragging.d.name}`); dragging = null; }});
-    })();
-
-    // Expose API
-    window.droneConsole = {
-      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, type:d.type, status:d.status, battery: Math.round(d.battery) })),
-      getStatus: (id) => drones.find(d => d.id === id) || null,
-      launchDrone: (id) => launchDrone(id),
-      landDrone: (id) => landDrone(id),
-      recallDrone: (id) => recallDrone(id),
-      createDrone: (name,type) => addDrone(name,type),
-      goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts),
-      pointsOfInterest: () => pointsOfInterest.slice(),
-      collectedItems: () => collectedItems.slice()
-    };
-
-    // Intruder spawn interval
-    setInterval(()=> {
-      if(Math.random() < 0.08) spawnIntruder();
-    }, 2500);
-
-    // Initialization
-    resizeMapCanvas();
-    addDrone('Scout-01','scout');
-    addDrone('Explorer-01','explorer'); 
-    addDrone('Collector-01','collector');
-    addDrone('Defender-01','defender'); 
-    renderList();
-    lastFrame = now();
+    // Start loop
     requestAnimationFrame(step);
-    renderCamera();
-
-    // debug
-    window._drones = { state: () => drones.slice(), mapSize: () => Object.assign({}, mapSize), intruders: () => intruders.slice() };
-    setTimeout(() => { resizeMapCanvas(); }, 120);
 
   })();
   </script>
-<!-- Fun Mode (optional) -->
-<script src="fun-mode.js"></script>
-
 </body>
 </html>
