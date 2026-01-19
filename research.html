@@ -217,9 +217,10 @@
     /* Archive */
     .archive-panel { margin-top:20px; }
     .archive-list { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:12px; }
-    .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); font-size:0.95rem; }
+    .archive-item { background:rgba(255,255,255,0.02); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); font-size:0.95rem; position:relative; }
     .archive-item .archive-title { display:flex; gap:8px; align-items:center; font-weight:700; }
     .archive-item .archive-icon { font-size:1.25rem; }
+    .archive-item .archive-delete { position:absolute; right:8px; top:8px; padding:6px 8px; border-radius:6px; background:#b91c1c; color:#fff; border:none; cursor:pointer; font-weight:700; }
 
     /* Empty state */
     .empty-state {
@@ -359,7 +360,7 @@
         <!-- Archive / Museum -->
         <div id="archivePanel" class="archive-panel">
           <h4 style="margin-top:18px;color:var(--accent);font-weight:700">Archived Artifacts</h4>
-          <div class="hint" style="margin-bottom:8px">Items archived from research appear here as a museum of finds.</div>
+          <div class="hint" style="margin-bottom:8px">Items archived from research appear here as a museum of finds. Use the red X to remove archived entries.</div>
           <div id="archiveList" class="archive-list">
             <!-- Filled by JS -->
           </div>
@@ -451,12 +452,10 @@
       { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact'] }
     ];
 
-    // New: category-specific note pools. Each entry is a function that returns a string and optionally
-    // sets properties on researchResults to capture structured findings (edible, medicinal, pathogen, etc).
+    // Category-specific note pools (randomized)
     const NOTE_POOLS = {
       'Plant Life': [
         function(results){
-          // medicinal possibility
           const medicinal = Math.random() < 0.35 && results.safe;
           const edible = !medicinal && Math.random() < (results.safe ? 0.25 : 0.05);
           const toxic = !edible && (Math.random() < (results.safe ? 0.05 : 0.6));
@@ -470,39 +469,28 @@
           return `Plant Notes: Biological material detected; spores are present. Quarantine sample and run extended botanical assays before any handling.`;
         },
         function(results){
-          // fermentation/food-starter possibility
           const fermentable = Math.random() < 0.15 && results.safe;
           results.flags = results.flags || {};
           results.flags.fermentable = !!fermentable;
           if(fermentable) return `Plant Notes: Contains fermentable sugars — potential food-starter or biochemical feedstock after lab processing.`;
           return `Plant Notes: Cellular structure fragile; preserve tissue samples for microscopy and DNA barcoding.`;
-        },
-        function(results){
-          // explicit: not useful for ship components
-          results.flags = results.flags || {};
-          results.flags.usableForShip = false;
-          return `Plant Notes: Not suitable for ship component fabrication. Best candidates are biochemical or agricultural study, not engineering use.`;
         }
       ],
       'Life Form': [
         function(results){
-          // pathogen detection
           const pathogen = Math.random() < 0.45 && !results.safe;
           results.flags = results.flags || {};
           results.flags.pathogen = !!pathogen;
           if(pathogen) return `Life Form Notes: Pathogenic signatures detected. Treat as biohazard; immediate containment required. Do NOT attempt contact without bio-safety protocols.`;
-          // non-pathogenic but parasitic
           const symbiont = !pathogen && Math.random() < 0.25;
           results.flags.symbiont = !!symbiont;
           if(symbiont) return `Life Form Notes: Signs of symbiotic behavior found. May interact with host organisms non-lethally — further behavioral assays recommended.`;
-          // edible possibility (rare)
           const edible = !pathogen && Math.random() < 0.08;
           results.flags.edible = !!edible;
           if(edible) return `Life Form Notes: Certain tissues appear nutritionally rich after proper preparation; however, ingestion is not recommended until toxicity and immunogenicity are ruled out.`;
           return `Life Form Notes: Biological signatures confirmed. Recommend containment, DNA sequencing, and consultation with senior xenobiology officers.`;
         },
         function(results){
-          // reproduction/behavior notes
           const aggressive = Math.random() < 0.18 && !results.safe;
           results.flags = results.flags || {};
           results.flags.aggressive = !!aggressive;
@@ -512,7 +500,6 @@
       ],
       'Hardware': [
         function(results){
-          // utility
           const reusable = Math.random() < 0.5;
           results.flags = results.flags || {};
           results.flags.reusable = !!reusable;
@@ -804,12 +791,16 @@
     }
 
     // Move collected item into research list and start automated research
-    window.researchCollectedItem = function(colId) {
+    // Now shows a confirm/cancel modal before moving
+    window.researchCollectedItem = async function(colId) {
       const idx = collected.findIndex(c => c.id === colId);
       if(idx === -1) return;
       const col = collected[idx];
 
-      // Determine category: prefer the provided category, otherwise infer from name; if inference fails, assign random
+      const confirm = await showConfirm(`Move "${col.name || col.itemName || 'Unknown'}" into the Research Lab for analysis?`, 'Move to Research Lab');
+      if (!confirm) return;
+
+      // Determine category: prefer provided category, otherwise infer from name; if inference fails, assign random
       let category = col.category || col.type || 'Unknown';
       if (!category || category === 'Unknown') {
         const inferred = inferCategoryFromName(col.name || col.itemName || '');
@@ -820,7 +811,6 @@
         }
       }
 
-      // Create research item — include inferred/random category
       const newItem = {
         id: generateId(),
         name: col.name || col.itemName || 'Unknown Artifact',
@@ -835,7 +825,6 @@
         researchDuration: null,
         researchTimeoutId: null
       };
-      // preserve insertion order: push to items array
       items.push(newItem);
       saveItems();
 
@@ -849,7 +838,7 @@
       simulateResearch(newItem.id);
     };
 
-    // Discard collected item directly from collected panel
+    // Discard collected item directly from collected panel (confirm)
     window.discardCollectedItem = async function(colId) {
       const idx = collected.findIndex(c => c.id === colId);
       if(idx === -1) return;
@@ -882,7 +871,6 @@
       const pool = NOTE_POOLS[category] || NOTE_POOLS['Unknown'];
       if (!pool || pool.length === 0) return '';
       const idx = Math.floor(Math.random() * pool.length);
-      // pool entries are functions that may mutate researchResults.flags
       try {
         return pool[idx](researchResults || {});
       } catch (e) {
@@ -904,28 +892,21 @@
         const r = 1 + Math.random() * 9;
         radiation = r.toFixed(2) + ' mSv';
       }
-      // contamination remains useful - keep it
       const contamination = isSafe ? 'No significant contamination detected.' : 'Hazardous residues detected; handle with caution.';
       
-      // base research results - note removed so we don't default a generic message
       item.researchResults = {
         safe: isSafe,
         radiation,
         contamination,
-        // notes left intentionally blank; category-specific notes will provide context
         notes: '',
         completedAt: Date.now(),
-        flags: {} // will be filled by category note generator
+        flags: {}
       };
 
-      // Generate and attach one random type-specific note (and structured flags)
       const typeNote = pickTypeNoteForCategory(item.category || 'Unknown', item.researchResults);
       item.researchResults.typeNotes = typeNote || '';
 
-      // update status and attach report (do not change array order)
       item.status = 'complete';
-      // Build the report without inserting the old generic "Artifact appears chemically stable..." text.
-      // Report will include safety, radiation, contamination and the category-specific note.
       const resultTextParts = [
         '-- Research Results --',
         `Safe to use: ${isSafe ? 'Yes' : 'No'}`,
@@ -937,7 +918,6 @@
       }
       const resultText = resultTextParts.join('\n');
 
-      // Ensure report appends only once: if report already includes this exact resultText, skip appending.
       if (!item.report || !item.report.includes(resultText)) {
         item.report = (item.report ? item.report + '\n\n' : '') + resultText;
       }
@@ -950,11 +930,13 @@
       render();
     }
 
-    // Archive artifact
-    window.archiveItem = function(id) {
+    // Archive artifact (confirm before moving)
+    window.archiveItem = async function(id) {
       const idx = items.findIndex(i => i.id === id);
       if(idx === -1) return;
       const it = items[idx];
+      const confirmed = await showConfirm(`Archive "${it.name}"? Move to museum archive.`, 'Archive Artifact');
+      if (!confirmed) return;
       archive.push({
         id: it.id,
         name: it.name,
@@ -971,11 +953,13 @@
       renderArchive();
     };
 
-    // Store as inventory
+    // Store as inventory (confirm before moving)
     window.storeAsInventory = async function(id) {
       const idx = items.findIndex(i => i.id === id);
       if(idx === -1) return;
       const it = items[idx];
+      const confirmed = await showConfirm(`Store "${it.name}" in ship inventory?`, 'Store as Inventory');
+      if (!confirmed) return;
       addToPartsInventory(it.name);
       items.splice(idx,1);
       saveItems();
@@ -983,7 +967,7 @@
       await showAlert(`${it.name} stored in ship inventory.`, 'Stored');
     };
 
-    // Discard research item
+    // Discard research item (confirm already present)
     window.discardItem = async function(id) {
       const idx = items.findIndex(i => i.id === id);
       if(idx === -1) return;
@@ -1000,7 +984,19 @@
       }
     };
 
-    // Render archived items (with icons)
+    // Remove item from archive (red X). Confirm before permanent delete.
+    window.deleteArchiveItem = async function(id) {
+      const idx = archive.findIndex(a => a.id === id);
+      if(idx === -1) return;
+      const a = archive[idx];
+      const confirmed = await showConfirm(`Permanently delete archived artifact "${a.name}"? This cannot be undone.`, 'Delete Archived Artifact');
+      if (!confirmed) return;
+      archive.splice(idx,1);
+      saveArchiveItems();
+      renderArchive();
+    };
+
+    // Render archived items (with icons and red X delete button)
     function renderArchive() {
       archiveListEl.innerHTML = '';
       if(!archive || archive.length === 0) {
@@ -1016,6 +1012,7 @@
         node.className = 'archive-item';
         node.innerHTML = `
           <div class="archive-title"><span class="archive-icon">${escapeHtml(icon)}</span><span>${escapeHtml(a.name)}</span></div>
+          <button class="archive-delete" title="Delete archived artifact" onclick="deleteArchiveItem('${a.id}')">✕</button>
           <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.category ? escapeHtml(a.category) + ' • ' : ''}${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
           <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}${a.report ? '\n\n' + escapeHtml(a.report) : ''}</div>
         `;
@@ -1083,7 +1080,6 @@
           descHtml += `<div class="research-description">${escapeHtml(item.description)}</div>`;
         }
         if(item.report) {
-          // report already contains the researchResults and type-specific notes (if generated) — render it once
           descHtml += `<div class="research-report">${escapeHtml(item.report)}</div>`;
         }
 
@@ -1205,7 +1201,6 @@
       }
       
       if (!category || category === 'Unknown') {
-        // infer if user left it as Unknown; otherwise assign random
         const inferred = inferCategoryFromName(name);
         if (inferred && inferred !== 'Unknown') {
           category = inferred;
@@ -1215,17 +1210,14 @@
       }
 
       if (id) {
-        // Update existing item (only name/category editable here)
         const item = items.find(i => i.id === id);
         if (item) {
           item.name = name;
           item.category = category;
-          // mark how the category was assigned
           item._categoryAssigned = (inferCategoryFromName(name) === category) ? 'inferred' : 'manual';
           item.updatedAt = Date.now();
         }
       } else {
-        // Add new item
         const newItem = {
           id: generateId(),
           name,
@@ -1241,7 +1233,6 @@
           researchTimeoutId: null,
           _categoryAssigned: (inferCategoryFromName(name) === category) ? 'inferred' : 'manual'
         };
-        // push to items array — order preserved
         items.push(newItem);
       }
       
@@ -1252,7 +1243,6 @@
 
     // On load: infer categories for existing unknown items, render everything
     (function init() {
-      // if some items are missing category or marked Unknown, try to infer one from the name or assign random
       inferUnknownCategoriesOnLoad();
       renderCollected();
       render();
