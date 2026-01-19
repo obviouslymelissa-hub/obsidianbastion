@@ -665,9 +665,7 @@
         if (inventory[key] == null) inventory[key] = 0;
         inventory[key] += o.qty;
         saveInventory(inventory);
-        refreshCharts();
-        renderRestockSuggestions();
-        populateUseItemDropdown();
+        refreshUI();
         showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
       }
     }
@@ -707,10 +705,7 @@
       saveUsage(usage);
       
       if (customPartModal) customPartModal.hide();
-      refreshCharts();
-      renderRestockSuggestions();
-      renderUsageLog();
-      populateUseItemDropdown();
+      refreshUI();
       showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} used immediately`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -740,9 +735,7 @@
       saveInventory(inventory);
       
       if (customPartModal) customPartModal.hide();
-      refreshCharts();
-      renderRestockSuggestions();
-      populateUseItemDropdown();
+      refreshUI();
       showToast('Part Stored', `${pendingCustomPart.qty} × ${pendingCustomPart.item} stored for future use`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -858,10 +851,7 @@
         saveUsage(usage);
 
         // Update UI
-        refreshCharts();
-        renderRestockSuggestions();
-        renderUsageLog();
-        populateUseItemDropdown();
+        refreshUI();
 
         // Reset form
         useItemSelect.value = '';
@@ -1000,13 +990,18 @@
         if (changed) {
           saveInventory(inventory);
           saveUsage(usage);
-          refreshCharts();
-          renderRestockSuggestions();
-          renderUsageLog();
-          populateUseItemDropdown();
+          refreshUI();
         }
       }, USAGE_TICK_MS);
     });
+
+    // Helper function to refresh all UI components
+    function refreshUI() {
+      refreshCharts();
+      renderRestockSuggestions();
+      renderUsageLog();
+      populateUseItemDropdown();
+    }
 
     // Function to sync inventory from localStorage and detect changes
     function syncInventoryFromStorage(showNotifications = false) {
@@ -1034,9 +1029,7 @@
         
         // Refresh UI if there were changes
         if (addedItems.length > 0) {
-          refreshCharts();
-          renderRestockSuggestions();
-          populateUseItemDropdown();
+          refreshUI();
         }
       } catch (err) {
         console.error('Failed to sync inventory from storage:', err);
