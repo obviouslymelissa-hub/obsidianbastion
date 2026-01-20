@@ -192,9 +192,9 @@
     const SCOUT_PATROL_DURATION = 45000; // 45 seconds of scouting
     const RETURN_STOP_THRESHOLD = 30; // Distance to stop when returning to base
     const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
-    const MAX_POIS_ON_SCREEN = 10; // Maximum POIs before scout finishes (changed from 4 to 10)
-    const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints (increased from 150 to avoid circling)
-    const EXPLORER_DISCOVERY_PROBABILITY = 0.4; // 40% chance for explorer to find items (increased from 0.001)
+    const MAX_POIS_ON_SCREEN = 10; // Maximum POIs before scout finishes
+    const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints
+    const EXPLORER_DISCOVERY_PROBABILITY = 0.4; // 40% chance for explorer to find items
     const DEFENDER_LOW_BATTERY_THRESHOLD = 40; // Defender returns to base when battery drops to this level
 
     // Simulation state
@@ -239,6 +239,21 @@
         const wx = clamp(drone.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
         const wy = clamp(drone.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
         drone.waypoints.push({ x: wx, y: wy, id: generateId() });
+      }
+    }
+    
+    // Generate defender orbital waypoints around the ship
+    function generateDefenderOrbitWaypoints(drone){
+      const orbitRadius = Math.min(mapSize.w, mapSize.h) * 0.15;
+      const orbitPoints = 8;
+      drone.waypoints = [];
+      for(let i = 0; i < orbitPoints; i++){
+        const angle = (i / orbitPoints) * Math.PI * 2;
+        drone.waypoints.push({
+          x: mapSize.w/2 + Math.cos(angle) * orbitRadius,
+          y: mapSize.h/2 + Math.sin(angle) * orbitRadius,
+          id: generateId()
+        });
       }
     }
 
@@ -462,7 +477,7 @@
         }
       }
       
-      // Create a new primary drone - START AT CENTER (docked at Obsidian)
+      // Create a new primary drone - start at center (docked at Obsidian)
       const d = {
         id: generateId(),
         name: name || (type.charAt(0).toUpperCase()+type.slice(1) + '-01'),
@@ -615,23 +630,7 @@
       
       // Defender: Set up orbital waypoints around the ship
       if(d.type === 'defender'){
-        d.waypoints = [];
-        const orbitRadius = Math.min(mapSize.w, mapSize.h) * 0.15;
-        const orbitPoints = 8;
-        for(let i = 0; i < orbitPoints; i++){
-          const angle = (i / orbitPoints) * Math.PI * 2;
-          d.waypoints.push({
-            x: mapSize.w/2 + Math.cos(angle) * orbitRadius,
-            y: mapSize.h/2 + Math.sin(angle) * orbitRadius,
-            id: generateId()
-          });
-        }
-        // Make it loop by adding the first point at the end
-        d.waypoints.push({
-          x: d.waypoints[0].x,
-          y: d.waypoints[0].y,
-          id: generateId()
-        });
+        generateDefenderOrbitWaypoints(d);
         d.isOrbiting = true; // Flag to indicate defender is in orbital mode
       }
 
@@ -940,17 +939,7 @@
               intruders.splice(0,1);
               // Resume orbit after interception
               if(d.type === 'defender' && d.battery > DEFENDER_LOW_BATTERY_THRESHOLD){
-                const orbitRadius = Math.min(mapSize.w, mapSize.h) * 0.15;
-                const orbitPoints = 8;
-                d.waypoints = [];
-                for(let i = 0; i < orbitPoints; i++){
-                  const angle = (i / orbitPoints) * Math.PI * 2;
-                  d.waypoints.push({
-                    x: mapSize.w/2 + Math.cos(angle) * orbitRadius,
-                    y: mapSize.h/2 + Math.sin(angle) * orbitRadius,
-                    id: generateId()
-                  });
-                }
+                generateDefenderOrbitWaypoints(d);
                 d.isOrbiting = true;
               }
             }
@@ -1174,16 +1163,7 @@
             
             // Defender: Resume orbital pattern when finishing a waypoint in orbit mode
             if(d.type === 'defender' && d.isOrbiting && d.waypoints.length === 0 && d.status === 'flying'){
-              const orbitRadius = Math.min(mapSize.w, mapSize.h) * 0.15;
-              const orbitPoints = 8;
-              for(let i = 0; i < orbitPoints; i++){
-                const angle = (i / orbitPoints) * Math.PI * 2;
-                d.waypoints.push({
-                  x: mapSize.w/2 + Math.cos(angle) * orbitRadius,
-                  y: mapSize.h/2 + Math.sin(angle) * orbitRadius,
-                  id: generateId()
-                });
-              }
+              generateDefenderOrbitWaypoints(d);
             }
             
             // Collector looks for scanned POIs with items
@@ -1232,10 +1212,10 @@
 
         // Battery management: discharge when moving, charge when docked/idle
         if(Math.hypot(d.vx,d.vy) > 0.1){
-          // Drain battery during missions (increased from 0.002 to make it more noticeable)
+          // Drain battery during active missions
           d.battery = Math.max(0, d.battery - 0.008 * (dt/16));
         } else if((d.status === 'docked' || d.status === 'idle') && d.battery < 100){
-          // Charge battery when docked/idle (0.05% per frame step, roughly 3% per second at 60fps)
+          // Charge battery when docked/idle
           d.battery = Math.min(100, d.battery + 0.05 * (dt/16));
         }
 
