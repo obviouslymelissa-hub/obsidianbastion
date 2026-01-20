@@ -767,6 +767,7 @@
     function renderCollected() {
       collectedListEl.innerHTML = '';
       // Filter out items that have been moved to research (have movedToResearch timestamp)
+      // These items remain in storage but are hidden from display to prevent duplicates
       const activeCollected = collected.filter(ci => !ci.movedToResearch);
       
       if(!activeCollected || activeCollected.length === 0) {

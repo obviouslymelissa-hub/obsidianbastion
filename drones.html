@@ -1010,7 +1010,7 @@
                   collectedItems.push(collectedItem);
                   
                   // Mundane items go directly to parts inventory
-                  // Non-mundane items stay in collected list for research page
+                  // Non-mundane items stay in collected list and will appear in research page's "Collected from Drones" section
                   if(item.mundane){
                     addToPartsInventory(item.name);
                   }
