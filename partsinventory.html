@@ -418,7 +418,7 @@
         // This preserves items added from research or other sources
         const currentVal = inventory[k];
         const defaultVal = defaultInventory[k];
-        if (currentVal == null || currentVal === defaultVal) {
+        if (currentVal === null || currentVal === undefined || currentVal === defaultVal) {
           inv[k] = randomBetween(r.min, r.max);
         }
         // Otherwise keep the current value (e.g., from research)
@@ -472,8 +472,9 @@
         });
         
         // Also include items from inventory that aren't standard parts or already in customParts
+        const customPartKeysSet = new Set(customPartKeys);
         const inventoryOnlyKeys = Object.keys(inventory).filter(k => {
-          return !isStandardPart(k) && !customPartKeys.includes(k) && (inventory[k] || 0) > 0;
+          return !isStandardPart(k) && !customPartKeysSet.has(k) && (inventory[k] || 0) > 0;
         });
         
         const allPartsKeys = [...PARTS_ORDER, ...customPartKeys, ...inventoryOnlyKeys];
@@ -1054,9 +1055,10 @@
             
             // If this is a non-standard item not in customParts, add it
             // This allows items from research to be consumed like other parts
+            // The qty field tracks customParts metadata, not the actual inventory quantity
             if (!isStandardPart(key) && !customParts[key]) {
               customParts[key] = {
-                qty: 0,
+                qty: 0, // metadata field, actual quantity is in inventory
                 displayName: key,
                 perTickProb: CUSTOM_PART_CONFIG.perTickProb,
                 maxDecrease: CUSTOM_PART_CONFIG.maxDecrease
