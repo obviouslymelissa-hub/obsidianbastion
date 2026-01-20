@@ -207,7 +207,6 @@
     let pointsOfInterest = []; // {id,x,y,type,scanned,name,items,discoveredBy}
     let collectedItems = loadCollectedItems();
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
-    let listUpdateNeeded = false; // Flag to track when drone list UI needs updating
     let lastListUpdate = 0; // Track last time list was updated
     
     // Helper to get primary drone of a specific type
