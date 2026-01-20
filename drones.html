@@ -635,6 +635,21 @@
         d.isOrbiting = true; // Flag to indicate defender is in orbital mode
       }
 
+      // Explorer: immediately assign waypoints to unscanned POIs (nearest-first)
+      if(d.type === 'explorer'){
+        const unscanned = pointsOfInterest.filter(p => !p.scanned);
+        // sort by distance to the explorer
+        unscanned.sort((a,b) => {
+          const da = Math.hypot(a.x - d.x, a.y - d.y);
+          const db = Math.hypot(b.x - d.x, b.y - d.y);
+          return da - db;
+        });
+        d.waypoints = unscanned.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
+        if(d.waypoints.length > 0){
+          log(`${d.name} launched and assigned to ${d.waypoints.length} unscanned target(s)`);
+        }
+      }
+      
       // Collector: immediately assign waypoints to scanned POIs with items (nearest-first)
       if(d.type === 'collector'){
         const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
@@ -866,6 +881,11 @@
       // paths and waypoints
       if(showPaths){
         drones.forEach(d => {
+          // Skip waypoint display for defender when in orbital mode
+          if(d.type === 'defender' && d.isOrbiting){
+            return;
+          }
+          
           if(d.waypoints && d.waypoints.length){
             c.beginPath();
             c.strokeStyle = 'rgba(255,180,130,0.18)';
@@ -929,21 +949,27 @@
         }
         
         if(d.type === 'defender' && currentIntruder){
-          const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
-          const dist = Math.hypot(dx,dy);
-          if(dist > 14){
-            d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
-            if(d.waypoints.length > 6) d.waypoints.length = 6;
-            d.status = 'flying';
-            d.isOrbiting = false; // Stop orbit to intercept
-          } else {
-            if(currentIntruder){
-              log(`${d.name} intercepted an intruder!`);
-              intruders.splice(0,1);
-              // Resume orbit after interception
-              if(d.type === 'defender' && d.battery > DEFENDER_LOW_BATTERY_THRESHOLD){
-                generateDefenderOrbitWaypoints(d);
-                d.isOrbiting = true;
+          // Only engage if defender is already active (not docked/idle) OR if auto-launch is enabled
+          const isActive = d.status === 'flying' || d.isOrbiting;
+          const autoLaunchEnabled = el.autoPilot.checked;
+          
+          if(isActive || autoLaunchEnabled){
+            const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
+            const dist = Math.hypot(dx,dy);
+            if(dist > 14){
+              d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
+              if(d.waypoints.length > 6) d.waypoints.length = 6;
+              d.status = 'flying';
+              d.isOrbiting = false; // Stop orbit to intercept
+            } else {
+              if(currentIntruder){
+                log(`${d.name} intercepted an intruder!`);
+                intruders.splice(0,1);
+                // Resume orbit after interception only if defender was actively flying before
+                if(d.type === 'defender' && d.battery > DEFENDER_LOW_BATTERY_THRESHOLD && (isActive || autoLaunchEnabled)){
+                  generateDefenderOrbitWaypoints(d);
+                  d.isOrbiting = true;
+                }
               }
             }
           }
