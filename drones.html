@@ -198,6 +198,9 @@
     const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints
     const EXPLORER_DISCOVERY_PROBABILITY = 0.25; // 25% chance for explorer to find items
     const LOW_BATTERY_THRESHOLD = 25; // All drones return to base when battery drops to this level
+    const DRONE_PADDING_LEFT = 15; // Left boundary padding for drones
+    const DRONE_PADDING_RIGHT = 75; // Right boundary padding (accounts for label text)
+    const DRONE_PADDING_VERTICAL = 15; // Top/bottom boundary padding for drones
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -1112,8 +1115,8 @@
 
         // keep inside bounds with enough padding to prevent any part from going off-screen
         // Account for drone size (10px when selected) + text label length (~60px)
-        d.x = clamp(d.x, 15, mapSize.w - 75);
-        d.y = clamp(d.y, 15, mapSize.h - 15);
+        d.x = clamp(d.x, DRONE_PADDING_LEFT, mapSize.w - DRONE_PADDING_RIGHT);
+        d.y = clamp(d.y, DRONE_PADDING_VERTICAL, mapSize.h - DRONE_PADDING_VERTICAL);
 
         // battery drain while flying
         if(d.status === 'flying' || d.status === 'collecting' || d.status === 'returning'){
@@ -1227,6 +1230,8 @@
       el.btnTogglePaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths';
       renderMap();
     });
+    // Initialize button text
+    if(el.btnTogglePaths) el.btnTogglePaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths';
 
     if(el.btnReturnToBase) el.btnReturnToBase.addEventListener('click', () => {
       if(selected) recallDrone(selected.id);
