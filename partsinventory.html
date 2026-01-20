@@ -665,9 +665,7 @@
         if (inventory[key] == null) inventory[key] = 0;
         inventory[key] += o.qty;
         saveInventory(inventory);
-        refreshCharts();
-        renderRestockSuggestions();
-        populateUseItemDropdown();
+        refreshUI();
         showToast('Delivered', `${o.qty} × ${o.item} arrived`, { delay: 4000 });
       }
     }
@@ -707,10 +705,7 @@
       saveUsage(usage);
       
       if (customPartModal) customPartModal.hide();
-      refreshCharts();
-      renderRestockSuggestions();
-      renderUsageLog();
-      populateUseItemDropdown();
+      refreshUI();
       showToast('Part Used', `${pendingCustomPart.qty} × ${pendingCustomPart.item} used immediately`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -740,9 +735,7 @@
       saveInventory(inventory);
       
       if (customPartModal) customPartModal.hide();
-      refreshCharts();
-      renderRestockSuggestions();
-      populateUseItemDropdown();
+      refreshUI();
       showToast('Part Stored', `${pendingCustomPart.qty} × ${pendingCustomPart.item} stored for future use`, { delay: 4000 });
       pendingCustomPart = null;
     });
@@ -858,10 +851,7 @@
         saveUsage(usage);
 
         // Update UI
-        refreshCharts();
-        renderRestockSuggestions();
-        renderUsageLog();
-        populateUseItemDropdown();
+        refreshUI();
 
         // Reset form
         useItemSelect.value = '';
@@ -1000,12 +990,65 @@
         if (changed) {
           saveInventory(inventory);
           saveUsage(usage);
-          refreshCharts();
-          renderRestockSuggestions();
-          renderUsageLog();
-          populateUseItemDropdown();
+          refreshUI();
         }
       }, USAGE_TICK_MS);
+    });
+
+    // Helper function to refresh all UI components
+    function refreshUI() {
+      refreshCharts();
+      renderRestockSuggestions();
+      renderUsageLog();
+      populateUseItemDropdown();
+    }
+
+    // Function to sync inventory from localStorage and detect changes
+    function syncInventoryFromStorage(showNotifications = false) {
+      try {
+        const newInventory = loadInventory();
+        // Find items that were added (increased quantity)
+        const addedItems = [];
+        for (const key in newInventory) {
+          const oldQty = inventory[key] || 0;
+          const newQty = newInventory[key] || 0;
+          if (newQty > oldQty) {
+            addedItems.push({ key, added: newQty - oldQty });
+          }
+        }
+        
+        // Update local inventory to match storage
+        inventory = newInventory;
+        
+        // Show notification for added items (only for items added from research)
+        if (showNotifications && addedItems.length > 0) {
+          addedItems.forEach(item => {
+            showToast('Item Added from Research', `${item.added} × ${capitalizeLabel(item.key)} stored in inventory`, { delay: 4000 });
+          });
+        }
+        
+        // Always refresh UI to stay in sync (even if no items were added - items may have been removed elsewhere)
+        refreshUI();
+      } catch (err) {
+        console.error('Failed to sync inventory from storage:', err);
+      }
+    }
+
+    // Listen for storage changes from other tabs/windows (e.g., research.html adding items)
+    window.addEventListener('storage', (e) => {
+      // Only respond to changes in the inventory key
+      if (e.key === STORAGE_KEYS.INVENTORY && e.newValue) {
+        syncInventoryFromStorage(true);
+      }
+    });
+
+    // Listen for page visibility changes (when user returns to this tab)
+    // This catches updates made in the same tab (e.g., navigate to research.html, store item, come back)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // Page became visible - check for inventory updates
+        syncInventoryFromStorage(true);
+      }
     });
 
     // Expose small helper to console for testing
