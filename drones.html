@@ -192,9 +192,10 @@
     const SCOUT_PATROL_DURATION = 45000; // 45 seconds of scouting
     const RETURN_STOP_THRESHOLD = 30; // Distance to stop when returning to base
     const DEFAULT_STOP_THRESHOLD = 10; // Default waypoint arrival distance
-    const MAX_POIS_ON_SCREEN = 4; // Maximum POIs before scout finishes
-    const SCOUT_WAYPOINT_DISTANCE = 150; // Distance between scout patrol waypoints
-    const EXPLORER_DISCOVERY_PROBABILITY = 0.4; // 40% chance for explorer to find items (increased from 0.001)
+    const MAX_POIS_ON_SCREEN = 10; // Maximum POIs before scout finishes
+    const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints
+    const EXPLORER_DISCOVERY_PROBABILITY = 0.4; // 40% chance for explorer to find items
+    const DEFENDER_LOW_BATTERY_THRESHOLD = 40; // Defender returns to base when battery drops to this level
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -234,10 +235,25 @@
     function generateScoutPatrolWaypoints(drone, count = 3){
       for(let i = 0; i < count; i++){
         const angle = Math.random() * Math.PI * 2;
-        const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
+        const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 150; // Increased variation
         const wx = clamp(drone.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
         const wy = clamp(drone.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
         drone.waypoints.push({ x: wx, y: wy, id: generateId() });
+      }
+    }
+    
+    // Generate defender orbital waypoints around the ship
+    function generateDefenderOrbitWaypoints(drone){
+      const orbitRadius = Math.min(mapSize.w, mapSize.h) * 0.15;
+      const orbitPoints = 8;
+      drone.waypoints = [];
+      for(let i = 0; i < orbitPoints; i++){
+        const angle = (i / orbitPoints) * Math.PI * 2;
+        drone.waypoints.push({
+          x: mapSize.w/2 + Math.cos(angle) * orbitRadius,
+          y: mapSize.h/2 + Math.sin(angle) * orbitRadius,
+          id: generateId()
+        });
       }
     }
 
@@ -461,20 +477,20 @@
         }
       }
       
-      // Create a new primary drone
+      // Create a new primary drone - start at center (docked at Obsidian)
       const d = {
         id: generateId(),
         name: name || (type.charAt(0).toUpperCase()+type.slice(1) + '-01'),
         type: type || 'explorer',
         isPrimary: true,
         followers: 0,
-        x: mapSize.w/2 + (Math.random()-0.5)*300,
-        y: mapSize.h/2 + (Math.random()-0.5)*200,
+        x: mapSize.w/2,
+        y: mapSize.h/2,
         vx: 0, vy: 0,
         targetVx: 0, targetVy: 0,
-        alt: Math.floor(10 + Math.random()*90),
+        alt: 0,
         battery: 70 + Math.floor(Math.random()*30),
-        status: 'idle',
+        status: 'docked',
         waypoints: [],
         lastUpdate: now(),
         taskCompleted: false,
@@ -505,11 +521,28 @@
         const tile = document.createElement('div');
         tile.className = 'tile';
         const followerText = d.followers > 0 ? ` (${d.followers} follower${d.followers !== 1 ? 's' : ''})` : '';
-        // Show "charging" status for idle drones with battery < 100%
-        const displayStatus = (d.status === 'idle' && d.battery < 100) ? 'charging' : d.status;
+        
+        // Determine status display with proper charging/docked logic
+        let displayStatus = d.status;
+        let statusIndicator = '';
+        if(d.status === 'docked' || d.status === 'idle'){
+          if(d.battery >= 100){
+            displayStatus = 'idle';
+            statusIndicator = '⚪'; // White circle for docked/idle
+          } else {
+            displayStatus = 'charging';
+            statusIndicator = '🔋'; // Battery icon for charging
+          }
+        } else if(d.status === 'flying' || d.status === 'returning'){
+          displayStatus = d.status === 'flying' ? 'active' : 'returning';
+          statusIndicator = '🟢'; // Green circle for active
+        } else {
+          statusIndicator = '⚪';
+        }
+        
         tile.innerHTML = `
           <div>
-            <div style="font-weight:700">${d.name}${followerText}</div>
+            <div style="font-weight:700">${statusIndicator} ${d.name}${followerText}</div>
             <div class="meta">${d.type} • ${displayStatus} • ${Math.round(d.battery)}%</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -527,8 +560,19 @@
       if(selected){
         el.selectedName.textContent = `${selected.name} — ${selected.id}`;
         el.sel_type.textContent = selected.type;
-        // Show "charging" status for idle drones with battery < 100%
-        const displayStatus = (selected.status === 'idle' && selected.battery < 100) ? 'charging' : selected.status;
+        
+        // Determine status display with proper charging/docked logic
+        let displayStatus = selected.status;
+        if(selected.status === 'docked' || selected.status === 'idle'){
+          if(selected.battery >= 100){
+            displayStatus = 'idle';
+          } else {
+            displayStatus = 'charging';
+          }
+        } else if(selected.status === 'flying'){
+          displayStatus = 'active';
+        }
+        
         el.sel_status.textContent = displayStatus;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
@@ -583,6 +627,12 @@
         // Generate initial patrol waypoints
         generateScoutPatrolWaypoints(d, 3);
       }
+      
+      // Defender: Set up orbital waypoints around the ship
+      if(d.type === 'defender'){
+        generateDefenderOrbitWaypoints(d);
+        d.isOrbiting = true; // Flag to indicate defender is in orbital mode
+      }
 
       // Collector: immediately assign waypoints to scanned POIs with items (nearest-first)
       if(d.type === 'collector'){
@@ -616,6 +666,8 @@
         updateStatusPrompt('Exploring...');
       } else if(d.type === 'collector'){
         updateStatusPrompt('Collecting...');
+      } else if(d.type === 'defender'){
+        updateStatusPrompt('Defender in orbit...');
       }
       
       renderList();
@@ -637,6 +689,7 @@
       if(!d) return;
       d.status = 'returning';
       d.taskCompleted = false;
+      d.isOrbiting = false; // Stop orbital mode if defender
       d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
       log(`Recalling ${d.name}`);
       updateStatusPrompt(`${d.name} returning to base...`);
@@ -645,6 +698,7 @@
       drones.forEach(d => {
         d.status = 'returning';
         d.taskCompleted = false;
+        d.isOrbiting = false; // Stop orbital mode for all defenders
         d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
       });
       log(`Recalling all drones to center`);
@@ -862,6 +916,15 @@
       const currentIntruder = intruders.length ? intruders[0] : null;
 
       drones.forEach(d => {
+        // Defender low battery check - return to base if battery is critically low
+        if(d.type === 'defender' && d.isOrbiting && d.battery <= DEFENDER_LOW_BATTERY_THRESHOLD && d.status !== 'returning'){
+          log(`${d.name} battery critical (${Math.round(d.battery)}%) - returning to base`);
+          d.status = 'returning';
+          d.isOrbiting = false;
+          d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+          updateStatusPrompt(`${d.name} low battery - returning to base`);
+        }
+        
         if(d.type === 'defender' && currentIntruder){
           const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
           const dist = Math.hypot(dx,dy);
@@ -869,15 +932,21 @@
             d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
             if(d.waypoints.length > 6) d.waypoints.length = 6;
             d.status = 'flying';
+            d.isOrbiting = false; // Stop orbit to intercept
           } else {
             if(currentIntruder){
               log(`${d.name} intercepted an intruder!`);
               intruders.splice(0,1);
+              // Resume orbit after interception
+              if(d.type === 'defender' && d.battery > DEFENDER_LOW_BATTERY_THRESHOLD){
+                generateDefenderOrbitWaypoints(d);
+                d.isOrbiting = true;
+              }
             }
           }
         }
 
-        // Scout: Check for nearby POIs to discover - only one at a time, limit to 4 max
+        // Scout: Check for nearby POIs to discover - only one at a time, limit to max
         if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying'){
           const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
           const currentPOICount = pointsOfInterest.length;
@@ -909,9 +978,10 @@
           }
           
           // Generate new waypoint when reaching current one to keep moving
+          // Ensure waypoints are at least SCOUT_WAYPOINT_DISTANCE apart
           if(d.waypoints.length === 0 && !d.taskCompleted){
             const angle = Math.random() * Math.PI * 2;
-            const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 100;
+            const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 150;
             const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
             const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
             d.waypoints.push({ x: wx, y: wy, id: generateId() });
@@ -990,6 +1060,13 @@
               // store poiId in the waypoint so we can remove it if POI changes
               d.waypoints.push({ x: target.x, y: target.y, id: generateId(), poiId: target.id });
               log(`${d.name} heading to investigate ${target.type}`);
+            } else if(!d.taskCompleted){
+              // No more unscanned POIs - return to base
+              d.taskCompleted = true;
+              d.status = 'returning';
+              d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+              log(`${d.name} completed scanning - returning to base`);
+              updateStatusPrompt(`${d.name} completed scanning - returning to base`);
             }
           }
         }
@@ -1039,6 +1116,13 @@
                   // include poiId so future removals clear this waypoint
                   d.waypoints = [{ x: target.x, y: target.y, id: generateId(), poiId: target.id }];
                   log(`${d.name} heading to collect from ${target.name}`);
+                } else if(!d.taskCompleted){
+                  // No more items to collect - return to base
+                  d.taskCompleted = true;
+                  d.status = 'returning';
+                  d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+                  log(`${d.name} collection complete - returning to base`);
+                  updateStatusPrompt(`${d.name} collection complete - returning to base`);
                 }
                 break;
               }
@@ -1063,14 +1147,23 @@
           if(dist < stopThreshold){
             d.waypoints.shift();
             
-            // If drone was returning and reached center, stop completely
+            // If drone was returning and reached center, stop completely and dock
             if(d.status === 'returning' && d.waypoints.length === 0){
-              d.status = 'idle';
+              d.status = 'docked';
               d.targetVx = 0;
               d.targetVy = 0;
               d.vx = 0;
               d.vy = 0;
-              updateStatusPrompt(`${d.name} landed at base`);
+              d.alt = 0;
+              d.taskCompleted = false;
+              d.isOrbiting = false; // Clear orbital flag
+              updateStatusPrompt(`${d.name} docked at base`);
+              log(`${d.name} docked at base`);
+            }
+            
+            // Defender: Resume orbital pattern when finishing a waypoint in orbit mode
+            if(d.type === 'defender' && d.isOrbiting && d.waypoints.length === 0 && d.status === 'flying'){
+              generateDefenderOrbitWaypoints(d);
             }
             
             // Collector looks for scanned POIs with items
@@ -1080,6 +1173,13 @@
                 const target = ready[Math.floor(Math.random() * ready.length)];
                 d.waypoints.push({ x: target.x, y: target.y, id: generateId(), poiId: target.id });
                 log(`${d.name} heading to collect from ${target.name}`);
+              } else if(!d.taskCompleted){
+                // No more items - return to base
+                d.taskCompleted = true;
+                d.status = 'returning';
+                d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+                log(`${d.name} collection complete - returning to base`);
+                updateStatusPrompt(`${d.name} collection complete - returning to base`);
               }
             }
           }
@@ -1097,8 +1197,8 @@
         d.vx = lerp(d.vx, d.targetVx, 0.12);
         d.vy = lerp(d.vy, d.targetVy, 0.12);
 
-        // Force stop if status is idle, hovering, or landing (landed at base)
-        if(d.status === 'idle' || d.status === 'landing' || d.status === 'hovering'){
+        // Force stop if status is idle, docked, hovering, or landing (landed at base)
+        if(d.status === 'idle' || d.status === 'docked' || d.status === 'landing' || d.status === 'hovering'){
           d.vx = 0;
           d.vy = 0;
           d.targetVx = 0;
@@ -1110,12 +1210,13 @@
         d.x = clamp(d.x, 6, mapSize.w-6);
         d.y = clamp(d.y, 6, mapSize.h-6);
 
-        // Battery management: discharge when moving, charge when idle
+        // Battery management: discharge when moving, charge when docked/idle
         if(Math.hypot(d.vx,d.vy) > 0.1){
-          d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
-        } else if(d.status === 'idle' && d.battery < 100){
-          // Charge battery when idle (0.03% per frame step, roughly 1.8% per second at 60fps)
-          d.battery = Math.min(100, d.battery + 0.03 * (dt/16));
+          // Drain battery during active missions
+          d.battery = Math.max(0, d.battery - 0.008 * (dt/16));
+        } else if((d.status === 'docked' || d.status === 'idle') && d.battery < 100){
+          // Charge battery when docked/idle
+          d.battery = Math.min(100, d.battery + 0.05 * (dt/16));
         }
 
         pushTrail(d);
@@ -1124,10 +1225,21 @@
       updateTrails(dt);
       renderMap();
       renderCamera();
+      renderList(); // Update drone list UI to reflect current status
 
       if(selected){
-        // Show "charging" status for idle drones with battery < 100%
-        const displayStatus = (selected.status === 'idle' && selected.battery < 100) ? 'charging' : selected.status;
+        // Determine status display with proper charging/docked logic
+        let displayStatus = selected.status;
+        if(selected.status === 'docked' || selected.status === 'idle'){
+          if(selected.battery >= 100){
+            displayStatus = 'idle';
+          } else {
+            displayStatus = 'charging';
+          }
+        } else if(selected.status === 'flying'){
+          displayStatus = 'active';
+        }
+        
         el.sel_status.textContent = displayStatus;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
