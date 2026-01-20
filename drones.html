@@ -1114,7 +1114,7 @@
         if(Math.hypot(d.vx,d.vy) > 0.1){
           d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
         } else if(d.status === 'idle' && d.battery < 100){
-          // Charge battery when idle (0.05% per frame step, roughly 2% per second at 60fps)
+          // Charge battery when idle (0.03% per frame step, roughly 1.8% per second at 60fps)
           d.battery = Math.min(100, d.battery + 0.03 * (dt/16));
         }
 
