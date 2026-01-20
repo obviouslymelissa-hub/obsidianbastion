@@ -635,15 +635,19 @@
         d.isOrbiting = true; // Flag to indicate defender is in orbital mode
       }
 
+      // Helper to sort POIs by distance to drone
+      const sortByDistance = (pois, drone) => {
+        return pois.sort((a,b) => {
+          const da = Math.hypot(a.x - drone.x, a.y - drone.y);
+          const db = Math.hypot(b.x - drone.x, b.y - drone.y);
+          return da - db;
+        });
+      };
+      
       // Explorer: immediately assign waypoints to unscanned POIs (nearest-first)
       if(d.type === 'explorer'){
         const unscanned = pointsOfInterest.filter(p => !p.scanned);
-        // sort by distance to the explorer
-        unscanned.sort((a,b) => {
-          const da = Math.hypot(a.x - d.x, a.y - d.y);
-          const db = Math.hypot(b.x - d.x, b.y - d.y);
-          return da - db;
-        });
+        sortByDistance(unscanned, d);
         d.waypoints = unscanned.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
         if(d.waypoints.length > 0){
           log(`${d.name} launched and assigned to ${d.waypoints.length} unscanned target(s)`);
@@ -653,12 +657,7 @@
       // Collector: immediately assign waypoints to scanned POIs with items (nearest-first)
       if(d.type === 'collector'){
         const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
-        // sort by distance to the collector
-        ready.sort((a,b) => {
-          const da = Math.hypot(a.x - d.x, a.y - d.y);
-          const db = Math.hypot(b.x - d.x, b.y - d.y);
-          return da - db;
-        });
+        sortByDistance(ready, d);
         d.waypoints = ready.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
         if(d.waypoints.length > 0){
           log(`${d.name} launched and assigned to ${d.waypoints.length} collect target(s)`);
@@ -929,6 +928,9 @@
       const t = now();
       const dt = t - lastFrame;
       lastFrame = t;
+      
+      // Cache auto-launch state for this frame
+      const autoLaunchEnabled = el.autoPilot.checked;
 
       // intruder TTL
       for(let i = intruders.length-1; i >= 0; --i){
@@ -951,7 +953,6 @@
         if(d.type === 'defender' && currentIntruder){
           // Only engage if defender is already active (not docked/idle) OR if auto-launch is enabled
           const isActive = d.status === 'flying' || d.isOrbiting;
-          const autoLaunchEnabled = el.autoPilot.checked;
           
           if(isActive || autoLaunchEnabled){
             const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
