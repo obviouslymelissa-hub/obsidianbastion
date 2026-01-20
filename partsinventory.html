@@ -451,6 +451,26 @@
       savePulledSnapshot(pulledSnapshot);
     }
 
+    // Ensure any non-standard items already present in inventory are registered
+    function registerCustomPartsFromInventory() {
+      let changed = false;
+      for (const key of Object.keys(inventory)) {
+        if (!isStandardPart(key) && !customParts[key] && (inventory[key] || 0) > 0) {
+          customParts[key] = {
+            qty: 0,
+            displayName: key,
+            perTickProb: CUSTOM_PART_CONFIG.perTickProb,
+            maxDecrease: CUSTOM_PART_CONFIG.maxDecrease
+          };
+          changed = true;
+        }
+      }
+      if (changed) saveCustomParts(customParts);
+    }
+
+    // Run once during initialization so research-added items present at load are consumed/logged
+    registerCustomPartsFromInventory();
+
     // --- Charts setup (deferred until DOM is ready to avoid preview timing issues) ---
     // Chart instances (created on DOMContentLoaded)
     let partsChart = null;
