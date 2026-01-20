@@ -331,7 +331,8 @@
       INVENTORY: 'ship.inventory.v1',
       ORDERS: 'ship.orders.v1',
       USAGE: 'ship.usage.v1',
-      CUSTOM_PARTS: 'ship.customparts.v1'
+      CUSTOM_PARTS: 'ship.customparts.v1',
+      PULLED_SNAPSHOT: 'ship.inventory.pulledsnapshot.v1'
     };
 
     const SESSION_RANDOM_KEY = 'ship.inventory.randomized.v1';
@@ -386,11 +387,24 @@
       localStorage.setItem(STORAGE_KEYS.CUSTOM_PARTS, JSON.stringify(parts));
     }
 
+    function loadPulledSnapshot() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.PULLED_SNAPSHOT);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    function savePulledSnapshot(snapshot) {
+      localStorage.setItem(STORAGE_KEYS.PULLED_SNAPSHOT, JSON.stringify(snapshot));
+    }
+
     // --- Application state ---
     let inventory = loadInventory();
     let orders = loadOrders();
     let usage = loadUsage(); // outgoing supplies & maintenance usage log
     let customParts = loadCustomParts(); // tracks custom parts stored for later use
+    let pulledSnapshot = loadPulledSnapshot(); // tracks inventory state to prevent duplicate notifications
 
     // If the session hasn't been randomized yet, initialize with random values within ITEM_RANGES
     function randomBetween(min, max) {
@@ -400,7 +414,14 @@
       const inv = { ...inventory }; // start from merged defaults (so unknown keys kept)
       for (const k of Object.keys(ITEM_RANGES)) {
         const r = ITEM_RANGES[k];
-        inv[k] = randomBetween(r.min, r.max);
+        // Only randomize if the item is at its default value or not set
+        // This preserves items added from research or other sources
+        const currentVal = inventory[k];
+        const defaultVal = defaultInventory[k];
+        if (currentVal == null || currentVal === defaultVal) {
+          inv[k] = randomBetween(r.min, r.max);
+        }
+        // Otherwise keep the current value (e.g., from research)
       }
       return inv;
     }
@@ -422,6 +443,13 @@
       }
     }
     randomizeInventoryIfNeeded();
+
+    // Initialize the pulled snapshot if it's empty
+    // This prevents showing notifications for items that were already in inventory on first load
+    if (Object.keys(pulledSnapshot).length === 0) {
+      pulledSnapshot = { ...inventory };
+      savePulledSnapshot(pulledSnapshot);
+    }
 
     // --- Charts setup (deferred until DOM is ready to avoid preview timing issues) ---
     // Chart instances (created on DOMContentLoaded)
@@ -1007,24 +1035,29 @@
     function syncInventoryFromStorage(showNotifications = false) {
       try {
         const newInventory = loadInventory();
-        // Find items that were added (increased quantity)
+        // Find items that were added (increased quantity) compared to the snapshot
+        // This prevents showing notifications for items that were already there on page load
         const addedItems = [];
         for (const key in newInventory) {
-          const oldQty = inventory[key] || 0;
+          const snapshotQty = pulledSnapshot[key] || 0;
           const newQty = newInventory[key] || 0;
-          if (newQty > oldQty) {
-            addedItems.push({ key, added: newQty - oldQty });
+          if (newQty > snapshotQty) {
+            addedItems.push({ key, added: newQty - snapshotQty });
           }
         }
         
         // Update local inventory to match storage
         inventory = newInventory;
         
-        // Show notification for added items (only for items added from research)
+        // Show notification for added items (only for items truly added since last check)
         if (showNotifications && addedItems.length > 0) {
           addedItems.forEach(item => {
             showToast('Item Added from Research', `${item.added} × ${capitalizeLabel(item.key)} stored in inventory`, { delay: 4000 });
           });
+          
+          // Update snapshot to reflect these new additions
+          pulledSnapshot = { ...newInventory };
+          savePulledSnapshot(pulledSnapshot);
         }
         
         // Always refresh UI to stay in sync (even if no items were added - items may have been removed elsewhere)
