@@ -207,6 +207,7 @@
     let pointsOfInterest = []; // {id,x,y,type,scanned,name,items,discoveredBy}
     let collectedItems = loadCollectedItems();
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
+    let lastListUpdate = 0; // Track last time list was updated
     
     // Helper to get primary drone of a specific type
     function getPrimaryDrone(type) {
@@ -670,7 +671,7 @@
         updateStatusPrompt('Defender in orbit...');
       }
       
-      renderList();
+      renderList(); // Immediate update for responsive UX
     }
     function landDrone(id){
       const d = drones.find(x => x.id === id);
@@ -693,6 +694,7 @@
       d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
       log(`Recalling ${d.name}`);
       updateStatusPrompt(`${d.name} returning to base...`);
+      renderList(); // Immediate update for responsive UX
     }
     function recallAllDrones(){
       drones.forEach(d => {
@@ -703,6 +705,7 @@
       });
       log(`Recalling all drones to center`);
       updateStatusPrompt('All drones returning to base...');
+      renderList(); // Immediate update for responsive UX
     }
     function abortDrone(id){
       const d = drones.find(x => x.id === id);
@@ -715,7 +718,7 @@
         d.collectTimeoutId = null;
       }
       log(`${d.name} aborted`);
-      renderList();
+      renderList(); // Immediate update for responsive UX
     }
 
     // Waypoints
@@ -1131,7 +1134,13 @@
       if(Math.random() < 0.002) spawnIntruder();
 
       renderMap();
-      renderList();
+      
+      // Only update drone list UI periodically (every 500ms) to avoid recreating buttons constantly
+      // This fixes the bug where clicking buttons would miss or hit wrong button due to DOM recreation
+      if(t - lastListUpdate > 500){
+        renderList();
+        lastListUpdate = t;
+      }
 
       requestAnimationFrame(step);
     }
