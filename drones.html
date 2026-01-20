@@ -113,7 +113,7 @@
           <div style="display:flex;justify-content:space-between"><div class="meta">Type</div><div id="sel_type" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Status</div><div id="sel_status" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Battery</div><div id="sel_batt" class="meta">—</div></div>
-          <div style="display:flex;justify-content:space-between"><div class="meta">Altitude</div><div id="sel_alt" class="meta">—</div></div>
+          <div style="display:flex;justify-content:space-between"><div class="meta">Z-Axis</div><div id="sel_alt" class="meta">—</div></div>
           <div style="display:flex;justify-content:space-between"><div class="meta">Speed</div><div id="sel_spd" class="meta">—</div></div>
         </dl>
 
@@ -578,7 +578,8 @@
         
         el.sel_status.textContent = displayStatus;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
-        el.sel_alt.textContent = Math.round(selected.alt) + ' m';
+        const altValue = Math.round(selected.alt);
+        el.sel_alt.textContent = (altValue >= 0 ? '+' : '') + altValue + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
         
         // Show scout action buttons if scout completed without finding anything
@@ -618,7 +619,8 @@
       }
       
       d.status = 'flying';
-      d.alt = Math.max(d.alt, 30);
+      // Random Z-axis position: negative = below ship, positive = above ship
+      d.alt = (Math.random() - 0.5) * 100; // Range: -50 to +50
       d.taskCompleted = false;
       d.lastDiscoveryTime = now(); // Initialize discovery time when launching
       d.launchTime = now(); // Track when drone was launched
