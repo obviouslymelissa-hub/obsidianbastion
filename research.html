@@ -766,14 +766,17 @@
     // Render collected items (top panel)
     function renderCollected() {
       collectedListEl.innerHTML = '';
-      if(!collected || collected.length === 0) {
+      // Filter out items that have been moved to research (have movedToResearch timestamp)
+      const activeCollected = collected.filter(ci => !ci.movedToResearch);
+      
+      if(!activeCollected || activeCollected.length === 0) {
         const p = document.createElement('div');
         p.className = 'hint';
         p.textContent = 'No items collected yet.';
         collectedListEl.appendChild(p);
         return;
       }
-      collected.forEach(ci => {
+      activeCollected.forEach(ci => {
         const row = document.createElement('div');
         row.className = 'collected-item';
         row.innerHTML = `
@@ -828,8 +831,9 @@
       items.push(newItem);
       saveItems();
 
-      // Remove from collected
-      collected.splice(idx,1);
+      // Mark item as moved instead of removing it
+      // This prevents it from showing up again
+      collected[idx].movedToResearch = Date.now();
       saveCollectedItems();
       renderCollected();
       render();

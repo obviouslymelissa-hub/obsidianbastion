@@ -1009,13 +1009,10 @@
                   };
                   collectedItems.push(collectedItem);
                   
-                  // Add to appropriate storage
+                  // Mundane items go directly to parts inventory
+                  // Non-mundane items stay in collected list for research page
                   if(item.mundane){
-                    // Add to parts inventory
                     addToPartsInventory(item.name);
-                  } else {
-                    // Add to research log
-                    addToResearch(item.name, `Found at ${poi.name}. Collected by ${d.name}.`);
                   }
                   
                   log(`${d.name} collected ${item.name} from ${poi.name}`);
