@@ -67,6 +67,10 @@
         <h3 style="margin:0 0 10px 0">Fleet</h3>
         <div id="droneList" aria-live="polite"></div>
 
+        <div style="margin:12px 0;display:flex;justify-content:center">
+          <button id="btnRecallAll" class="btn small" style="width:100%">Recall All</button>
+        </div>
+
         <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -113,10 +117,6 @@
         </dl>
 
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
-
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <button id="btnCmdReturn" class="btn small">Recall</button>
-        </div>
         
         <div id="scoutActionButtons" style="display:none;gap:8px;margin-bottom:8px;flex-direction:column;">
           <button id="btnReturnToBase" class="btn small">Return to Base</button>
@@ -166,7 +166,7 @@
       log: document.getElementById('log'),
       btnNewDrone: document.getElementById('btnNewDrone'),
       btnToggleTrails: document.getElementById('btnToggleTrails'),
-      btnCmdReturn: document.getElementById('btnCmdReturn'),
+      btnRecallAll: document.getElementById('btnRecallAll'),
       newDroneType: document.getElementById('newDroneType'),
       customDroneNumber: document.getElementById('customDroneNumber'),
       autoPilot: document.getElementById('autoPilot'),
@@ -505,14 +505,17 @@
         const tile = document.createElement('div');
         tile.className = 'tile';
         const followerText = d.followers > 0 ? ` (${d.followers} follower${d.followers !== 1 ? 's' : ''})` : '';
+        // Show "charging" status for idle drones with battery < 100%
+        const displayStatus = (d.status === 'idle' && d.battery < 100) ? 'charging' : d.status;
         tile.innerHTML = `
           <div>
             <div style="font-weight:700">${d.name}${followerText}</div>
-            <div class="meta">${d.type} • ${d.status} • ${Math.round(d.battery)}%</div>
+            <div class="meta">${d.type} • ${displayStatus} • ${Math.round(d.battery)}%</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn small" data-action="select" data-id="${d.id}">Select</button>
             <button class="btn small" data-action="launch" data-id="${d.id}">Launch</button>
+            <button class="btn small" data-action="recall" data-id="${d.id}">Recall</button>
           </div>
         `;
         el.droneList.appendChild(tile);
@@ -524,7 +527,9 @@
       if(selected){
         el.selectedName.textContent = `${selected.name} — ${selected.id}`;
         el.sel_type.textContent = selected.type;
-        el.sel_status.textContent = selected.status;
+        // Show "charging" status for idle drones with battery < 100%
+        const displayStatus = (selected.status === 'idle' && selected.battery < 100) ? 'charging' : selected.status;
+        el.sel_status.textContent = displayStatus;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
@@ -1105,7 +1110,13 @@
         d.x = clamp(d.x, 6, mapSize.w-6);
         d.y = clamp(d.y, 6, mapSize.h-6);
 
-        if(Math.hypot(d.vx,d.vy) > 0.1) d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
+        // Battery management: discharge when moving, charge when idle
+        if(Math.hypot(d.vx,d.vy) > 0.1){
+          d.battery = Math.max(0, d.battery - 0.002 * (dt/16));
+        } else if(d.status === 'idle' && d.battery < 100){
+          // Charge battery when idle (0.03% per frame step, roughly 1.8% per second at 60fps)
+          d.battery = Math.min(100, d.battery + 0.03 * (dt/16));
+        }
 
         pushTrail(d);
       });
@@ -1115,7 +1126,9 @@
       renderCamera();
 
       if(selected){
-        el.sel_status.textContent = selected.status;
+        // Show "charging" status for idle drones with battery < 100%
+        const displayStatus = (selected.status === 'idle' && selected.battery < 100) ? 'charging' : selected.status;
+        el.sel_status.textContent = displayStatus;
         el.sel_batt.textContent = Math.round(selected.battery) + '%';
         el.sel_alt.textContent = Math.round(selected.alt) + ' m';
         el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
@@ -1176,7 +1189,7 @@
       }
     });
     el.btnToggleTrails.addEventListener('click', () => { trailsEnabled = !trailsEnabled; });
-    el.btnCmdReturn.addEventListener('click', () => { recallAllDrones(); });
+    el.btnRecallAll.addEventListener('click', () => { recallAllDrones(); });
 
     // Map click/select
     el.mapCanvas.addEventListener('click', (ev) => {
@@ -1206,6 +1219,7 @@
       const id = btn.dataset.id;
       if(btn.dataset.action === 'select') selectDrone(id);
       if(btn.dataset.action === 'launch') launchDrone(id);
+      if(btn.dataset.action === 'recall') recallDrone(id);
     });
 
     // Start loop
