@@ -466,12 +466,19 @@
     function refreshCharts() {
       if (partsChart) {
         // Include custom parts in the chart (only those not already in PARTS_ORDER)
+        // This includes both items stored via customParts and items added directly from research
         const customPartKeys = Object.keys(customParts).filter(k => {
           return !isStandardPart(k) && (inventory[k] || 0) > 0;
         });
-        const allPartsKeys = [...PARTS_ORDER, ...customPartKeys];
+        
+        // Also include items from inventory that aren't standard parts or already in customParts
+        const inventoryOnlyKeys = Object.keys(inventory).filter(k => {
+          return !isStandardPart(k) && !customPartKeys.includes(k) && (inventory[k] || 0) > 0;
+        });
+        
+        const allPartsKeys = [...PARTS_ORDER, ...customPartKeys, ...inventoryOnlyKeys];
         const allPartsLabels = allPartsKeys.map(k => {
-          // For custom parts, use the displayName; for standard parts, just capitalize the key
+          // For custom parts, use the displayName; for others, just capitalize the key
           if (customParts[k]) {
             return capitalizeLabel(customParts[k].displayName);
           }
@@ -482,7 +489,8 @@
         // Generate colors: use standard colors for standard parts, generate for custom
         const standardColors = ['#6b4f4f','#937746','#4e6b6f','#3e6f59','#355d78','#556b61','#7a5e46'];
         const numStandardColors = Math.min(PARTS_ORDER.length, standardColors.length);
-        const customColors = customPartKeys.map((_, i) => {
+        const numCustom = customPartKeys.length + inventoryOnlyKeys.length;
+        const customColors = Array.from({ length: numCustom }, (_, i) => {
           const hue = (i * 60) % 360;
           return `hsl(${hue}, 35%, 45%)`;
         });
@@ -1043,6 +1051,18 @@
           const newQty = newInventory[key] || 0;
           if (newQty > snapshotQty) {
             addedItems.push({ key, added: newQty - snapshotQty });
+            
+            // If this is a non-standard item not in customParts, add it
+            // This allows items from research to be consumed like other parts
+            if (!isStandardPart(key) && !customParts[key]) {
+              customParts[key] = {
+                qty: 0,
+                displayName: key,
+                perTickProb: CUSTOM_PART_CONFIG.perTickProb,
+                maxDecrease: CUSTOM_PART_CONFIG.maxDecrease
+              };
+              saveCustomParts(customParts);
+            }
           }
         }
         
