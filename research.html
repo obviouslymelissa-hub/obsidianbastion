@@ -1304,8 +1304,11 @@
         );
         
         if (confirmed) {
-          // Clear all collected items in-place to maintain references
+          // Remove only the active collected items (not those moved to research)
+          // Keep items that have been moved to research to avoid data inconsistency
+          const movedItems = collected.filter(ci => ci.movedToResearch);
           collected.length = 0;
+          collected.push(...movedItems);
           saveCollectedItems();
           renderCollected();
           
