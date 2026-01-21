@@ -298,7 +298,10 @@
       <aside class="panel-card" aria-label="Research form">
         <!-- Collected items from drones -->
         <div id="collectedPanel" class="collected-panel" aria-label="Collected items from drones">
-          <h4 style="margin:0 0 6px 0;color:var(--accent);font-weight:700">Collected from Drones</h4>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <h4 style="margin:0;color:var(--accent);font-weight:700">Collected from Drones</h4>
+            <button id="btnDestroyAllSamples" class="btn danger small" style="display:none;">Destroy All Samples</button>
+          </div>
           <div class="hint" style="margin-bottom:8px">Items collected by the drone deck will appear here. Click Research to move them to the Research Lab.</div>
           <div id="collectedList" class="collected-list">
             <!-- Filled by JS -->
@@ -411,6 +414,7 @@
     const emptyState = document.getElementById('emptyState');
     const itemCount = document.getElementById('itemCount');
     const btnMassDestroy = document.getElementById('btnMassDestroy');
+    const btnDestroyAllSamples = document.getElementById('btnDestroyAllSamples');
 
     const collectedListEl = document.getElementById('collectedList');
     const archiveListEl = document.getElementById('archiveList');
@@ -779,8 +783,13 @@
         p.className = 'hint';
         p.textContent = 'No items collected yet.';
         collectedListEl.appendChild(p);
+        if (btnDestroyAllSamples) btnDestroyAllSamples.style.display = 'none';
         return;
       }
+      
+      // Show mass destroy button if there are items
+      if (btnDestroyAllSamples) btnDestroyAllSamples.style.display = activeCollected.length > 0 ? 'inline-block' : 'none';
+      
       activeCollected.forEach(ci => {
         const row = document.createElement('div');
         row.className = 'collected-item';
@@ -1065,7 +1074,7 @@
         } else {
           actionsHtml += `<button class="btn small" onclick="startResearchItem('${item.id}')">Start Research</button>`;
           actionsHtml += `<button class="btn small secondary" onclick="editItem('${item.id}')">Edit</button>`;
-          actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Destroy</button>`;
+          actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Stop Research and Destroy All Samples</button>`;
         }
 
         // Progress UI for in-progress items
@@ -1164,7 +1173,10 @@
       const item = items.find(i => i.id === id);
       if (!item) return;
       
-      const confirmed = await showConfirm(`Destroy "${item.name}"? This cannot be undone.`, 'Destroy Research Item');
+      const confirmed = await showConfirm(
+        `Stop research and destroy all samples for "${item.name}"? This cannot be undone.`, 
+        'Stop Research and Destroy All Samples'
+      );
       if (confirmed) {
         if(item.researchTimeoutId){
           clearTimeout(item.researchTimeoutId);
@@ -1276,6 +1288,28 @@
           render();
           
           await showAlert(`All research items destroyed.`, 'Mass Destroy Complete');
+        }
+      });
+    }
+
+    // Destroy all samples from collected items
+    if (btnDestroyAllSamples) {
+      btnDestroyAllSamples.addEventListener('click', async () => {
+        const activeCollected = collected.filter(ci => !ci.movedToResearch);
+        if (activeCollected.length === 0) return;
+        
+        const confirmed = await showConfirm(
+          `Destroy all ${activeCollected.length} collected sample(s)? This will permanently remove all items from the collected list. This cannot be undone.`,
+          'Destroy All Samples'
+        );
+        
+        if (confirmed) {
+          // Clear all collected items
+          collected.length = 0;
+          saveCollectedItems();
+          renderCollected();
+          
+          await showAlert(`All collected samples destroyed.`, 'Samples Destroyed');
         }
       });
     }
