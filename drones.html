@@ -893,7 +893,7 @@
       if(showPaths){
         drones.forEach(d => {
           // Skip waypoint display for defender when in orbital mode or engaging intruders
-          if(d.type === 'defender' && (d.isOrbiting || (currentIntruder && d.status === 'flying'))){
+          if(d.type === 'defender' && (d.isOrbiting || (intruders.length > 0 && d.status === 'flying'))){
             return;
           }
           
