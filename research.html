@@ -1304,8 +1304,8 @@
         );
         
         if (confirmed) {
-          // Clear all collected items
-          collected.splice(0);
+          // Clear all collected items in-place to maintain references
+          collected.length = 0;
           saveCollectedItems();
           renderCollected();
           
