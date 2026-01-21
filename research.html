@@ -343,7 +343,10 @@
 
       <!-- Right: Research Items List -->
       <section class="panel-card" aria-label="Research items">
-        <h3>Research Items <span id="itemCount" style="color:var(--muted);font-weight:400;font-size:0.9rem;">(0)</span></h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="margin:0">Research Items <span id="itemCount" style="color:var(--muted);font-weight:400;font-size:0.9rem;">(0)</span></h3>
+          <button id="btnMassDestroy" class="btn danger small" style="display:none;">Mass Destroy</button>
+        </div>
         
         <div id="researchList" class="research-list">
           <!-- Items will be rendered here -->
@@ -407,6 +410,7 @@
     const researchList = document.getElementById('researchList');
     const emptyState = document.getElementById('emptyState');
     const itemCount = document.getElementById('itemCount');
+    const btnMassDestroy = document.getElementById('btnMassDestroy');
 
     const collectedListEl = document.getElementById('collectedList');
     const archiveListEl = document.getElementById('archiveList');
@@ -443,13 +447,13 @@
 
     // Heuristic keyword map for inferring category from name
     const INFERENCE_KEYWORDS = [
-      { category: 'Plant Life', keywords: ['plant', 'flora', 'spore', 'leaf', 'seed', 'fungus', 'fungi', 'moss'] },
+      { category: 'Plant Life', keywords: ['plant', 'flora', 'spore', 'leaf', 'seed', 'fungus', 'fungi', 'moss', 'algae', 'herb'] },
       { category: 'Life Form', keywords: ['organism', 'lifeform', 'life form', 'creature', 'alien', 'worm', 'larva', 'specimen', 'beast'] },
-      { category: 'Mineral', keywords: ['crystal', 'mineral', 'ore', 'rock', 'stone', 'gem', 'quartz'] },
-      { category: 'Hardware', keywords: ['circuit', 'chip', 'antenna', 'module', 'computer', 'thruster', 'engine', 'plate', 'hull', 'sensor', 'processor'] },
+      { category: 'Mineral', keywords: ['crystal', 'mineral', 'ore', 'rock', 'stone', 'gem', 'quartz', 'gold', 'nugget', 'diamond', 'platinum', 'titanium', 'iron', 'copper', 'uranium', 'dilithium', 'kyber'] },
+      { category: 'Hardware', keywords: ['circuit', 'chip', 'antenna', 'module', 'computer', 'thruster', 'engine', 'plate', 'hull', 'sensor', 'processor', 'navigation', 'solar panel', 'pump', 'filter', 'analyzer', 'array', 'component'] },
       { category: 'Chemical', keywords: ['acid', 'chemical', 'compound', 'solvent', 'liquid', 'gas', 'substance', 'reagent'] },
-      { category: 'Energy Source', keywords: ['battery', 'cell', 'reactor', 'core', 'capacitor', 'power'] },
-      { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact'] }
+      { category: 'Energy Source', keywords: ['battery', 'cell', 'reactor', 'core', 'capacitor', 'power', 'energy'] },
+      { category: 'Other', keywords: ['probe', 'debris', 'junk', 'fragment', 'shard', 'artifact', 'wreckage', 'relic', 'technology'] }
     ];
 
     // Category-specific note pools (randomized)
@@ -994,7 +998,7 @@
       const idx = archive.findIndex(a => a.id === id);
       if(idx === -1) return;
       const a = archive[idx];
-      const confirmed = await showConfirm(`Permanently delete archived artifact "${a.name}"? This cannot be undone.`, 'Delete Archived Artifact');
+      const confirmed = await showConfirm(`Permanently destroy archived artifact "${a.name}"? This cannot be undone.`, 'Destroy Archived Artifact');
       if (!confirmed) return;
       archive.splice(idx,1);
       saveArchiveItems();
@@ -1017,7 +1021,7 @@
         node.className = 'archive-item';
         node.innerHTML = `
           <div class="archive-title"><span class="archive-icon">${escapeHtml(icon)}</span><span>${escapeHtml(a.name)}</span></div>
-          <button class="archive-delete" title="Delete archived artifact" onclick="deleteArchiveItem('${a.id}')">✕</button>
+          <button class="archive-delete" title="Destroy archived artifact" onclick="deleteArchiveItem('${a.id}')">✕</button>
           <div class="meta" style="margin:8px 0;font-size:0.9rem">${a.category ? escapeHtml(a.category) + ' • ' : ''}${a.researchResults ? (a.researchResults.safe ? 'Safe' : 'Unsafe') + ' • ' + escapeHtml(a.researchResults.radiation) : ''}</div>
           <div style="font-size:0.85rem;color:var(--muted);white-space:pre-wrap">${escapeHtml(a.description || '')}${a.report ? '\n\n' + escapeHtml(a.report) : ''}</div>
         `;
@@ -1033,10 +1037,12 @@
         researchList.style.display = 'none';
         emptyState.style.display = 'block';
         itemCount.textContent = '(0)';
+        if (btnMassDestroy) btnMassDestroy.style.display = 'none';
       } else {
         researchList.style.display = 'flex';
         emptyState.style.display = 'none';
         itemCount.textContent = `(${items.length})`;
+        if (btnMassDestroy) btnMassDestroy.style.display = items.length > 1 ? 'inline-block' : 'none';
       }
       
       items.forEach(item => {
@@ -1059,7 +1065,7 @@
         } else {
           actionsHtml += `<button class="btn small" onclick="startResearchItem('${item.id}')">Start Research</button>`;
           actionsHtml += `<button class="btn small secondary" onclick="editItem('${item.id}')">Edit</button>`;
-          actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Delete</button>`;
+          actionsHtml += `<button class="btn small danger" onclick="deleteItem('${item.id}')">Destroy</button>`;
         }
 
         // Progress UI for in-progress items
@@ -1158,7 +1164,7 @@
       const item = items.find(i => i.id === id);
       if (!item) return;
       
-      const confirmed = await showConfirm(`Delete "${item.name}"? This cannot be undone.`, 'Delete Research Item');
+      const confirmed = await showConfirm(`Destroy "${item.name}"? This cannot be undone.`, 'Destroy Research Item');
       if (confirmed) {
         if(item.researchTimeoutId){
           clearTimeout(item.researchTimeoutId);
@@ -1245,6 +1251,34 @@
       render();
       resetForm();
     });
+
+    // Mass destroy handler
+    if (btnMassDestroy) {
+      btnMassDestroy.addEventListener('click', async () => {
+        if (items.length === 0) return;
+        
+        const confirmed = await showConfirm(
+          `Destroy all ${items.length} research item(s)? This will permanently remove all items from research. This cannot be undone.`,
+          'Mass Destroy Confirmation'
+        );
+        
+        if (confirmed) {
+          // Clear all timeouts
+          items.forEach(item => {
+            if (item.researchTimeoutId) {
+              clearTimeout(item.researchTimeoutId);
+            }
+          });
+          
+          // Clear items array in-place to maintain references
+          items.length = 0;
+          saveItems();
+          render();
+          
+          await showAlert(`All research items destroyed.`, 'Mass Destroy Complete');
+        }
+      });
+    }
 
     // On load: infer categories for existing unknown items, render everything
     (function init() {
