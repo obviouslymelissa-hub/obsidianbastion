@@ -787,8 +787,8 @@
         return;
       }
       
-      // Show mass destroy button if there are items
-      if (btnDestroyAllSamples) btnDestroyAllSamples.style.display = activeCollected.length > 0 ? 'inline-block' : 'none';
+      // Show mass destroy button when there are items
+      if (btnDestroyAllSamples) btnDestroyAllSamples.style.display = 'inline-block';
       
       activeCollected.forEach(ci => {
         const row = document.createElement('div');
@@ -1299,13 +1299,13 @@
         if (activeCollected.length === 0) return;
         
         const confirmed = await showConfirm(
-          `Destroy all ${activeCollected.length} collected sample(s)? This will permanently remove all items from the collected list. This cannot be undone.`,
+          `Destroy all ${activeCollected.length} collected sample${activeCollected.length === 1 ? '' : 's'}? This will permanently remove all items from the collected list. This cannot be undone.`,
           'Destroy All Samples'
         );
         
         if (confirmed) {
           // Clear all collected items
-          collected.length = 0;
+          collected.splice(0);
           saveCollectedItems();
           renderCollected();
           
