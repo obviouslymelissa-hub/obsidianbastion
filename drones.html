@@ -1051,11 +1051,6 @@
           }
         }
 
-        // Movement towards target velocity
-        // simple smoothing lerp
-        d.vx = lerp(d.vx || 0, d.targetVx || 0, 0.02);
-        d.vy = lerp(d.vy || 0, d.targetVy || 0, 0.02);
-
         // If waypoints exist, steer towards the next waypoint
         if(d.waypoints && d.waypoints.length){
           const wp = d.waypoints[0];
