@@ -484,7 +484,7 @@
       }
     }
 
-    /* Story panel / collapsible */
+    /* Story panel / collapsible - updated to match page language */
     .story-panel { margin-top: 20px; }
     .story-panel summary{
       font-family:var(--mono);
@@ -498,11 +498,36 @@
       gap:8px;
       list-style:none;
       margin:0;
-      padding:0;
+      padding:10px 12px;
+      border-radius:8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      border:1px solid rgba(87,240,201,0.06);
+      justify-content:space-between;
     }
     .story-panel summary::-webkit-details-marker { display: none; }
-    .story-panel summary .marker { color:var(--accent-2); font-size:0.7rem; display:inline-block; width:1em; text-align:center; }
-    .story-panel[open] summary{ color:var(--accent-2); }
+
+    /* left diamond is added via ::before for consistent motif */
+    .story-panel summary::before{
+      content:"◆";
+      color:var(--accent);
+      font-size:0.9rem;
+      margin-right:8px;
+    }
+
+    /* chevron on the right indicates open/closed */
+    .story-panel summary::after{
+      content:"▾";
+      color:var(--accent-2);
+      font-size:0.9rem;
+      transition: transform 0.18s ease, color 0.18s;
+      margin-left:12px;
+    }
+
+    .story-panel[open] summary::after{
+      transform: rotate(180deg);
+      color:var(--accent-2);
+    }
+
     .story-body{
       margin-top:12px;
       background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
@@ -735,35 +760,26 @@ NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
       </aside>
     </section>
 
-    <!-- Story of the two stars (collapsible) -->
+    <!-- Streamlined story of the two stars (collapsible) with updated header -->
     <details class="story-panel" role="article" aria-label="Story of the two stars">
-      <summary aria-controls="story-body"><span class="marker">◆</span> Story — The Two Stars</summary>
+      <summary aria-controls="story-body"><span class="story-title">The Two Stars</span></summary>
       <div id="story-body" class="story-body">
-        <p><strong>The Tale of the Twin Lights of Sirius</strong></p>
+        <p style="font-weight:800; color:var(--accent-2); margin-bottom:8px;">The Two Lights</p>
 
-        <p>Long ago, in the deep quiet of the winter sky, two stars were born from the same drifting cloud of light. Though they emerged together, their paths unfolded differently.</p>
+        <p>A compact recollection: two stars born together, one condensed into a calm, enduring ember, the other blazing bright. They trace a shared orbit — different in nature, united in motion.</p>
 
-        <p>The elder star burned with great strength, shining fiercely through ages until her brilliance condensed into a small, enduring ember — a white dwarf of immense wisdom and gravity. She became Sirius B, the steadfast heart of the system, holding memory, history, and the calm glow of experience.</p>
-
-        <p>Beside her rose the younger star, bright and bold, full of heat and promise. He became Sirius A, a beacon of energy and new beginnings, lighting the darkness with the fearless shine of youth.</p>
-
-        <p>Bound by an invisible thread, the two stars began their long dance around a shared center — each shaping the other’s path, each illuminating the other’s journey. Though different in age and fire, they remain forever linked, orbiting in harmony across the centuries.</p>
-
-        <p>So it is with the two who share this birthday:<br>
-        one carrying the wisdom of years,<br>
-        one carrying the spark of the future,<br>
-        both circling the same moment in time.</p>
-
-        <p>Two lights. One day. One orbit.</p>
+        <p style="margin-top:8px; color:var(--muted); font-family:var(--mono); font-size:0.88rem;">
+          A dedication to companions of steady guidance and to those who burn with promise — two lights, one day.
+        </p>
       </div>
     </details>
 
     <!-- Large Sirius star chart at bottom -->
-    <section style="margin-top:24px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)); border-radius:12px; padding:18px; border:1px solid rgba(87,240,201,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.6), var(--glow);">
+    <section style="margin-top:24px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)); border-radius:12px; padding:18px; border:1px solid rgba(87,240,201,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
       <div style="font-family:var(--mono); color:var(--accent); font-weight:800; font-size:0.92rem; letter-spacing:0.8px; margin-bottom:12px; text-transform:uppercase; display:flex; align-items:center; gap:8px;">
         <span style="color:var(--accent-2); font-size:0.7rem;">◆</span> Sirius Star Chart — Detailed View
       </div>
-      <img src="images/SiriusB.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04);">
+      <img src="images/SiriusB.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04); background:#000;">
       <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:40px;">Image: SiriusB.jpg</div>
     </section>
 
