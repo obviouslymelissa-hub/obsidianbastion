@@ -484,52 +484,35 @@
       }
     }
 
-    /* Story panel / collapsible - updated to match page language */
+    /* --- STREAMLINED STORY PANEL STYLES (non-collapsible) --- */
     .story-panel { margin-top: 20px; }
-    .story-panel summary{
+    /* Make the story header match other section headers (alignment, weight, uppercase) */
+    .story-summary{
       font-family:var(--mono);
-      color:var(--accent);
-      font-weight:800;
-      cursor:pointer;
+      color:var(--accent-2);
+      font-weight:900;
+      cursor:default;
       font-size:0.92rem;
-      letter-spacing:0.8px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      list-style:none;
-      margin:0;
+      letter-spacing:1px;
+      margin:0 0 12px 0;
       padding:10px 12px;
       border-radius:8px;
       background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
       border:1px solid rgba(87,240,201,0.06);
-      justify-content:space-between;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      text-transform:uppercase;
     }
-    .story-panel summary::-webkit-details-marker { display: none; }
-
-    /* left diamond is added via ::before for consistent motif */
-    .story-panel summary::before{
+    .story-summary::before{
       content:"◆";
       color:var(--accent);
-      font-size:0.9rem;
+      font-size:0.7rem;
       margin-right:8px;
-    }
-
-    /* chevron on the right indicates open/closed */
-    .story-panel summary::after{
-      content:"▾";
-      color:var(--accent-2);
-      font-size:0.9rem;
-      transition: transform 0.18s ease, color 0.18s;
-      margin-left:12px;
-    }
-
-    .story-panel[open] summary::after{
-      transform: rotate(180deg);
-      color:var(--accent-2);
+      animation: pulse 3s ease-in-out infinite;
     }
 
     .story-body{
-      margin-top:12px;
       background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
       border-radius:10px;
       padding:16px;
@@ -664,8 +647,8 @@ Let it be recorded that this celestial marking stands in honor of:
             
 NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
 
-           Your presence guides us through the darkest voids.
-           Every orbit feels safer with your glow beside us.
+Your presence guides us through the darkest voids.
+Every orbit feels safer with your glow beside us.
           </div>
 
           <div class="kv" aria-hidden="false" role="list">
@@ -681,10 +664,9 @@ NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
             
             <div class="signature-section">
               <div class="signature-badge">
-                <img src="images/general.jpg" alt="General's official military badge" class="badge-img">
-                <img src="images/genmelissa.png" alt="Melissa signature" class="name-img">
+                <img src="images/general.jpg" alt="General's official military badge" class="badge-img" onerror="this.style.display='none'">
+                <img src="images/genmelissa.png" alt="Melissa signature" class="name-img" onerror="this.style.display='none'">
               </div>
-            
             </div>
           </div>
         </div>
@@ -694,7 +676,7 @@ NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
       <aside class="attachments" role="complementary" aria-label="Attachments / images">
         <div class="att-card" role="figure" aria-label="Canis Major attachment">
           <div class="att-label">◆ Canis Major Constellation</div>
-          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" tabindex="0" role="button" aria-label="Click to expand constellation image" onerror="this.style.display='none';">
+          <img src="images/sirius2.jpg" alt="Canis Major constellation with Sirius highlighted" tabindex="0" role="button" aria-label="Click to expand constellation image" onerror="this.style.display='none'">
           <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:20px;">Image: sirius2.jpg</div>
         </div>
         
@@ -760,35 +742,32 @@ NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
       </aside>
     </section>
 
-    <!-- Streamlined story of the two stars (collapsible) with updated header -->
-    <details class="story-panel" role="article" aria-label="Story of the two stars">
-      <summary aria-controls="story-body"><span class="story-title">Story — The Two Stars</span></summary>
+    <!-- Story panel inlined (fully expanded) -->
+    <section class="story-panel" role="article" aria-label="Story of the two stars">
+      <div class="story-summary" aria-hidden="false"><span class="story-title">Story — The Two Stars</span></div>
       <div id="story-body" class="story-body">
         <p style="font-weight:800; color:var(--accent-2); margin-bottom:8px;">The Tale of the Twin Lights of Sirius</p>
 
-                <p>Long ago, in the deep quiet of the winter sky, two stars were born from the same drifting cloud of light. Though they emerged together, their paths unfolded differently.</p>
+        <p>Long ago, in the deep quiet of the winter sky, two stars were born from the same drifting cloud of light. Though they emerged together, their paths unfolded differently: one bloomed into fierce brilliance while the other settled into a concentrated ember of patient radiance.</p>
 
-        <p>The elder star burned with great strength, shining fiercely through ages until her brilliance condensed into a small, enduring ember — a white dwarf of immense wisdom and gravity. She became Sirius B, the steadfast heart of the system, holding memory, history, and the calm glow of experience.</p>
+        <p>The elder star burned with great strength, shining fiercely through ages until her brilliance condensed into a small, enduring ember — a white dwarf of immense wisdom and gravity. In her reduction she gained a clarity: every photon she released was sharpened by time and memory, a steady signal in an often-chaotic firmament.</p>
 
-        <p>Beside her rose the younger star, bright and bold, full of heat and promise. He became Sirius A, a beacon of energy and new beginnings, lighting the darkness with the fearless shine of youth.</p>
+        <p>Beside her rose the younger star, bright and bold, full of heat and promise. He became Sirius A, a beacon of energy and new beginnings, scattering light with impulsive joy and lighting the darkness with the fearless shine of youth. Where the elder measured distance in long patience, the younger measured it in the intensity of the present moment.</p>
 
-        <p>Bound by an invisible thread, the two stars began their long dance around a shared center — each shaping the other’s path, each illuminating the other’s journey. Though different in age and fire, they remain forever linked, orbiting in harmony across the centuries.</p>
+        <p>Bound by an invisible thread, the two stars began their long dance around a shared center — each shaping the other’s path, each illuminating the other’s journey. Their orbits are a quiet conversation across centuries: a tug here, a nudge there, a rhythm that keeps them together even as they remain distinct.</p>
 
-        <p>So it is with the two who share this birthday:<br>
-        one carrying the wisdom of years,<br>
-        one carrying the spark of the future,<br>
-        both circling the same moment in time.</p>
+        <p>So it is with those who share this dedication: one carrying the wisdom of years, one carrying the spark of the future, both circling the same moment in time. In the smallness of a single day they reflect a larger truth — companionship, constancy, and the way two lights can make a single map of home.</p>
 
         <p>Two lights. One day. One orbit.</p>
       </div>
-    </details>
+    </section>
 
     <!-- Large Sirius star chart at bottom -->
     <section style="margin-top:24px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)); border-radius:12px; padding:18px; border:1px solid rgba(87,240,201,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
       <div style="font-family:var(--mono); color:var(--accent); font-weight:800; font-size:0.92rem; letter-spacing:0.8px; margin-bottom:12px; text-transform:uppercase; display:flex; align-items:center; gap:8px;">
         <span style="color:var(--accent-2); font-size:0.7rem;">◆</span> Sirius Star Chart — Detailed View
       </div>
-      <img src="images/SiriusB.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04); background:#000;">
+      <img src="images/SiriusB.jpg" alt="Detailed star chart of Sirius system" style="width:100%; max-height:600px; object-fit:contain; border-radius:8px; display:block; border: 1px solid rgba(255,255,255,0.04);" onerror="this.style.display='none'">
       <div style="display:none; font-family:var(--mono); color:var(--muted); font-size:0.8rem; text-align:center; padding:40px;">Image: SiriusB.jpg</div>
     </section>
 
@@ -806,7 +785,7 @@ NIMA, A STEADY STAR WHOSE LIGHT NEVER LEAVES OUR SKY.
   </div>
 
   <script>
-    // Get the constellation image and modal
+    // Get the first constellation image and modal
     const constellationImg = document.querySelector('.att-card img');
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImage');
