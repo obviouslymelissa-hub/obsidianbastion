@@ -403,34 +403,6 @@
       return items;
     }
 
-    // Add item to research log
-    function addToResearch(itemName, description){
-      try {
-        const RESEARCH_KEY = 'research:items:v1';
-        const raw = localStorage.getItem(RESEARCH_KEY);
-        const items = raw ? JSON.parse(raw) : [];
-        
-        // Check if item already exists
-        if(items.find(i => i.name === itemName)){
-          return; // Don't add duplicates
-        }
-        
-        const newItem = {
-          id: 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
-          name: itemName,
-          description: description,
-          status: 'not-started',
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        items.push(newItem);
-        localStorage.setItem(RESEARCH_KEY, JSON.stringify(items));
-        log(`Added ${itemName} to Research Lab`);
-      } catch(e){
-        console.error('Failed to add to research:', e);
-      }
-    }
-
     // Add item to parts inventory
     function addToPartsInventory(itemName){
       try {
@@ -1083,8 +1055,7 @@
                   if(item){
                     collectedItems.push({ id: 'c-'+Date.now(), name: item.name, collectedAt: Date.now() });
                     saveCollectedItems();
-                    // Collector items should only go to Research Lab, never Parts Inventory
-                    addToResearch(item.name, `Research notes for ${item.name}`);
+                    // Collected items are stored in drones:collected:v1 and can be moved to Research Lab via research.html
                     log(`${d.name} collected ${item.name} from ${poi.type}`);
                   }
                   if(poi.items.length === 0){
