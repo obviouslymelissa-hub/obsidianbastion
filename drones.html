@@ -197,9 +197,10 @@
     const MAX_POIS_ON_SCREEN = 10; // Maximum POIs before scout finishes
     const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints
     const EXPLORER_DISCOVERY_PROBABILITY = 0.25; // 25% chance for explorer to find items
+    const EXPLORER_ITEM_FIND_PROBABILITY = 0.65; // 65% chance to find items when scanning a POI
     const LOW_BATTERY_THRESHOLD = 25; // All drones return to base when battery drops to this level
     const MIN_ARRIVAL_SPEED = 0.14; // Minimum speed threshold for arrival detection
-    const SPEED_ARRIVAL_FACTOR = 0.18; // Factor of maxSpeed used for arrival speed check
+    const SPEED_ARRIVAL_FACTOR = 0.35; // Factor of maxSpeed used for arrival speed check (increased to prevent stuck drones)
     const MIN_TRANSITION_SPEED = 0.5; // Minimum speed when transitioning to next waypoint
     const TRANSITION_SPEED_FACTOR = 0.7; // Factor of maxSpeed for waypoint transition
     const SOFT_STOP_DAMPENING = 0.18; // Velocity dampening factor for soft stops
@@ -1041,7 +1042,7 @@
           // Approach behaviour: scale desired speed with distance so drones slow as they near target.
           // This prevents high-speed overshoot when close.
           const approachScale = 0.12;           // how quickly speed scales with distance
-          const minApproachSpeed = 0.35;        // don't go to absolute zero (avoids stalling)
+          const minApproachSpeed = 0.25;        // don't go to absolute zero (avoids stalling) - reduced to help arrival detection
           const desiredSpeed = Math.min(maxSpeed, Math.max(minApproachSpeed, dist * approachScale));
 
           // Desired velocity vector toward the target (scaled by distance)
@@ -1166,8 +1167,14 @@
             const dist = Math.hypot(dx,dy);
             if(!poi.scanned && dist < 36 && Math.random() < EXPLORER_DISCOVERY_PROBABILITY){
               poi.scanned = true;
-              poi.items = generateItems(poi.type);
-              log(`${d.name} scanned ${poi.type} — found ${poi.items.length} item(s)`);
+              // Only generate items based on probability - sometimes POIs are empty
+              if(Math.random() < EXPLORER_ITEM_FIND_PROBABILITY){
+                poi.items = generateItems(poi.type);
+                log(`${d.name} scanned ${poi.type} — found ${poi.items.length} item(s)`);
+              } else {
+                poi.items = [];
+                log(`${d.name} scanned ${poi.type} — no items found`);
+              }
               unscannedCount--;
             }
           });
