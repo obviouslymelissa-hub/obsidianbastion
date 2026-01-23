@@ -20,7 +20,7 @@
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
     .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
     .btn.small { padding:6px 8px; font-size:13px; }
-    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:30; }
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:999; }
     #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
     .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
     .badge { background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:8px; font-weight:600; }
@@ -77,7 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:var(--text);" title="Enter custom drone number (optional)">
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
         </div>
 
@@ -443,6 +443,9 @@
     }
 
     // Commands
+    /* REPLACED: launchDrone now assigns immediate waypoints and nudges movement so explorers/collectors act promptly.
+       Scouts retain their random waypoint search (which generates POIs). Explorers prefer existing POIs discovered by scouts.
+       Collectors head to scanned POIs with items. */
     function launchDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
@@ -451,27 +454,104 @@
       d.taskCompleted = false;
       d.lastDiscoveryTime = now(); // Initialize discovery time when launching
       d.launchTime = now(); // Track when drone was launched
-      const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
+
+      // Base speed by type (tweakable)
+      const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : (d.type === 'explorer' ? 1.4 : 1.0));
+      // give an initial small nudge
       d.targetVx = (Math.random()-0.5) * speedBase;
       d.targetVy = (Math.random()-0.5) * speedBase;
-      
-      // Generate waypoints for scouts - about 10 waypoints to explore
+
+      // --- SCOUTS: unchanged behavior (create many random waypoints) ---
       if(d.type === 'scout'){
         d.waypoints = [];
-        d.poisDiscovered = 0; // Track POIs discovered during this mission
-        d.targetPOIs = 1 + Math.floor(Math.random() * 5); // Target 1-5 POIs to discover
-        const numWaypoints = 8 + Math.floor(Math.random() * 5); // 8-12 waypoints
+        d.poisDiscovered = 0;
+        d.targetPOIs = 1 + Math.floor(Math.random() * 5);
+        const numWaypoints = 8 + Math.floor(Math.random() * 5);
         for(let i = 0; i < numWaypoints; i++){
           const angle = Math.random() * Math.PI * 2;
-          const distance = 100 + Math.random() * 200; // Random distance from current position
+          const distance = 100 + Math.random() * 200;
           const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
           const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
           d.waypoints.push({ x: wx, y: wy, id: generateId() });
         }
+        // immediate nudge to first waypoint
+        if(d.waypoints.length){
+          const wp = d.waypoints[0];
+          const dx = wp.x - d.x, dy = wp.y - d.y;
+          const dist = Math.hypot(dx,dy) || 1;
+          const desiredV = 1.6 + (Math.random()*0.4);
+          d.targetVx = (dx/dist) * desiredV;
+          d.targetVy = (dy/dist) * desiredV;
+        }
       }
-      
+
+      // --- EXPLORER: prefer EXISTING POIs; otherwise create short investigation waypoints ---
+      else if(d.type === 'explorer'){
+        // find unscanned POIs first
+        const unscanned = pointsOfInterest.filter(p => !p.scanned);
+        if(unscanned.length > 0){
+          d.waypoints = [];
+          // Sort by distance and pick up to N nearest POIs for this explorer
+          unscanned.sort((a,b) => (Math.hypot(a.x-d.x,a.y-d.y) - Math.hypot(b.x-d.x,b.y-d.y)));
+          const pick = Math.min(4, unscanned.length); // 1-4 POIs to investigate
+          for(let i=0;i<pick;i++){
+            const target = unscanned[i];
+            d.waypoints.push({ x: target.x, y: target.y, id: generateId() });
+          }
+        } else {
+          // fallback: create a few investigation waypoints (so explorers don't idle)
+          d.waypoints = [];
+          const numWaypoints = 4 + Math.floor(Math.random() * 4); // 4-7 waypoints
+          for(let i=0;i<numWaypoints;i++){
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 80 + Math.random() * 260;
+            const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+            const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+            d.waypoints.push({ x: wx, y: wy, id: generateId() });
+          }
+        }
+        // Immediately point the drone toward the first waypoint so it moves without delay
+        if(d.waypoints && d.waypoints.length){
+          const wp = d.waypoints[0];
+          const dx = wp.x - d.x, dy = wp.y - d.y;
+          const dist = Math.hypot(dx,dy) || 1;
+          const desiredV = 1.4 + (Math.random() * 0.4);
+          d.targetVx = (dx/dist) * desiredV;
+          d.targetVy = (dy/dist) * desiredV;
+        }
+      }
+
+      // --- COLLECTOR: head to scanned POIs with items, or get quick search waypoints ---
+      else if(d.type === 'collector'){
+        const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+        if(ready.length > 0){
+          const target = ready[Math.floor(Math.random() * ready.length)];
+          d.waypoints = [{ x: target.x, y: target.y, id: generateId() }];
+          const dx = target.x - d.x, dy = target.y - d.y;
+          const dist = Math.hypot(dx,dy) || 1;
+          const desiredV = 1.1 + (Math.random() * 0.4);
+          d.targetVx = (dx/dist) * desiredV;
+          d.targetVy = (dy/dist) * desiredV;
+        } else {
+          // quick random probes so collector doesn't idle
+          d.waypoints = [];
+          const numWaypoints = 2 + Math.floor(Math.random() * 3);
+          for(let i=0;i<numWaypoints;i++){
+            const wx = Math.random()*(mapSize.w-80)+40;
+            const wy = Math.random()*(mapSize.h-80)+40;
+            d.waypoints.push({ x: wx, y: wy, id: generateId() });
+          }
+          const wp = d.waypoints[0];
+          const dx = wp.x - d.x, dy = wp.y - d.y;
+          const dist = Math.hypot(dx,dy) || 1;
+          const desiredV = 1.0 + (Math.random() * 0.6);
+          d.targetVx = (dx/dist) * desiredV;
+          d.targetVy = (dy/dist) * desiredV;
+        }
+      }
+
       log(`Launched ${d.name}`);
-      
+
       // Update status prompt based on drone type
       if(d.type === 'scout'){
         updateStatusPrompt('Scouting...');
@@ -480,7 +560,7 @@
       } else if(d.type === 'collector'){
         updateStatusPrompt('Collecting...');
       }
-      
+
       renderList();
     }
     function landDrone(id){
@@ -778,26 +858,39 @@
 
         // Explorer: Check for nearby unscanned POIs
         if(d.type === 'explorer' && !d.taskCompleted){
-          pointsOfInterest.forEach(poi => {
+          for(let i = 0; i < pointsOfInterest.length; i++){
+            const poi = pointsOfInterest[i];
             if(!poi.scanned){
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
               if(dist < 15){
                 poi.scanned = true;
                 poi.discoveredBy = d.name;
-                poi.items = generateItems(poi.type);
-                poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${pointsOfInterest.indexOf(poi)+1}`;
-                const itemList = poi.items.map(it => it.name).join(', ');
-                log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+                poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i+1}`;
+
+                // Only a percentage of scanned POIs contain collectable items
+                const ITEM_CHANCE = 0.35; // 35%
+                if(Math.random() < ITEM_CHANCE){
+                  poi.items = generateItems(poi.type);
+                  const itemList = poi.items.map(it => it.name).join(', ');
+                  log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+                  updateStatusPrompt(`${poi.name} scanned - items identified`);
+                } else {
+                  poi.items = []; // explicitly empty: nothing to collect
+                  log(`${d.name} scanned ${poi.name} - No collectable items found`);
+                  updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
+                }
+
+                // Explorer stops to scan and then hovers (mission considered done for this target)
                 d.taskCompleted = true;
                 d.status = 'hovering';
                 d.targetVx = 0;
                 d.targetVy = 0;
                 d.waypoints = [];
-                updateStatusPrompt(`${poi.name} scanned - items identified`);
+                break; // handled one POI this tick
               }
             }
-          });
+          }
         }
 
         // Collector: Check for nearby scanned POIs with items
@@ -998,184 +1091,108 @@
       }
       targetX = clamp(targetX, 6, mapSize.w-6);
       targetY = clamp(targetY, 6, mapSize.h-6);
-      d.waypoints.push({ x: targetX, y: targetY, id: generateId() });
+      d.waypoints = [{ x: targetX, y: targetY, id: generateId() }];
       d.status = 'flying';
-      log(`Ordered ${d.name} to go to ${opts.percent ? `${x}% , ${y}%` : `${Math.round(targetX)},${Math.round(targetY)}`}`);
+      // immediate nudge toward coord
+      const dx = targetX - d.x, dy = targetY - d.y;
+      const dist = Math.hypot(dx,dy) || 1;
+      const desiredV = 1.1 + (d.type === 'scout' ? 0.8 : 0.3);
+      d.targetVx = (dx/dist) * desiredV;
+      d.targetVy = (dy/dist) * desiredV;
+      log(`${d.name} ordered to go to ${Math.round(targetX)},${Math.round(targetY)}`);
     }
 
-    // Joystick
-    (function initJoystick(){
-      const js = el.joystick, knob = el.knob;
-      if(!js) return;
-      let active = false, origin = { x:0, y:0 }, radius = 46;
-      function updateOrigin(){
-        const r = js.getBoundingClientRect();
-        origin.x = r.left + r.width/2;
-        origin.y = r.top + r.height/2;
-      }
-      updateOrigin();
-      window.addEventListener('resize', updateOrigin);
-
-      function onPointerMove(e){
-        if(!active) return;
-        const x = e.clientX - origin.x;
-        const y = e.clientY - origin.y;
-        const dist = Math.min(radius, Math.hypot(x,y));
-        const ang = Math.atan2(y,x);
-        const dx = Math.cos(ang) * dist;
-        const dy = Math.sin(ang) * dist;
-        knob.style.transform = `translate(${dx}px, ${dy}px)`;
-        const normX = dx / radius;
-        const normY = dy / radius;
-        if(selected){
-          selected.targetVx = normX * 2.2;
-          selected.targetVy = normY * 2.2;
-          if(selected.status === 'idle'){ selected.status = 'flying'; }
-        }
-      }
-      function onPointerUp(){
-        active = false;
-        knob.style.transform = '';
-        if(selected){
-          selected.targetVx = 0; selected.targetVy = 0;
-        }
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-      }
-      js.addEventListener('pointerdown', (ev)=>{
-        active = true; updateOrigin();
-        document.addEventListener('pointermove', onPointerMove);
-        document.addEventListener('pointerup', onPointerUp);
-        ev.preventDefault();
-      });
-    })();
-
-    // Keyboard controls
-    window.addEventListener('keydown', (ev) => {
-      if(!selected) return;
-      const step = 0.6;
-      let vx = 0, vy = 0;
-      if(ev.key === ' ') { landDrone(selected.id); }
-      if(ev.key.toLowerCase() === 'r') { recallDrone(selected.id); }
-      if(ev.key === 'w' || ev.key === 'ArrowUp') vy = -step;
-      if(ev.key === 's' || ev.key === 'ArrowDown') vy = step;
-      if(ev.key === 'a' || ev.key === 'ArrowLeft') vx = -step;
-      if(ev.key === 'd' || ev.key === 'ArrowRight') vx = step;
-      if(vx || vy){ selected.targetVx = vx * 2.0; selected.targetVy = vy * 2.0; selected.status = 'flying'; }
-    });
-
-    // Gamepad polling
-    setInterval(()=> {
-      const gp = navigator.getGamepads ? navigator.getGamepads()[0] : null;
-      if(!gp || !selected) return;
-      const axX = gp.axes[0], axY = gp.axes[1];
-      if(Math.abs(axX) > 0.12 || Math.abs(axY) > 0.12){
-        selected.targetVx = axX * 2.2;
-        selected.targetVy = axY * 2.2;
-        selected.status = 'flying';
-      } else {
-        selected.targetVx = 0; selected.targetVy = 0;
-      }
-    }, 80);
-
     // UI bindings
-    el.droneList.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('button');
-      if(!btn) return;
-      const id = btn.dataset.id;
-      const act = btn.dataset.action;
-      if(act === 'select') selectDrone(id);
-      if(act === 'launch') launchDrone(id);
-    });
     el.btnNewDrone.addEventListener('click', () => {
       const type = el.newDroneType.value || 'explorer';
-      const customNum = el.customDroneNumber.value.trim();
-      let droneName = '';
-      
-      if(customNum){
-        const num = parseInt(customNum);
-        if(!isNaN(num)){
-          // Use padStart for single digits, plain number for double digits+
-          const numStr = num < 10 ? num.toString().padStart(2, '0') : num.toString();
-          droneName = `${type.charAt(0).toUpperCase()+type.slice(1)}-${numStr}`;
-        }
+      const count = Math.max(1, parseInt(el.customDroneNumber.value) || 1);
+      for(let i=0;i<count;i++){
+        const name = `${type.charAt(0).toUpperCase()+type.slice(1)} ${drones.length+1}`;
+        const d = addDrone(name, type);
+        if(el.autoPilot.checked) launchDrone(d.id);
       }
-      
-      addDrone(droneName, type);
-      renderList();
-      
-      // Clear the custom number input after use
-      if(customNum){
-        el.customDroneNumber.value = '';
+      el.customDroneNumber.value = '';
+    });
+
+    el.btnToggleTrails.addEventListener('click', () => {
+      trailsEnabled = !trailsEnabled;
+      el.btnToggleTrails.textContent = trailsEnabled ? 'Toggle Trails' : 'Show Trails';
+      renderMap();
+    });
+
+    el.btnCmdReturn.addEventListener('click', () => {
+      if(selected){
+        recallDrone(selected.id);
+      } else {
+        recallAllDrones();
       }
     });
 
-    el.btnCmdReturn.addEventListener('click', () => recallAllDrones());
-    el.btnToggleTrails.addEventListener('click', ()=> { trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Disable Trails' : 'Enable Trails'; });
+    el.droneList.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action]');
+      if(!btn) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      if(action === 'select') selectDrone(id);
+      if(action === 'launch') launchDrone(id);
+    });
 
-    // Dragging waypoints
-    (function initWaypointDrag(){
-      let dragging = null;
-      function findWaypointAt(x,y){
-        for(const d of drones){
-          for(const w of d.waypoints){
-            if(Math.hypot(w.x - x, w.y - y) < 9) return {d,w};
-          }
-        }
-        return null;
+    // Simple joystick to nudge selected drone
+    (function setupJoystick(){
+      let dragging = false;
+      let center = null;
+      const knob = el.knob;
+      const j = el.joystick;
+      function setKnob(dx,dy){
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
       }
-      el.mapCanvas.addEventListener('pointerdown', (ev) => {
-        const rect = el.mapCanvas.getBoundingClientRect();
-        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
-        const hit = findWaypointAt(x,y);
-        if(hit){ dragging = { d: hit.d, w: hit.w }; ev.preventDefault(); }
+      j.addEventListener('pointerdown', (ev) => {
+        j.setPointerCapture(ev.pointerId);
+        dragging = true;
+        const r = j.getBoundingClientRect();
+        center = { x: r.left + r.width/2, y: r.top + r.height/2 };
       });
-      window.addEventListener('pointermove', (ev) => {
+      j.addEventListener('pointermove', (ev) => {
         if(!dragging) return;
-        const rect = el.mapCanvas.getBoundingClientRect();
-        dragging.w.x = clamp(ev.clientX - rect.left, 8, mapSize.w-8);
-        dragging.w.y = clamp(ev.clientY - rect.top, 8, mapSize.h-8);
+        const dx = clamp(ev.clientX - center.x, -40, 40);
+        const dy = clamp(ev.clientY - center.y, -40, 40);
+        setKnob(dx,dy);
+        if(selected){
+          // small control override: nudges target velocity
+          selected.targetVx = dx / 20;
+          selected.targetVy = dy / 20;
+        }
       });
-      window.addEventListener('pointerup', (ev) => { if(dragging){ log(`Waypoint moved for ${dragging.d.name}`); dragging = null; }});
+      j.addEventListener('pointerup', (ev) => {
+        dragging = false;
+        setKnob(0,0);
+      });
     })();
 
-    // Expose API
-    window.droneConsole = {
-      listDrones: () => drones.map(d => ({ id:d.id, name:d.name, type:d.type, status:d.status, battery: Math.round(d.battery) })),
-      getStatus: (id) => drones.find(d => d.id === id) || null,
-      launchDrone: (id) => launchDrone(id),
-      landDrone: (id) => landDrone(id),
-      recallDrone: (id) => recallDrone(id),
-      createDrone: (name,type) => addDrone(name,type),
-      goToCoords: (id, x, y, opts = { percent: false }) => goToCoords(id, x, y, opts),
-      pointsOfInterest: () => pointsOfInterest.slice(),
-      collectedItems: () => collectedItems.slice()
-    };
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (ev) => {
+      if(ev.code === 'Space'){ // land selected or all
+        if(selected) landDrone(selected.id);
+        else drones.forEach(d => landDrone(d.id));
+      } else if(ev.key === 'r' || ev.key === 'R'){
+        recallAllDrones();
+      }
+    });
 
-    // Intruder spawn interval
-    setInterval(()=> {
-      if(Math.random() < 0.08) spawnIntruder();
-    }, 2500);
-
-    // Initialization
+    // Start-up: seed a few drones for convenience
     resizeMapCanvas();
-    addDrone('Explorer-01','explorer'); 
-    addDrone('Defender-01','defender'); 
-    addDrone('Scout-01','scout');
-    addDrone('Collector-01','collector');
-    renderList();
-    lastFrame = now();
-    requestAnimationFrame(step);
-    renderCamera();
+    addDrone('Scout-01', 'scout');
+    addDrone('Explorer-01', 'explorer');
+    addDrone('Collector-01', 'collector');
 
-    // debug
-    window._drones = { state: () => drones.slice(), mapSize: () => Object.assign({}, mapSize), intruders: () => intruders.slice() };
-    setTimeout(() => { resizeMapCanvas(); }, 120);
+    // Periodic intruders and autospawn behavior
+    setInterval(() => { if(Math.random() < 0.12) spawnIntruder(); }, 3000);
+
+    // Kick off the simulation
+    requestAnimationFrame(step);
 
   })();
   </script>
-<!-- Fun Mode (optional) -->
-<script src="fun-mode.js"></script>
 
 </body>
 </html>
