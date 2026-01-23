@@ -198,6 +198,8 @@
     const SCOUT_WAYPOINT_DISTANCE = 200; // Distance between scout patrol waypoints
     const EXPLORER_DISCOVERY_PROBABILITY = 0.25; // 25% chance for explorer to find items
     const LOW_BATTERY_THRESHOLD = 25; // All drones return to base when battery drops to this level
+    const MIN_ARRIVAL_SPEED = 0.14; // Minimum speed threshold for arrival detection
+    const SPEED_ARRIVAL_FACTOR = 0.18; // Factor of maxSpeed used for arrival speed check
     const DRONE_PADDING_LEFT = 15; // Left boundary padding for drones
     const DRONE_PADDING_RIGHT = 75; // Right boundary padding (accounts for label text)
     const DRONE_PADDING_VERTICAL = 15; // Top/bottom boundary padding for drones
@@ -1030,7 +1032,7 @@
         if(target){
           const dx = target.x - d.x;
           const dy = target.y - d.y;
-          const dist = Math.hypot(dx,dy) || 1;
+          const dist = Math.max(1, Math.hypot(dx,dy)); // Avoid division by zero
           const maxSpeed = (d.type === 'scout' ? 1.6 : (d.type === 'defender' ? 1.1 : 1.0));
 
           // Approach behaviour: scale desired speed with distance so drones slow as they near target.
@@ -1044,7 +1046,7 @@
           const desiredVy = (dy / dist) * desiredSpeed;
 
           // Smoothing & acceleration cap - higher smoothing => faster convergence (snappier).
-          const smoothing = 0.72; // increased from ~0.22 to make drones more responsive
+          const smoothing = 0.72; // increased from 0.02/0.08 to make drones more responsive
           // Limit change per-frame to avoid unrealistic velocity jumps and help stability
           const maxAccel = Math.max(0.08, 0.24 * (maxSpeed / 2)) * fpsFactor;
 
@@ -1065,7 +1067,7 @@
           // Arrival handling: check both distance and speed to avoid overshoot
           const speed = Math.hypot(d.vx, d.vy);
           const arrivalThreshold = (d.status === 'returning' ? RETURN_STOP_THRESHOLD : DEFAULT_STOP_THRESHOLD);
-          if(dist <= arrivalThreshold || (dist <= arrivalThreshold * 2 && speed < Math.max(0.14, maxSpeed * 0.18))){
+          if(dist <= arrivalThreshold || (dist <= arrivalThreshold * 2 && speed < Math.max(MIN_ARRIVAL_SPEED, maxSpeed * SPEED_ARRIVAL_FACTOR))){
             // handle arrival at waypoint or center
             // Arrived - shift waypoint
             d.waypoints.shift();
@@ -1104,7 +1106,7 @@
             if(d.waypoints && d.waypoints.length){
               const next = d.waypoints[0];
               const ndx = next.x - d.x, ndy = next.y - d.y;
-              const ndist = Math.hypot(ndx, ndy) || 1;
+              const ndist = Math.max(1, Math.hypot(ndx, ndy)); // Avoid division by zero
               const sp = (d.type === 'scout' ? 1.6 : (d.type === 'defender' ? 1.1 : 1.0));
               // nudge toward next at a moderate controlled speed
               d.vx = (ndx/ndist) * Math.min(sp, Math.max(0.5, sp * 0.7));
