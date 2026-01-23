@@ -444,8 +444,8 @@
 
     // Commands
     /* REPLACED: launchDrone now assigns immediate waypoints and nudges movement so explorers/collectors act promptly.
-       Scouts retain their random waypoint search (which generates POIs). Explorers prefer existing POIs discovered by scouts.
-       Collectors head to scanned POIs with items. */
+       Scouts retain their random waypoint search (which generates POIs). Explorers prefer existing POIs.
+       Collectors head to scanned POIs with items. Defenders retained with intruder interception behavior. */
     function launchDrone(id){
       const d = drones.find(x => x.id === id);
       if(!d) return;
@@ -559,6 +559,8 @@
         updateStatusPrompt('Exploring...');
       } else if(d.type === 'collector'){
         updateStatusPrompt('Collecting...');
+      } else if(d.type === 'defender'){
+        updateStatusPrompt('Defending...');
       }
 
       renderList();
@@ -795,10 +797,12 @@
       const currentIntruder = intruders.length ? intruders[0] : null;
 
       drones.forEach(d => {
+        // Defender: intercept intruders aggressively (restore fast-waypoint behavior)
         if(d.type === 'defender' && currentIntruder){
           const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
           const dist = Math.hypot(dx,dy);
           if(dist > 14){
+            // unshift so defender immediately heads toward intruder
             d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
             if(d.waypoints.length > 6) d.waypoints.length = 6;
             d.status = 'flying';
@@ -856,14 +860,15 @@
           }
         }
 
-        // Explorer: Check for nearby unscanned POIs
-        if(d.type === 'explorer' && !d.taskCompleted){
+        // Explorer: go to POIs and scan; after scanning proceed to next waypoint automatically
+        if(d.type === 'explorer' && d.status === 'flying'){
           for(let i = 0; i < pointsOfInterest.length; i++){
             const poi = pointsOfInterest[i];
             if(!poi.scanned){
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
               if(dist < 15){
+                // Scan it
                 poi.scanned = true;
                 poi.discoveredBy = d.name;
                 poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i+1}`;
@@ -881,13 +886,55 @@
                   updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
                 }
 
-                // Explorer stops to scan and then hovers (mission considered done for this target)
-                d.taskCompleted = true;
-                d.status = 'hovering';
-                d.targetVx = 0;
-                d.targetVy = 0;
-                d.waypoints = [];
-                break; // handled one POI this tick
+                // Remove the waypoint that corresponds to this poi (if present)
+                if(d.waypoints && d.waypoints.length){
+                  for(let wi = 0; wi < d.waypoints.length; wi++){
+                    const wp = d.waypoints[wi];
+                    if(Math.hypot(wp.x - poi.x, wp.y - poi.y) < 20){
+                      d.waypoints.splice(wi,1);
+                      break;
+                    }
+                  }
+                }
+
+                // After scanning: if there is another waypoint queued, nudge immediately toward it
+                if(d.waypoints && d.waypoints.length){
+                  const next = d.waypoints[0];
+                  const ndx = next.x - d.x, ndy = next.y - d.y;
+                  const ndist = Math.hypot(ndx,ndy) || 1;
+                  const desiredV = 1.4 + (Math.random() * 0.4);
+                  d.targetVx = (ndx/ndist) * desiredV;
+                  d.targetVy = (ndy/ndist) * desiredV;
+                  d.status = 'flying';
+                } else {
+                  // If no immediate waypoints left, try to find other unscanned POIs to investigate
+                  const unscannedLeft = pointsOfInterest.filter(p => !p.scanned);
+                  if(unscannedLeft.length > 0){
+                    unscannedLeft.sort((a,b) => (Math.hypot(a.x-d.x,a.y-d.y) - Math.hypot(b.x-d.x,b.y-d.y)));
+                    const pick = Math.min(3, unscannedLeft.length);
+                    for(let k=0;k<pick;k++){
+                      d.waypoints.push({ x: unscannedLeft[k].x, y: unscannedLeft[k].y, id: generateId() });
+                    }
+                    // nudge to new first
+                    const next = d.waypoints[0];
+                    const ndx = next.x - d.x, ndy = next.y - d.y;
+                    const ndist = Math.hypot(ndx,ndy) || 1;
+                    const desiredV = 1.4 + (Math.random() * 0.4);
+                    d.targetVx = (ndx/ndist) * desiredV;
+                    d.targetVy = (ndy/ndist) * desiredV;
+                    d.status = 'flying';
+                  } else {
+                    // No more POIs => explorer can hover / mark task done
+                    d.taskCompleted = true;
+                    d.status = 'hovering';
+                    d.targetVx = 0;
+                    d.targetVy = 0;
+                    updateStatusPrompt('Exploration complete');
+                  }
+                }
+
+                // handled this POI, break out so we don't scan multiple in same tick
+                break;
               }
             }
           }
@@ -1179,11 +1226,12 @@
       }
     });
 
-    // Start-up: seed a few drones for convenience
+    // Start-up: seed a few drones for convenience (include defender)
     resizeMapCanvas();
     addDrone('Scout-01', 'scout');
     addDrone('Explorer-01', 'explorer');
     addDrone('Collector-01', 'collector');
+    addDrone('Defender-01', 'defender');
 
     // Periodic intruders and autospawn behavior
     setInterval(() => { if(Math.random() < 0.12) spawnIntruder(); }, 3000);
