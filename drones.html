@@ -454,6 +454,22 @@
       const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
       d.targetVx = (Math.random()-0.5) * speedBase;
       d.targetVy = (Math.random()-0.5) * speedBase;
+      
+      // Generate waypoints for scouts - about 10 waypoints to explore
+      if(d.type === 'scout'){
+        d.waypoints = [];
+        d.poisDiscovered = 0; // Track POIs discovered during this mission
+        d.targetPOIs = 1 + Math.floor(Math.random() * 5); // Target 1-5 POIs to discover
+        const numWaypoints = 8 + Math.floor(Math.random() * 5); // 8-12 waypoints
+        for(let i = 0; i < numWaypoints; i++){
+          const angle = Math.random() * Math.PI * 2;
+          const distance = 100 + Math.random() * 200; // Random distance from current position
+          const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+          const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+          d.waypoints.push({ x: wx, y: wy, id: generateId() });
+        }
+      }
+      
       log(`Launched ${d.name}`);
       
       // Update status prompt based on drone type
@@ -714,37 +730,49 @@
           }
         }
 
-        // Scout: Check for nearby POIs to discover - only one at a time, slower frequency
-        if(d.type === 'scout' && !d.taskCompleted){
-          // Much slower discovery rate - check every 30 seconds minimum
-          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
-          const DISCOVERY_COOLDOWN = 30000; // 30 seconds
-          
-          if(timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < 0.001 && d.status === 'flying'){
-            const newPOI = generatePOI();
-            pointsOfInterest.push(newPOI);
-            d.lastDiscoveryTime = t;
-            d.taskCompleted = true;
-            d.status = 'hovering';
-            d.targetVx = 0;
-            d.targetVy = 0;
-            d.waypoints = [];
-            log(`${d.name} discovered ${newPOI.type} at (${Math.round(newPOI.x)},${Math.round(newPOI.y)})`);
-            updateStatusPrompt('Unidentified object located');
+        // Scout: Discover POIs at waypoints during scouting mission
+        if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying'){
+          // Check if scout reached a waypoint and can discover a POI there
+          if(d.waypoints && d.waypoints.length > 0){
+            const wp = d.waypoints[0];
+            const dx = wp.x - d.x, dy = wp.y - d.y;
+            const dist = Math.hypot(dx,dy);
+            
+            // When close to waypoint, check for POI discovery
+            if(dist < 15 && !d.justCheckedWaypoint){
+              d.justCheckedWaypoint = true; // Prevent multiple checks at same waypoint
+              
+              // Chance to discover POI at this waypoint if we haven't reached target yet
+              if(d.poisDiscovered < d.targetPOIs && Math.random() < 0.35){
+                const newPOI = generatePOI();
+                // Place POI near the waypoint
+                newPOI.x = clamp(wp.x + (Math.random() - 0.5) * 40, 40, mapSize.w - 40);
+                newPOI.y = clamp(wp.y + (Math.random() - 0.5) * 40, 40, mapSize.h - 40);
+                pointsOfInterest.push(newPOI);
+                d.poisDiscovered = (d.poisDiscovered || 0) + 1;
+                d.lastDiscoveryTime = t;
+                log(`${d.name} discovered ${newPOI.type} at waypoint ${d.waypoints.length}`);
+                updateStatusPrompt(`Object found! (${d.poisDiscovered}/${d.targetPOIs})`);
+              }
+            } else if(dist >= 15){
+              d.justCheckedWaypoint = false; // Reset when moving away from waypoint
+            }
           }
-        }
-        
-        // Check if scout completed without finding anything
-        if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying' && d.waypoints.length === 0){
-          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || t);
-          const timeFlying = t - (d.launchTime || t);
-          // Only mark as completed if been flying for at least 30 seconds AND no waypoints
-          if(timeFlying > 30000 && timeSinceLastDiscovery > 30000){ 
+          
+          // Check if scout completed all waypoints
+          if(d.waypoints.length === 0){
             d.taskCompleted = true;
             d.status = 'hovering';
             d.targetVx = 0;
             d.targetVy = 0;
-            updateStatusPrompt('No interesting points found');
+            const foundCount = d.poisDiscovered || 0;
+            if(foundCount === 0){
+              log(`${d.name} scouting complete - no objects found`);
+              updateStatusPrompt('Scouting complete - no objects found');
+            } else {
+              log(`${d.name} scouting complete - ${foundCount} object(s) found`);
+              updateStatusPrompt(`Scouting complete - ${foundCount} object(s) found`);
+            }
           }
         }
 
