@@ -20,7 +20,7 @@
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
     .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
     .btn.small { padding:6px 8px; font-size:13px; }
-    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-in[...]
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:10; }
     #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
     .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
     .badge { background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:8px; font-weight:600; }
@@ -51,7 +51,7 @@
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <h1>Launch Bay — Drone Deck</h1>
-        <div class="hint">Captain! Deploy scouts to discover points of interest, explorers to scan them, and collectors to retrieve items. Click a drone on the map to select it. Space = land, R = reca[...]
+        <div class="hint">Captain! Deploy scouts to discover points of interest, explorers to scan them, and collectors to retrieve items. Click a drone on the map to select it. Space = land, R = recall, Shift+Click = global waypoint.</div>
       </div>
       <div class="controls">
         <div class="controls-row">
@@ -152,8 +152,6 @@
        - Removed mission editor UI
        - Added explicit "Assign to Fleet" buttons for quests
        - Left core behaviors: spawn, launch, waypoints, quests, intruders
-       - Improved movement so drones accelerate toward targets immediately,
-         slow and snap to waypoints (no overshoot), and are more responsive.
     */
 
     // Elements
@@ -203,17 +201,6 @@
     const DRONE_PADDING_LEFT = 15; // Left boundary padding for drones
     const DRONE_PADDING_RIGHT = 75; // Right boundary padding (accounts for label text)
     const DRONE_PADDING_VERTICAL = 15; // Top/bottom boundary padding for drones
-
-    // Movement tuning: per-type nominal speed (units tuned to original code scale)
-    function typeMaxSpeed(type){
-      switch(type){
-        case 'scout': return 2.6;     // faster, snaps quickly
-        case 'explorer': return 1.9;
-        case 'collector': return 1.4;
-        case 'defender': return 1.2;
-        default: return 1.5;
-      }
-    }
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,collectTarget,collectStartTime,collectTimeoutId}
@@ -573,7 +560,7 @@
         const distToShip = Math.hypot(selected.x - shipX, selected.y - shipY);
         el.sel_proximity.textContent = Math.round(distToShip) + ' m';
         
-        el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(2) + ' m/s';
+        el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
         
         // Show scout action buttons if scout completed without finding anything
         const isScoutWithNoFinds = selected.type === 'scout' && selected.taskCompleted && (selected.poiDiscoveryCount || 0) === 0;
@@ -632,14 +619,19 @@
         d.isOrbiting = true; // Flag to indicate defender is in orbital mode
       }
 
+      // Helper to sort POIs by distance to drone
+      const sortByDistance = (pois, drone) => {
+        return pois.sort((a,b) => {
+          const da = Math.hypot(a.x - drone.x, a.y - drone.y);
+          const db = Math.hypot(b.x - drone.x, b.y - drone.y);
+          return da - db;
+        });
+      };
+      
       // Explorer: immediately assign waypoints to unscanned POIs (nearest-first)
       if(d.type === 'explorer'){
         const unscanned = pointsOfInterest.filter(p => !p.scanned);
-        unscanned.sort((a,b) => {
-          const da = Math.hypot(a.x - d.x, a.y - d.y);
-          const db = Math.hypot(b.x - d.x, b.y - d.y);
-          return da - db;
-        });
+        sortByDistance(unscanned, d);
         d.waypoints = unscanned.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
         if(d.waypoints.length > 0){
           log(`${d.name} launched and assigned to ${d.waypoints.length} unscanned target(s)`);
@@ -649,32 +641,16 @@
       // Collector: immediately assign waypoints to scanned POIs with items (nearest-first)
       if(d.type === 'collector'){
         const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
-        ready.sort((a,b) => {
-          const da = Math.hypot(a.x - d.x, a.y - d.y);
-          const db = Math.hypot(b.x - d.x, b.y - d.y);
-          return da - db;
-        });
+        sortByDistance(ready, d);
         d.waypoints = ready.map(p => ({ x: p.x, y: p.y, id: generateId(), poiId: p.id }));
         if(d.waypoints.length > 0){
           log(`${d.name} launched and assigned to ${d.waypoints.length} collect target(s)`);
         }
       }
       
-      // Immediately set velocity toward first waypoint (no launch delay)
-      if(d.waypoints && d.waypoints.length){
-        const wp = d.waypoints[0];
-        const dx = wp.x - d.x;
-        const dy = wp.y - d.y;
-        const dist = Math.hypot(dx,dy) || 1;
-        const sp = typeMaxSpeed(d.type);
-        d.vx = (dx/dist) * sp;
-        d.vy = (dy/dist) * sp;
-      } else {
-        // fallback small nudge so drone doesn't sit for a long time
-        d.vx = (Math.random()-0.5) * 0.6;
-        d.vy = (Math.random()-0.5) * 0.6;
-      }
-
+      const speedBase = d.type === 'scout' ? 2.2 : (d.type === 'defender' ? 1.2 : 1.0);
+      d.targetVx = (Math.random()-0.5) * speedBase;
+      d.targetVy = (Math.random()-0.5) * speedBase;
       log(`Launched ${d.name}`);
       
       // Hide scout action buttons when launching
@@ -714,13 +690,6 @@
       d.taskCompleted = false;
       d.isOrbiting = false; // Stop orbital mode if defender
       d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
-      // set immediate velocity to center for snappy recall
-      const dx = (mapSize.w/2) - d.x;
-      const dy = (mapSize.h/2) - d.y;
-      const dist = Math.hypot(dx,dy) || 1;
-      const sp = typeMaxSpeed(d.type);
-      d.vx = (dx/dist) * sp;
-      d.vy = (dy/dist) * sp;
       log(`Recalling ${d.name}`);
       updateStatusPrompt(`${d.name} returning to base...`);
       renderList(); // Immediate update for responsive UX
@@ -731,12 +700,6 @@
         d.taskCompleted = false;
         d.isOrbiting = false; // Stop orbital mode for all defenders
         d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2 }];
-        const dx = (mapSize.w/2) - d.x;
-        const dy = (mapSize.h/2) - d.y;
-        const dist = Math.hypot(dx,dy) || 1;
-        const sp = typeMaxSpeed(d.type);
-        d.vx = (dx/dist) * sp;
-        d.vy = (dy/dist) * sp;
       });
       log(`Recalling all drones to center`);
       updateStatusPrompt('All drones returning to base...');
@@ -752,7 +715,6 @@
         clearTimeout(d.collectTimeoutId);
         d.collectTimeoutId = null;
       }
-      d.vx = 0; d.vy = 0;
       log(`${d.name} aborted`);
       renderList(); // Immediate update for responsive UX
     }
@@ -813,43 +775,6 @@
           if(arr[i].ttl <= 0) arr.splice(i,1);
         }
       });
-    }
-
-    // Handle arrival at a waypoint (scanning/collecting)
-    function handleArrivalAtWaypoint(d, w){
-      // Snap to waypoint to avoid tiny oscillation/overshoot
-      d.x = w.x;
-      d.y = w.y;
-      d.vx = 0;
-      d.vy = 0;
-
-      // If waypoint references a POI, process it
-      if(w.poiId){
-        const poi = pointsOfInterest.find(p => p.id === w.poiId);
-        if(poi && !poi.scanned && d.type === 'explorer'){
-          // explorer scans
-          poi.scanned = true;
-          poi.items = Math.random() < EXPLORER_DISCOVERY_PROBABILITY ? generateItems(poi.type) : [];
-          poi.name = poi.type.charAt(0).toUpperCase() + poi.type.slice(1);
-          log(`${d.name} scanned ${poi.name}${poi.items && poi.items.length ? ' — items found' : ' — nothing of value'}`);
-        } else if(poi && poi.scanned && poi.items && poi.items.length > 0 && d.type === 'collector'){
-          // collector picks one item (for simplicity)
-          const item = poi.items.shift();
-          addToPartsInventory(item.name);
-          collectedItems.push({ name: item.name, from: poi.id, time: now() });
-          saveCollectedItems();
-          log(`${d.name} collected ${item.name} from ${poi.type}`);
-          // If POI emptied, clear items and remove waypoints referencing it
-          if(poi.items.length === 0){
-            removeWaypointsForPoi(poi.id);
-          }
-        }
-      } else {
-        // non-poi arrival — could be patrol or other
-      }
-
-      // Remove this waypoint from drone's list
-      d.waypoints.shift();
     }
 
     // Render
@@ -999,39 +924,33 @@
 
       const currentIntruder = intruders.length ? intruders[0] : null;
 
-      // Update trails TTL
-      updateTrails(dt);
-
-      // Normalize dt to ~60fps units so speeds remain consistent across frame times:
-      const fpsFactor = Math.max(0.5, Math.min(2.5, dt / 16.666)); // clamp sanity
-
       drones.forEach(d => {
         // Low battery check for all drones - return to base if battery is critically low
-        const isFlyingState = d.status === 'flying' || d.status === 'collecting' || (d.type === 'defender' && d.isOrbiting);
-        if(isFlyingState && d.battery <= LOW_BATTERY_THRESHOLD && d.status !== 'returning'){
+        const isFlying = d.status === 'flying' || d.status === 'collecting' || (d.type === 'defender' && d.isOrbiting);
+        if(isFlying && d.battery <= LOW_BATTERY_THRESHOLD && d.status !== 'returning'){
           log(`${d.name} battery critical (${Math.round(d.battery)}%) - returning to base`);
           d.status = 'returning';
           if(d.type === 'defender') d.isOrbiting = false;
           d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
           updateStatusPrompt(`${d.name} low battery - returning to base`);
         }
-
-        // Defender behaviour: intercept intruder quickly
+        
         if(d.type === 'defender' && currentIntruder){
+          // Only engage if defender is already active (not docked/idle) OR if auto-launch is enabled
           const isActive = d.status === 'flying' || d.isOrbiting;
           
           if(isActive || autoLaunchEnabled){
             const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
             const dist = Math.hypot(dx,dy);
             if(dist > 14){
-              // Insert quick intercept waypoint at front
               d.waypoints.unshift({ x: currentIntruder.x + (Math.random()-0.5)*6, y: currentIntruder.y + (Math.random()-0.5)*6, id: generateId() });
               if(d.waypoints.length > 6) d.waypoints.length = 6;
               d.status = 'flying';
-              d.isOrbiting = false;
+              d.isOrbiting = false; // Stop orbit to intercept
             } else {
               if(currentIntruder){
                 intruders.splice(0,1);
+                // Resume orbit after interception only if defender was actively flying before
                 if(d.type === 'defender' && d.battery > LOW_BATTERY_THRESHOLD && (isActive || autoLaunchEnabled)){
                   generateDefenderOrbitWaypoints(d);
                   d.isOrbiting = true;
@@ -1041,127 +960,368 @@
           }
         }
 
-        // Movement/steering for drones
-        // Determine target (first waypoint or return base)
-        let target = null;
-        if(d.waypoints && d.waypoints.length){
-          target = d.waypoints[0];
-        } else if(d.status === 'returning'){
-          target = { x: mapSize.w/2, y: mapSize.h/2 };
-        } else if(d.type === 'defender' && d.isOrbiting && d.waypoints && d.waypoints.length){
-          target = d.waypoints[0];
-        }
-
-        if(target){
-          const dx = target.x - d.x;
-          const dy = target.y - d.y;
-          const dist = Math.hypot(dx,dy) || 1;
-          const maxSpeed = typeMaxSpeed(d.type);
-          // quick steering: compute desired velocity vector
-          const desiredVx = (dx / dist) * maxSpeed;
-          const desiredVy = (dy / dist) * maxSpeed;
-
-          // smoothing factor: small value => very responsive; keep a little smoothing to look natural
-          const smoothing = 0.22;
-          d.vx += (desiredVx - d.vx) * smoothing;
-          d.vy += (desiredVy - d.vy) * smoothing;
-
-          // Integrate position (normalized to 60fps-ish)
-          d.x += d.vx * fpsFactor;
-          d.y += d.vy * fpsFactor;
-
-          // Arrival handling: if close enough, snap and handle arrival
-          const arrivalThreshold = (d.status === 'returning' ? RETURN_STOP_THRESHOLD : DEFAULT_STOP_THRESHOLD);
-          if(dist <= arrivalThreshold + Math.max(1, maxSpeed * 1.2)){
-            // handle arrival at waypoint or center
-            handleArrivalAtWaypoint(d, target);
-            // If we removed waypoint and there is another waypoint, nudge towards it immediately next frame
-            if(d.waypoints && d.waypoints.length){
-              const next = d.waypoints[0];
-              const ndx = next.x - d.x, ndy = next.y - d.y;
-              const ndist = Math.hypot(ndx, ndy) || 1;
-              const sp = typeMaxSpeed(d.type);
-              d.vx = (ndx/ndist) * sp;
-              d.vy = (ndy/ndist) * sp;
-            } else {
-              // No more waypoints: if returning, land/idle
-              if(d.status === 'returning'){
-                d.status = 'idle';
-                d.vx = 0; d.vy = 0;
-                updateStatusPrompt(`${d.name} docked`);
-                log(`${d.name} returned to base`);
-              } else {
-                // otherwise stop
-                d.vx = 0; d.vy = 0;
-              }
+        // Scout: Check for nearby POIs to discover - only one at a time, limit to max
+        if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying'){
+          const timeSinceLastDiscovery = t - (d.lastDiscoveryTime || 0);
+          const currentPOICount = pointsOfInterest.length;
+          
+          // Only discover if we have less than max POIs and cooldown passed
+          if(currentPOICount < MAX_POIS_ON_SCREEN && timeSinceLastDiscovery > DISCOVERY_COOLDOWN && Math.random() < SCOUT_DISCOVERY_PROBABILITY){
+            const newPOI = generatePOI();
+            // Place POI near the scout
+            newPOI.x = clamp(d.x + (Math.random() - 0.5) * 60, 40, mapSize.w - 40);
+            newPOI.y = clamp(d.y + (Math.random() - 0.5) * 60, 40, mapSize.h - 40);
+            newPOI.discoveredBy = d.name;
+            pointsOfInterest.push(newPOI);
+            d.lastDiscoveryTime = t;
+            d.poiDiscoveryCount = (d.poiDiscoveryCount || 0) + 1;
+            log(`${d.name} discovered ${newPOI.type} at (${Math.round(newPOI.x)},${Math.round(newPOI.y)})`);
+            updateStatusPrompt('Unidentified object located');
+            
+            // If reached max POIs, mark as completed
+            if(currentPOICount + 1 >= MAX_POIS_ON_SCREEN){
+              d.taskCompleted = true;
+              d.waypoints = [];
+              log(`${d.name} scouting complete - maximum objects found`);
+              updateStatusPrompt('Scouting complete - max objects found');
+              // Automatically return to base
+              d.status = 'returning';
+              d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+              log(`${d.name} returning to base`);
             }
           }
-        } else {
-          // No target: slight drift dampening to zero
-          d.vx *= 0.88;
-          d.vy *= 0.88;
-          d.x += d.vx * fpsFactor;
-          d.y += d.vy * fpsFactor;
+          
+          // Generate new waypoint when reaching current one to keep moving
+          // Ensure waypoints are at least SCOUT_WAYPOINT_DISTANCE apart
+          if(d.waypoints.length === 0 && !d.taskCompleted){
+            const angle = Math.random() * Math.PI * 2;
+            const distance = SCOUT_WAYPOINT_DISTANCE + Math.random() * 150;
+            const wx = clamp(d.x + Math.cos(angle) * distance, 40, mapSize.w - 40);
+            const wy = clamp(d.y + Math.sin(angle) * distance, 40, mapSize.h - 40);
+            d.waypoints.push({ x: wx, y: wy, id: generateId() });
+          }
+          
+          // Check if scouting duration completed
+          const timeFlying = t - (d.launchTime || t);
+          if(timeFlying > SCOUT_PATROL_DURATION && !d.taskCompleted){
+            d.taskCompleted = true;
+            d.waypoints = [];
+            const foundCount = d.poiDiscoveryCount || 0;
+            if(foundCount === 0){
+              log(`${d.name} scouting complete - no objects found`);
+              updateStatusPrompt('No interesting points found');
+              // Show scout action buttons if this is the selected drone
+              if(selected && selected.id === d.id && el.scoutActionButtons){
+                el.scoutActionButtons.style.display = 'flex';
+              }
+            } else {
+              log(`${d.name} scouting complete - ${foundCount} objects found`);
+            }
+            // return to base
+            d.status = 'returning';
+            d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+          }
         }
 
-        // boundaries clamp
-        d.x = clamp(d.x, 8, mapSize.w - 8);
-        d.y = clamp(d.y, 8, mapSize.h - 8);
+        // Movement towards target velocity
+        // simple smoothing lerp
+        d.vx = lerp(d.vx || 0, d.targetVx || 0, 0.02);
+        d.vy = lerp(d.vy || 0, d.targetVy || 0, 0.02);
 
-        // Trails push at a lower frequency (based on small movement)
-        if(Math.hypot(d.vx, d.vy) > 0.12){
-          pushTrail(d);
+        // If waypoints exist, steer towards the next waypoint
+        if(d.waypoints && d.waypoints.length){
+          const wp = d.waypoints[0];
+          const dx = wp.x - d.x;
+          const dy = wp.y - d.y;
+          const dist = Math.hypot(dx,dy);
+          if(dist > 1){
+            const speed = (d.type === 'scout' ? 1.6 : (d.type === 'defender' ? 1.1 : 1.0));
+            d.targetVx = (dx / dist) * speed;
+            d.targetVy = (dy / dist) * speed;
+            d.vx = lerp(d.vx, d.targetVx, 0.08);
+            d.vy = lerp(d.vy, d.targetVy, 0.08);
+          }
+          // Arrive at waypoint
+          const stopThreshold = d.status === 'returning' ? RETURN_STOP_THRESHOLD : DEFAULT_STOP_THRESHOLD;
+          if(dist < stopThreshold){
+            // Arrived
+            d.waypoints.shift();
+            // If waypoint had a poiId and this drone is a collector, start collection
+            if(wp.poiId && d.type === 'collector'){
+              // find poi
+              const poi = pointsOfInterest.find(p => p.id === wp.poiId);
+              if(poi && poi.scanned && poi.items && poi.items.length){
+                d.status = 'collecting';
+                d.collectTarget = poi.id;
+                d.collectStartTime = now();
+                d.collectTimeoutId = setTimeout(() => {
+                  // Simulate successful collection of one item
+                  const item = poi.items.shift();
+                  if(item){
+                    collectedItems.push({ id: 'c-'+Date.now(), name: item.name, collectedAt: Date.now() });
+                    saveCollectedItems();
+                    // Collected items are stored in drones:collected:v1 and can be moved to Research Lab via research.html
+                    log(`${d.name} collected ${item.name} from ${poi.type}`);
+                  }
+                  if(poi.items.length === 0){
+                    // nothing left at POI
+                    removeWaypointsForPoi(poi.id);
+                  }
+                  d.collectTarget = null;
+                  d.collectTimeoutId = null;
+                  d.status = 'returning';
+                  d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+                }, 1800 + Math.random()*1200);
+              }
+            }
+            // If no more waypoints and we were returning, land/dock
+            if(d.waypoints.length === 0 && d.status === 'returning'){
+              // Arrived to base, dock
+              d.status = 'idle';
+              d.alt = 0;
+              d.targetVx = 0; d.targetVy = 0;
+              log(`${d.name} docked`);
+            }
+          }
         }
 
-        // Battery drain when flying
-        if(d.status === 'flying' || d.status === 'collecting'){
-          d.battery = Math.max(0, d.battery - (0.003 * fpsFactor)); // small drain
+        // update position
+        d.x += d.vx * (dt / 16.67); // normalize to ~60fps base
+        d.y += d.vy * (dt / 16.67);
+
+        // keep inside bounds with enough padding to prevent any part from going off-screen
+        // Account for drone size (10px when selected) + text label length (~60px)
+        d.x = clamp(d.x, DRONE_PADDING_LEFT, mapSize.w - DRONE_PADDING_RIGHT);
+        d.y = clamp(d.y, DRONE_PADDING_VERTICAL, mapSize.h - DRONE_PADDING_VERTICAL);
+
+        // battery drain while flying
+        if(d.status === 'flying' || d.status === 'collecting' || d.status === 'returning'){
+          d.battery -= (dt / 1000) * 0.8; // drain rate
         } else if(d.status === 'idle' || d.status === 'docked'){
-          d.battery = Math.min(100, d.battery + 0.02 * fpsFactor); // recharge
+          d.battery += (dt / 1000) * 1.8; // charging
+        }
+        d.battery = clamp(d.battery, 0, 100);
+
+        // push trails
+        pushTrail(d);
+      });
+
+      // Explorer: chance to scan nearby POIs
+      drones.forEach(d => {
+        if(d.type === 'explorer' && d.status === 'flying'){
+          let unscannedCount = 0;
+          pointsOfInterest.forEach(poi => {
+            if(!poi.scanned) unscannedCount++;
+            
+            const dx = poi.x - d.x, dy = poi.y - d.y;
+            const dist = Math.hypot(dx,dy);
+            if(!poi.scanned && dist < 36 && Math.random() < EXPLORER_DISCOVERY_PROBABILITY){
+              poi.scanned = true;
+              poi.items = generateItems(poi.type);
+              log(`${d.name} scanned ${poi.type} — found ${poi.items.length} item(s)`);
+              unscannedCount--;
+            }
+          });
+          
+          // After scanning, check if all POIs are now scanned and return to base
+          if(unscannedCount === 0 && pointsOfInterest.length > 0 && !d.returningAfterScan){
+            d.returningAfterScan = true;
+            d.status = 'returning';
+            d.waypoints = [{ x: mapSize.w/2, y: mapSize.h/2, id: generateId() }];
+            log(`${d.name} finished scanning all objects - returning to base`);
+          }
         }
       });
 
-      // occasional intruder spawn
-      if(Math.random() < 0.0015){
-        spawnIntruder();
+      // Clean up POIs with no items after collectors emptied them
+      for(let i = pointsOfInterest.length-1; i >= 0; --i){
+        const p = pointsOfInterest[i];
+        if(p.scanned && (!p.items || p.items.length === 0)){
+          // Remove POI after a short delay to let players see it's empty
+          pointsOfInterest.splice(i,1);
+        }
       }
 
-      // small POI discovery tick handled elsewhere (scouts)
+      // update trails ttl
+      updateTrails(dt);
+
+      // update camera canvas - show more visual feedback
+      camCtx.clearRect(0,0,el.camCanvas.width, el.camCanvas.height);
+      camCtx.fillStyle = '#08121a';
+      camCtx.fillRect(0,0,el.camCanvas.width, el.camCanvas.height);
+      
+      if(selected){
+        // Draw a simple visual representation
+        camCtx.fillStyle = '#9be7c6';
+        camCtx.font = 'bold 12px system-ui';
+        camCtx.fillText(`${selected.name} CAMERA FEED`, 8, 18);
+        
+        // Draw battery indicator
+        camCtx.font = '10px system-ui';
+        camCtx.fillStyle = '#7ad1ff';
+        camCtx.fillText(`Battery: ${Math.round(selected.battery)}%`, 8, 35);
+        
+        // Draw status
+        const statusText = selected.status === 'flying' ? 'ACTIVE' : selected.status.toUpperCase();
+        camCtx.fillText(`Status: ${statusText}`, 8, 50);
+        
+        // Draw a simple horizon line
+        camCtx.strokeStyle = 'rgba(155,231,198,0.3)';
+        camCtx.lineWidth = 1;
+        camCtx.beginPath();
+        camCtx.moveTo(0, el.camCanvas.height/2);
+        camCtx.lineTo(el.camCanvas.width, el.camCanvas.height/2);
+        camCtx.stroke();
+        
+        // Draw proximity circles to simulate radar
+        camCtx.strokeStyle = 'rgba(155,231,198,0.2)';
+        const centerX = el.camCanvas.width / 2;
+        const centerY = el.camCanvas.height * 0.7;
+        for(let i = 1; i <= 3; i++){
+          camCtx.beginPath();
+          camCtx.arc(centerX, centerY, i * 30, 0, Math.PI * 2);
+          camCtx.stroke();
+        }
+        
+        // Draw a central dot
+        camCtx.fillStyle = '#9be7c6';
+        camCtx.beginPath();
+        camCtx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+        camCtx.fill();
+        
+        // Show POI count if explorer
+        if(selected.type === 'explorer'){
+          const scannedPOIs = pointsOfInterest.filter(p => p.scanned).length;
+          const totalPOIs = pointsOfInterest.length;
+          camCtx.fillStyle = '#ffd47a';
+          camCtx.font = '10px system-ui';
+          camCtx.fillText(`POIs Scanned: ${scannedPOIs}/${totalPOIs}`, 8, 65);
+        }
+      } else {
+        camCtx.fillStyle = '#9be7c6';
+        camCtx.font = '12px system-ui';
+        camCtx.fillText('No drone selected', 8, 18);
+      }
+
+      // occasionally spawn intruders
+      if(Math.random() < 0.002) spawnIntruder();
+
       renderMap();
+      
+      // Only update drone list UI periodically (every 500ms) to avoid recreating buttons constantly
+      // This fixes the bug where clicking buttons would miss or hit wrong button due to DOM recreation
+      if(t - lastListUpdate > 500){
+        renderList();
+        lastListUpdate = t;
+      }
+
+      requestAnimationFrame(step);
     }
 
-    // Start main loop
-    function tick(){
-      step();
-      requestAnimationFrame(tick);
-    }
-    resizeMapCanvas();
-    tick();
+    // UI event bindings (fix for non-responsive list buttons)
+    el.droneList.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button');
+      if(!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if(!action) return;
 
-    // Wire up UI (minimal handlers so features keep working)
-    document.addEventListener('click', function(e){
-      const act = e.target.getAttribute && e.target.getAttribute('data-action');
-      const id = e.target.getAttribute && e.target.getAttribute('data-id');
-      if(act === 'select' && id) { selectDrone(id); }
-      if(act === 'launch' && id) { launchDrone(id); }
-      if(act === 'recall' && id) { recallDrone(id); }
-    });
-
-    el.btnNewDrone.addEventListener('click', () => {
-      const n = parseInt(el.customDroneNumber.value,10) || 1;
-      const type = el.newDroneType.value || 'explorer';
-      for(let i=0;i<n;i++){
-        spawnWave(1);
+      switch(action){
+        case 'select':
+          selectDrone(id);
+          break;
+        case 'launch':
+          launchDrone(id);
+          break;
+        case 'recall':
+          recallDrone(id);
+          break;
+        default:
+          console.warn('Unhandled drone-list action:', action);
       }
     });
-    el.btnRecallAll.addEventListener('click', recallAllDrones);
-    el.btnToggleTrails.addEventListener('click', ()=>{ trailsEnabled = !trailsEnabled; });
-    el.btnTogglePaths.addEventListener('click', ()=>{ showPaths = !showPaths; });
 
-    // Expose some debug helper on window for quick testing
-    window._drones = drones;
-    window._pois = pointsOfInterest;
+    /* New Drone button: create N of the chosen type */
+    if(el.btnNewDrone){
+      el.btnNewDrone.addEventListener('click', () => {
+        const count = Math.max(1, parseInt(el.customDroneNumber.value, 10) || 1);
+        const type = el.newDroneType.value || 'explorer';
+        for(let i = 0; i < count; i++){
+          const d = addDrone(null, type);
+          // optionally auto-launch each primary drone if Auto-Launch is enabled
+          if(d && el.autoPilot.checked) launchDrone(d.id);
+        }
+        renderList();
+        renderMap();
+      });
+    }
 
+    /* Recall all, Toggle Trails, Toggle Paths, and scout-specific buttons */
+    if(el.btnRecallAll) el.btnRecallAll.addEventListener('click', recallAllDrones);
+    if(el.btnToggleTrails) el.btnToggleTrails.addEventListener('click', () => {
+      trailsEnabled = !trailsEnabled;
+      el.btnToggleTrails.textContent = trailsEnabled ? 'Hide Trails' : 'Show Trails';
+      renderMap();
+    });
+    if(el.btnTogglePaths) el.btnTogglePaths.addEventListener('click', () => {
+      showPaths = !showPaths;
+      el.btnTogglePaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths';
+      renderMap();
+    });
+    // Initialize button text
+    if(el.btnTogglePaths) el.btnTogglePaths.textContent = showPaths ? 'Hide Paths' : 'Show Paths';
+
+    if(el.btnReturnToBase) el.btnReturnToBase.addEventListener('click', () => {
+      if(selected) recallDrone(selected.id);
+    });
+    if(el.btnContinueExploring) el.btnContinueExploring.addEventListener('click', () => {
+      if(selected && selected.type === 'scout'){
+        // give scout a new patrol waypoint and re-launch if idle
+        if(selected.status === 'idle' || selected.status === 'docked') launchDrone(selected.id);
+        selected.taskCompleted = false;
+        generateScoutPatrolWaypoints(selected, 3);
+        renderList();
+        renderMap();
+      }
+    });
+
+    /* Map click: add waypoint to selected drone (Shift+click = global waypoint) */
+    el.mapCanvas.addEventListener('click', (ev) => {
+      const rect = el.mapCanvas.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      if(ev.shiftKey){
+        // global waypoint for all flying drones
+        drones.forEach(d => {
+          d.waypoints = d.waypoints || [];
+          d.waypoints.push({ x, y, id: 'wp-' + Math.random().toString(36).slice(2,9) });
+        });
+        log(`Global waypoint added (${Math.round(x)},${Math.round(y)})`);
+      } else {
+        addWaypointToSelected(x,y);
+      }
+      renderMap();
+    });
+
+    // Keyboard shortcuts: Space to land selected, R to recall selected
+    window.addEventListener('keydown', (ev) => {
+      if(ev.code === 'Space'){
+        if(selected) landDrone(selected.id);
+      } else if(ev.key === 'r' || ev.key === 'R'){
+        if(selected) recallDrone(selected.id);
+      }
+    });
+
+    // initial setup
+    resizeMapCanvas();
+    // create a few starter drones
+    addDrone('Scout','scout');
+    addDrone('Explorer','explorer');
+    addDrone('Collector','collector');
+    addDrone('Defender','defender');
+
+    // start simulation loop
+    requestAnimationFrame(step);
   })();
   </script>
 </body>
