@@ -200,6 +200,9 @@
     const LOW_BATTERY_THRESHOLD = 25; // All drones return to base when battery drops to this level
     const MIN_ARRIVAL_SPEED = 0.14; // Minimum speed threshold for arrival detection
     const SPEED_ARRIVAL_FACTOR = 0.18; // Factor of maxSpeed used for arrival speed check
+    const MIN_TRANSITION_SPEED = 0.5; // Minimum speed when transitioning to next waypoint
+    const TRANSITION_SPEED_FACTOR = 0.7; // Factor of maxSpeed for waypoint transition
+    const SOFT_STOP_DAMPENING = 0.18; // Velocity dampening factor for soft stops
     const DRONE_PADDING_LEFT = 15; // Left boundary padding for drones
     const DRONE_PADDING_RIGHT = 75; // Right boundary padding (accounts for label text)
     const DRONE_PADDING_VERTICAL = 15; // Top/bottom boundary padding for drones
@@ -1109,8 +1112,8 @@
               const ndist = Math.max(1, Math.hypot(ndx, ndy)); // Avoid division by zero
               const sp = (d.type === 'scout' ? 1.6 : (d.type === 'defender' ? 1.1 : 1.0));
               // nudge toward next at a moderate controlled speed
-              d.vx = (ndx/ndist) * Math.min(sp, Math.max(0.5, sp * 0.7));
-              d.vy = (ndy/ndist) * Math.min(sp, Math.max(0.5, sp * 0.7));
+              d.vx = (ndx/ndist) * Math.min(sp, Math.max(MIN_TRANSITION_SPEED, sp * TRANSITION_SPEED_FACTOR));
+              d.vy = (ndy/ndist) * Math.min(sp, Math.max(MIN_TRANSITION_SPEED, sp * TRANSITION_SPEED_FACTOR));
             } else {
               // No more waypoints: if returning, land/idle, otherwise softly stop
               if(d.status === 'returning'){
@@ -1121,8 +1124,8 @@
                 log(`${d.name} returned to base`);
               } else {
                 // Soft stop: exponentially reduce remaining velocity to avoid bounce
-                d.vx *= 0.18;
-                d.vy *= 0.18;
+                d.vx *= SOFT_STOP_DAMPENING;
+                d.vy *= SOFT_STOP_DAMPENING;
               }
             }
           }
