@@ -902,14 +902,14 @@
                     log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
                     updateStatusPrompt(`${poi.name} scanned - items identified`);
                   } else {
-                    poi.items = []; // explicitly empty: nothing to collect
+                    poi.items = []; // Empty array indicates no collectable items found during scan
                     log(`${d.name} scanned ${poi.name} - No collectable items found`);
                     updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
                   }
                 } else {
                   // Not a discovery — the explorer investigated it and found nothing of interest.
-                  // We leave poi.scanned = false and poi.items = [] so collectors won't target it.
-                  poi.items = [];
+                  // We leave poi.scanned = false and set poi.items = [] so collectors won't target it.
+                  poi.items = []; // Ensure items is empty array to indicate nothing to collect
                   log(`${d.name} investigated ${poi.type} - nothing of interest`);
                   updateStatusPrompt(`${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} investigated - nothing found`);
                 }
