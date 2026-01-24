@@ -709,10 +709,16 @@
       // points of interest
       pointsOfInterest.forEach(poi => {
         c.beginPath();
-        if(poi.scanned){
-          c.fillStyle = poi.items && poi.items.length ? 'rgba(79,209,197,0.6)' : 'rgba(100,100,100,0.4)';
+        if(poi.scanned && poi.items && poi.items.length > 0){
+          // Scanned with items: green/teal highlight and checkmark
+          c.fillStyle = 'rgba(79,209,197,0.6)';
           c.strokeStyle = 'rgba(79,209,197,0.8)';
+        } else if(poi.scanned){
+          // Scanned but no items: grey and dot
+          c.fillStyle = 'rgba(100,100,100,0.4)';
+          c.strokeStyle = 'rgba(100,100,100,0.6)';
         } else {
+          // Unscanned: orange and question mark
           c.fillStyle = 'rgba(255,200,80,0.5)';
           c.strokeStyle = 'rgba(255,200,80,0.8)';
         }
@@ -721,10 +727,17 @@
         c.fill();
         c.stroke();
         
-        // Draw icon based on type
+        // Draw icon based on scan status and items
         c.fillStyle = '#fff';
         c.font = 'bold 14px system-ui';
-        const icon = poi.scanned ? '✓' : '?';
+        let icon;
+        if(poi.scanned && poi.items && poi.items.length > 0){
+          icon = '✓';  // checkmark for scanned with items
+        } else if(poi.scanned){
+          icon = '•';  // dot for scanned but no items
+        } else {
+          icon = '?';  // question mark for unscanned
+        }
         c.fillText(icon, poi.x - 5, poi.y + 5);
       });
 
@@ -864,26 +877,41 @@
         if(d.type === 'explorer' && d.status === 'flying'){
           for(let i = 0; i < pointsOfInterest.length; i++){
             const poi = pointsOfInterest[i];
-            if(!poi.scanned){
+            // only attempt to examine unscanned AND not-yet-examined POIs
+            if(!poi.scanned && !poi.examined){
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx,dy);
               if(dist < 15){
-                // Scan it
-                poi.scanned = true;
-                poi.discoveredBy = d.name;
-                poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i+1}`;
+                // mark as examined so we don't repeatedly check the same POI
+                poi.examined = true;
+                poi.examinedBy = d.name;
 
-                // Only a percentage of scanned POIs contain collectable items
-                const ITEM_CHANCE = 0.35; // 35%
-                if(Math.random() < ITEM_CHANCE){
-                  poi.items = generateItems(poi.type);
-                  const itemList = poi.items.map(it => it.name).join(', ');
-                  log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
-                  updateStatusPrompt(`${poi.name} scanned - items identified`);
+                // ~35% chance this examination is a true discovery that can yield items
+                const OBJECT_CHANCE = 0.35;
+                if(Math.random() < OBJECT_CHANCE){
+                  // Scan it and possibly find items
+                  poi.scanned = true;
+                  poi.discoveredBy = d.name;
+                  poi.name = `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i+1}`;
+
+                  // Only a percentage of scanned POIs contain collectable items
+                  const ITEM_CHANCE = 0.35; // 35% chance that scanned POI has items
+                  if(Math.random() < ITEM_CHANCE){
+                    poi.items = generateItems(poi.type);
+                    const itemList = poi.items.map(it => it.name).join(', ');
+                    log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+                    updateStatusPrompt(`${poi.name} scanned - items identified`);
+                  } else {
+                    poi.items = []; // Empty array indicates no collectable items found during scan
+                    log(`${d.name} scanned ${poi.name} - No collectable items found`);
+                    updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
+                  }
                 } else {
-                  poi.items = []; // explicitly empty: nothing to collect
-                  log(`${d.name} scanned ${poi.name} - No collectable items found`);
-                  updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
+                  // Not a discovery — the explorer investigated it and found nothing of interest.
+                  // We leave poi.scanned = false and set poi.items = [] so collectors won't target it.
+                  poi.items = []; // Ensure items is empty array to indicate nothing to collect
+                  log(`${d.name} investigated ${poi.type} - nothing of interest`);
+                  updateStatusPrompt(`${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} investigated - nothing found`);
                 }
 
                 // Remove the waypoint that corresponds to this poi (if present)
@@ -897,7 +925,7 @@
                   }
                 }
 
-                // After scanning: if there is another waypoint queued, nudge immediately toward it
+                // After scanning/examining: if there is another waypoint queued, nudge immediately toward it
                 if(d.waypoints && d.waypoints.length){
                   const next = d.waypoints[0];
                   const ndx = next.x - d.x, ndy = next.y - d.y;
@@ -908,7 +936,7 @@
                   d.status = 'flying';
                 } else {
                   // If no immediate waypoints left, try to find other unscanned POIs to investigate
-                  const unscannedLeft = pointsOfInterest.filter(p => !p.scanned);
+                  const unscannedLeft = pointsOfInterest.filter(p => !p.scanned && !p.examined);
                   if(unscannedLeft.length > 0){
                     unscannedLeft.sort((a,b) => (Math.hypot(a.x-d.x,a.y-d.y) - Math.hypot(b.x-d.x,b.y-d.y)));
                     const pick = Math.min(3, unscannedLeft.length);
