@@ -142,17 +142,10 @@
 
   <script>
   (function(){
-    /* Updates included in this version:
-       - POI spawn suppression while drones return/land (and a short grace window).
-       - Followers are a visual illusion (Create Drone increments follower count on the primary).
-       - Defender stays docked until explicitly launched and defender/intruder logs are suppressed.
-       - Drones automatically return to dock when their task completes (unchanged).
-       - Battery system:
-         * Drains while flying/returning.
-         * Idle drains slowly.
-         * Recharge while docked (status === 'idle').
-         * If battery drops below AUTO_RETURN_THRESHOLD the drone aborts mission and returns to dock.
-         * Launch prevented if battery < MIN_LAUNCH_BATTERY.
+    /* Changes in this update:
+       - Left-side list updates periodically (every 500ms) so battery% and status reflect live state.
+       - When docked (status === 'idle') AND battery < 100, display 'charging' in list and telemetry.
+       - Minimal other logic changes; preserves POI suppression, followers illusion, defender behavior, battery auto-return.
     */
 
     // Elements
@@ -181,7 +174,6 @@
     };
 
     const ctx = el.mapCanvas.getContext('2d');
-    const camCtx = el.camCanvas.getContext('2d');
 
     // Constants & battery tuning
     const COLLECT_TIMEOUT_MS = 120000; // 2 minutes
@@ -190,14 +182,18 @@
     const STORAGE_KEY_COLLECTED = 'drones:collected:v1';
 
     // Battery rates (percent per second)
-    const FLYING_DRAIN_PER_SEC = 0.3;     // 0.3% per second -> ~18% / minute (flight is meaningful)
-    const IDLE_DRAIN_PER_SEC = 0.02;      // small idle drain
-    const RECHARGE_PER_SEC = 1.5;         // recharge speed while docked
-    const MIN_LAUNCH_BATTERY = 30;        // cannot launch below this %
-    const AUTO_RETURN_THRESHOLD = 15;     // auto-return when battery falls below this %
+    const FLYING_DRAIN_PER_SEC = 0.3;     // 0.3% per second
+    const IDLE_DRAIN_PER_SEC = 0.02;
+    const RECHARGE_PER_SEC = 1.5;
+    const MIN_LAUNCH_BATTERY = 30;
+    const AUTO_RETURN_THRESHOLD = 15;
 
     // POI suppression window (ms)
     let suppressPOIUntil = 0;
+
+    // Periodic list refresh interval (ms)
+    const LIST_REFRESH_MS = 500;
+    let lastListUpdate = 0;
 
     // Simulation state
     let drones = []; // {id,name,type,x,y,vx,vy,alt,battery,status,waypoints,followers,...}
@@ -235,6 +231,27 @@
       if(el.statusPrompt){
         el.statusPrompt.textContent = msg;
       }
+    }
+
+    // compute display status (charging shown when docked and battery < 100)
+    function displayStatusFor(d){
+      if(!d) return '—';
+      if(d.status === 'idle' && d.battery < 100 && d.battery > 0) return 'charging';
+      if(d.status === 'dead') return 'dead';
+      return d.status;
+    }
+
+    // Update telemetry panel for selected drone
+    function updateSelectedTelemetry(){
+      if(!selected) return;
+      const d = drones.find(x => x.id === selected.id);
+      if(!d) { selectDrone(null); return; }
+      el.selectedDroneName.textContent = `${d.name} — ${d.id}`;
+      el.sel_type.textContent = d.type;
+      el.sel_status.textContent = displayStatusFor(d);
+      el.sel_batt.textContent = Math.round(d.battery) + '%';
+      el.sel_alt.textContent = Math.round(d.alt) + ' m';
+      el.sel_spd.textContent = (Math.hypot(d.vx, d.vy)).toFixed(1) + ' m/s';
     }
 
     // Load/save collected items
@@ -425,17 +442,18 @@
       return d;
     }
 
-    // List UI
+    // List UI (uses displayStatusFor so 'charging' displays while docked and recharging)
     function renderList(){
       el.droneList.innerHTML = '';
       drones.forEach(d => {
         const tile = document.createElement('div');
         tile.className = 'tile';
         const followerText = d.followers > 0 ? ` (${d.followers})` : '';
+        const dispStatus = displayStatusFor(d);
         tile.innerHTML = `
           <div>
             <div style="font-weight:700">${d.name}${followerText}</div>
-            <div class="meta">${d.type} • ${d.status} • ${Math.round(d.battery)}%</div>
+            <div class="meta">${d.type} • ${dispStatus} • ${Math.round(d.battery)}%</div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn small" data-action="select" data-id="${d.id}">Select</button>
@@ -450,12 +468,8 @@
     function selectDrone(id){
       selected = drones.find(x => x.id === id) || null;
       if(selected){
-        el.selectedName.textContent = `${selected.name} — ${selected.id}`;
-        el.sel_type.textContent = selected.type;
-        el.sel_status.textContent = selected.status;
-        el.sel_batt.textContent = Math.round(selected.battery) + '%';
-        el.sel_alt.textContent = Math.round(selected.alt) + ' m';
-        el.sel_spd.textContent = (Math.hypot(selected.vx, selected.vy)).toFixed(1) + ' m/s';
+        // Use updateSelectedTelemetry to set the fields
+        updateSelectedTelemetry();
       } else {
         el.selectedName.textContent = '—';
         el.sel_type.textContent = '—';
@@ -860,7 +874,7 @@
           }
         }
 
-        // Scout: Discover POIs at waypoints during scouting mission
+        // Scout behavior
         if(d.type === 'scout' && !d.taskCompleted && d.status === 'flying'){
           if(d.waypoints && d.waypoints.length > 0){
             const wp = d.waypoints[0];
@@ -883,7 +897,6 @@
             }
           }
           
-          // When scout finishes its waypoints, recall it to dock
           if(d.waypoints.length === 0){
             const foundCount = d.poisDiscovered || 0;
             if(foundCount === 0){
@@ -897,7 +910,7 @@
           }
         }
 
-        // Explorer: go to POIs and scan; after scanning proceed to next waypoint automatically
+        // Explorer behavior
         if (d.type === 'explorer' && d.status === 'flying') {
           for (let i = 0; i < pointsOfInterest.length; i++) {
             const poi = pointsOfInterest[i];
@@ -981,7 +994,7 @@
           }
         }
 
-        // Collector: Check for nearby scanned POIs with items
+        // Collector behavior
         if(d.type === 'collector' && !d.taskCompleted){
           for(let i = pointsOfInterest.length - 1; i >= 0; i--){
             const poi = pointsOfInterest[i];
@@ -1035,8 +1048,8 @@
         }
         d.battery = clamp(d.battery, 0, 100);
 
-        // Auto-return when battery low (but avoid changing status if already returning/landing/idle)
-        if(d.battery <= AUTO_RETURN_THRESHOLD && d.status !== 'returning' && d.status !== 'landing' && d.status !== 'idle'){
+        // Auto-return when battery low
+        if(d.battery <= AUTO_RETURN_THRESHOLD && d.status !== 'returning' && d.status !== 'landing' && d.status !== 'idle' && d.status !== 'dead'){
           log(`${d.name} battery low (${Math.round(d.battery)}%) — returning to dock`);
           recallDrone(d.id);
         }
@@ -1095,6 +1108,13 @@
         i.x += (Math.random()-0.5) * 0.6;
         i.y += (Math.random()-0.5) * 0.6;
       });
+
+      // Periodic UI updates
+      if(now() - lastListUpdate >= LIST_REFRESH_MS){
+        renderList();
+        lastListUpdate = now();
+        if(selected) updateSelectedTelemetry();
+      }
 
       renderMap();
     }
