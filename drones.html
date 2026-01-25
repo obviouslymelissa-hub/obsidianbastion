@@ -143,9 +143,9 @@
   <script>
   (function(){
     /* Simpler kid-friendly drone deck:
-       - Defender will remain docked until explicitly launched (no automatic interception)
-       - Drones return to ship to dock when their tasks complete
-       - Keeps previous explorer fixes (waypoint removal, POI handling) and recall-all button
+       - Followers are now a visual illusion: Create Drone increments follower count on a primary drone, it does NOT create new primary drones.
+       - Keeps previous behavior: explorers/collectors/scouts still act as before; defender stays docked until launched.
+       - Followers count appears in parentheses next to the drone name on the map and in the list.
     */
 
     // Elements
@@ -410,7 +410,7 @@
       drones.forEach(d => {
         const tile = document.createElement('div');
         tile.className = 'tile';
-        const followerText = d.followers > 0 ? ` (${d.followers} follower${d.followers !== 1 ? 's' : ''})` : '';
+        const followerText = d.followers > 0 ? ` (${d.followers})` : '';
         tile.innerHTML = `
           <div>
             <div style="font-weight:700">${d.name}${followerText}</div>
@@ -450,6 +450,7 @@
     /* Updated behaviors:
        - Defender will only intercept when launched (status === 'flying')
        - Drones return to ship to dock when their task completes
+       - "Create Drone" (left UI) now increments follower count on a primary drone instead of creating new primaries
     */
     function launchDrone(id){
       const d = drones.find(x => x.id === id);
@@ -869,7 +870,6 @@
         if (d.type === 'explorer' && d.status === 'flying') {
           for (let i = 0; i < pointsOfInterest.length; i++) {
             const poi = pointsOfInterest[i];
-            // only attempt to examine unscanned AND not-yet-examined POIs
             if (!poi.scanned && !poi.examined) {
               const dx = poi.x - d.x, dy = poi.y - d.y;
               const dist = Math.hypot(dx, dy);
@@ -1052,12 +1052,26 @@
     }
 
     // Input / Events
+    // Create Drone button now increments followers on the primary of the selected type (illusion only).
     el.btnNewDrone.addEventListener('click', () => {
       const type = el.newDroneType.value || 'explorer';
       const count = parseInt(el.customDroneNumber.value, 10) || 1;
-      for(let i=0;i<count;i++){
-        addDrone(`${type.charAt(0).toUpperCase()+type.slice(1)} ${drones.length+1}`, type);
+
+      let primary = getPrimaryDrone(type);
+      if(!primary){
+        // If no primary exists, create one at the ship center so followers have something to attach to
+        const centerX = mapSize.w/2, centerY = mapSize.h/2;
+        primary = addDrone(`${type.charAt(0).toUpperCase()+type.slice(1)}-01`, type, { x: centerX, y: centerY });
+        // Ensure the created primary stays docked (don't auto-launch)
+        primary.status = 'idle';
+        primary.waypoints = [];
+        primary.vx = primary.vy = primary.targetVx = primary.targetVy = 0;
       }
+
+      primary.followers = (primary.followers || 0) + count;
+      log(`Added ${count} follower${count !== 1 ? 's' : ''} to ${primary.name} (now ${primary.followers})`);
+      renderList();
+      renderMap();
     });
 
     el.btnSpawnWave.addEventListener('click', () => {
