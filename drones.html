@@ -147,7 +147,9 @@
        - Added explicit "Assign to Fleet" buttons for quests
        - Left core behaviors: spawn, launch, waypoints, quests, intruders
        - Adjusted explorer behavior so waypoints are removed reliably and scanned POIs show correctly
-       - Added initial fleet placed at ship center on load and "Recall All" button
+       - Added initialFleet() placing drones at ship center and "Recall All" button
+       - Fixed ordering of initial fleet (Scout first)
+       - POIs with no collectable items are removed after examination
     */
 
     // Elements
@@ -191,7 +193,7 @@
     let trailsEnabled = true;
     let trails = {};
     let intruders = [];
-    let pointsOfInterest = []; // {id,x,y,type,scanned,name,items,discoveredBy}
+    let pointsOfInterest = []; // {id,x,y,type,scanned,name,items,discoveredBy,examined}
     let collectedItems = loadCollectedItems();
     let mapSize = { w: el.mapCanvas.clientWidth, h: el.mapCanvas.clientHeight };
 
@@ -909,18 +911,18 @@
                     log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
                     updateStatusPrompt(`${poi.name} scanned - items identified`);
                   } else {
-                    // Scanned but nothing collectable
+                    // Scanned but nothing collectable -> remove POI from map
                     poi.items = [];
-                    log(`${d.name} scanned ${poi.name} - No collectable items found`);
-                    updateStatusPrompt(`${poi.name} scanned - nothing to collect`);
+                    log(`${d.name} scanned ${poi.name} - No collectable items found; removing POI`);
+                    // remove poi from list
+                    pointsOfInterest.splice(i, 1);
                   }
                 } else {
                   // Not a discovery — explorer investigated it and found nothing of interest.
-                  // Leave poi.scanned = false so collectors won't target it; ensure items is empty.
-                  poi.scanned = false;
+                  // Remove poi so it doesn't linger as an unscanned marker
                   poi.items = [];
-                  log(`${d.name} investigated ${poi.type} - nothing of interest`);
-                  updateStatusPrompt(`${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} investigated - nothing found`);
+                  log(`${d.name} investigated ${poi.type} - nothing of interest; removing POI`);
+                  pointsOfInterest.splice(i, 1);
                 }
 
                 // Remove any waypoints close to this POI for this drone (tolerance larger to avoid coordinate mismatch)
@@ -1141,9 +1143,10 @@
     function initialFleet(){
       if(!mapSize.w || !mapSize.h) resizeMapCanvas();
       const centerX = mapSize.w/2, centerY = mapSize.h/2;
-      // Create one of each primary type at center (idle)
-      addDrone('Explorer-01', 'explorer', { x: centerX - 24, y: centerY - 8 });
-      addDrone('Scout-01', 'scout', { x: centerX + 24, y: centerY - 8 });
+      // Create initial fleet at center in the requested order:
+      // Scout first, then Explorer, then Collector, then Defender
+      addDrone('Scout-01', 'scout', { x: centerX - 24, y: centerY - 8 });
+      addDrone('Explorer-01', 'explorer', { x: centerX + 24, y: centerY - 8 });
       addDrone('Collector-01', 'collector', { x: centerX - 24, y: centerY + 28 });
       addDrone('Defender-01', 'defender', { x: centerX + 24, y: centerY + 28 });
       // Ensure they are idle on the ship (not flying)
