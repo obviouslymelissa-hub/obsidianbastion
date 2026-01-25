@@ -145,8 +145,9 @@
     /* Changes in this update:
        - POIs are no longer spawned globally on a timer. Scouts are the only source of POIs (they create POIs when they check waypoints).
        - Drones that are done with their assigned waypoints (no remaining waypoints) now automatically return to dock instead of floating.
-       - Explorer/object/item chances left at ~50% from earlier change.
-       - Small safety: apply immediate velocity at launch so drones visibly move (retained).
+       - Explorer/object/item chances at ~50% retained.
+       - Scout discovery chance increased to 65% (as requested) so more POIs appear at scout path dots.
+       - Ensure drones receive immediate velocity at launch so they visibly move.
     */
 
     // Elements
@@ -908,6 +909,26 @@
           d.targetVy = (dy/dist) * speed;
 
           // When close enough, remove waypoint and if it was the dock waypoint, land
+          if(dist < 15 && d.type === 'scout' && !d.justCheckedWaypoint){
+            // Scout checks a waypoint and MAY create a POI at that waypoint
+            d.justCheckedWaypoint = true;
+            // Increased discovery chance: 65%
+            if(d.poisDiscovered < d.targetPOIs && Math.random() < 0.65){
+              const newPOI = generatePOI();
+              // Place the POI close to the waypoint (so it appears along the scout path)
+              newPOI.x = clamp(wp.x + (Math.random() - 0.5) * 40, 40, mapSize.w - 40);
+              newPOI.y = clamp(wp.y + (Math.random() - 0.5) * 40, 40, mapSize.h - 40);
+              pointsOfInterest.push(newPOI);
+              d.poisDiscovered = (d.poisDiscovered || 0) + 1;
+              d.lastDiscoveryTime = t;
+              log(`${d.name} discovered ${newPOI.type} at waypoint`);
+              updateStatusPrompt(`Object found! (${d.poisDiscovered}/${d.targetPOIs})`);
+            }
+          } else if(dist >= 15){
+            d.justCheckedWaypoint = false;
+          }
+
+          // When close enough to the waypoint, remove it and handle docking
           if(dist < 10){
             // Determine if this waypoint is the ship center
             const isCenterWP = Math.hypot(wp.x - mapSize.w/2, wp.y - mapSize.h/2) < 12;
