@@ -143,11 +143,10 @@
   <script>
   (function(){
     /* Changes in this update:
-       - POIs are no longer spawned globally on a timer. Scouts are the only source of POIs (they create POIs when they check waypoints).
-       - Drones that are done with their assigned waypoints (no remaining waypoints) now automatically return to dock instead of floating.
-       - Explorer/object/item chances at ~50% retained.
-       - Scout discovery chance increased to 65% (as requested) so more POIs appear at scout path dots.
-       - Ensure drones receive immediate velocity at launch so they visibly move.
+       - Scouts only create POIs at their waypoints (65% chance).
+       - Explorers now mark POIs scanned and set items (50% object/item odds) — when items are present the POI remains and renders green/check; when not, the POI is removed immediately.
+       - Drones that finish their waypoints auto-return to dock.
+       - Immediate target velocity applied on launch so drones visibly move.
     */
 
     // Elements
@@ -772,7 +771,7 @@
           c.fillStyle = 'rgba(79,209,197,0.6)';
           c.strokeStyle = 'rgba(79,209,197,0.8)';
         } else if(poi.scanned){
-          // Scanned but no items: grey and dot
+          // Scanned but no items: grey and dot (should be rare, we remove such POIs)
           c.fillStyle = 'rgba(100,100,100,0.4)';
           c.strokeStyle = 'rgba(100,100,100,0.6)';
         } else {
@@ -908,14 +907,11 @@
           d.targetVx = (dx/dist) * speed;
           d.targetVy = (dy/dist) * speed;
 
-          // When close enough, remove waypoint and if it was the dock waypoint, land
-          if(dist < 15 && d.type === 'scout' && !d.justCheckedWaypoint){
-            // Scout checks a waypoint and MAY create a POI at that waypoint
+          // Scout: check waypoint and create POI near that waypoint with 65% chance
+          if(d.type === 'scout' && dist < 15 && !d.justCheckedWaypoint){
             d.justCheckedWaypoint = true;
-            // Increased discovery chance: 65%
             if(d.poisDiscovered < d.targetPOIs && Math.random() < 0.65){
               const newPOI = generatePOI();
-              // Place the POI close to the waypoint (so it appears along the scout path)
               newPOI.x = clamp(wp.x + (Math.random() - 0.5) * 40, 40, mapSize.w - 40);
               newPOI.y = clamp(wp.y + (Math.random() - 0.5) * 40, 40, mapSize.h - 40);
               pointsOfInterest.push(newPOI);
@@ -928,7 +924,7 @@
             d.justCheckedWaypoint = false;
           }
 
-          // When close enough to the waypoint, remove it and handle docking
+          // When close enough, remove waypoint and if it was the dock waypoint, land
           if(dist < 10){
             // Determine if this waypoint is the ship center
             const isCenterWP = Math.hypot(wp.x - mapSize.w/2, wp.y - mapSize.h/2) < 12;
@@ -941,8 +937,133 @@
           }
         }
 
+        // Explorer behavior: scan nearby unscanned POIs (this runs regardless of waypoints)
+        if (d.type === 'explorer' && d.status === 'flying') {
+          for (let i = 0; i < pointsOfInterest.length; i++) {
+            const poi = pointsOfInterest[i];
+            if (!poi.scanned && !poi.examined) {
+              const dx = poi.x - d.x, dy = poi.y - d.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist < 18) {
+                poi.examined = true;
+                poi.examinedBy = d.name;
+
+                // 50% chance to treat the POI as an object (increases collectable results)
+                const OBJECT_CHANCE = 0.5;
+                if (Math.random() < OBJECT_CHANCE) {
+                  poi.scanned = true;
+                  poi.discoveredBy = d.name;
+                  poi.name = poi.name || `${poi.type.charAt(0).toUpperCase()}${poi.type.slice(1)} #${i + 1}`;
+
+                  // 50% chance to produce items
+                  const ITEM_CHANCE = 0.5;
+                  if (Math.random() < ITEM_CHANCE) {
+                    poi.items = generateItems(poi.type);
+                    const itemList = poi.items.map(it => it.name).join(', ');
+                    log(`${d.name} scanned ${poi.name} - Found: ${itemList}`);
+                    updateStatusPrompt(`${poi.name} scanned - items identified`);
+                    // leave the POI on the map (it will render green with a checkmark)
+                  } else {
+                    // Scanned but nothing collectable -> remove POI from map
+                    log(`${d.name} scanned ${poi.name} - No collectable items found; removing POI`);
+                    pointsOfInterest.splice(i, 1);
+                    // adjust loop index since we removed current element
+                    i--;
+                  }
+                } else {
+                  // Not an object — remove the POI immediately
+                  log(`${d.name} investigated ${poi.type} - nothing of interest; removing POI`);
+                  pointsOfInterest.splice(i, 1);
+                  i--;
+                }
+
+                // Remove explorer waypoints near the POI to avoid leftovers
+                if (d.waypoints && d.waypoints.length) {
+                  for (let wi = d.waypoints.length - 1; wi >= 0; wi--) {
+                    const wp2 = d.waypoints[wi];
+                    if (Math.hypot(wp2.x - poi.x, wp2.y - poi.y) < 40) {
+                      d.waypoints.splice(wi, 1);
+                    }
+                  }
+                }
+
+                // After scanning/examining: if explorer still has waypoints, set new target toward next waypoint
+                if (d.waypoints && d.waypoints.length) {
+                  const next = d.waypoints[0];
+                  const ndx = next.x - d.x, ndy = next.y - d.y;
+                  const ndist = Math.hypot(ndx, ndy) || 1;
+                  const desiredV = 1.4 + (Math.random() * 0.4);
+                  d.targetVx = (ndx / ndist) * desiredV;
+                  d.targetVy = (ndy / ndist) * desiredV;
+                  d.status = 'flying';
+                } else {
+                  const unscannedLeft = pointsOfInterest.filter(p => !p.scanned && !p.examined);
+                  if (unscannedLeft.length > 0) {
+                    unscannedLeft.sort((a, b) => (Math.hypot(a.x - d.x, a.y - d.y) - Math.hypot(b.x - d.x, b.y - d.y)));
+                    const pick = Math.min(3, unscannedLeft.length);
+                    for (let k = 0; k < pick; k++) {
+                      d.waypoints.push({ x: unscannedLeft[k].x, y: unscannedLeft[k].y, id: generateId() });
+                    }
+                    const next = d.waypoints[0];
+                    const ndx = next.x - d.x, ndy = next.y - d.y;
+                    const ndist = Math.hypot(ndx, ndy) || 1;
+                    const desiredV = 1.4 + (Math.random() * 0.4);
+                    d.targetVx = (ndx / ndist) * desiredV;
+                    d.targetVy = (ndy / ndist) * desiredV;
+                    d.status = 'flying';
+                  } else {
+                    // No more POIs => return to dock
+                    d.taskCompleted = true;
+                    recallDrone(d.id);
+                  }
+                }
+
+                // handled this POI; break to avoid multiple scans in the same tick
+                break;
+              }
+            }
+          }
+        }
+
+        // Collector behavior
+        if(d.type === 'collector' && !d.taskCompleted){
+          for(let i = pointsOfInterest.length - 1; i >= 0; i--){
+            const poi = pointsOfInterest[i];
+            if(poi.scanned && poi.items && poi.items.length > 0){
+              const dx = poi.x - d.x, dy = poi.y - d.y;
+              const dist = Math.hypot(dx,dy);
+              if(dist < 15){
+                // Collect all items from this POI
+                poi.items.forEach(item => {
+                  const collectedItem = {
+                    id: 'item-' + generateId(),
+                    name: item.name,
+                    mundane: item.mundane,
+                    source: poi.name,
+                    collectedBy: d.name,
+                    timestamp: Date.now()
+                  };
+                  collectedItems.push(collectedItem);
+                  // add to inventory/research where appropriate
+                  if(!item.mundane) addToResearch(item.name, `${item.name} recovered from ${poi.name}`);
+                  addToPartsInventory(item.name);
+                });
+
+                // Remove POI after collection
+                log(`${d.name} collected ${poi.items.length} item(s) from ${poi.name}`);
+                pointsOfInterest.splice(i,1);
+                saveCollectedItems();
+
+                // mark task completed and return to base
+                d.taskCompleted = true;
+                recallDrone(d.id);
+                break;
+              }
+            }
+          }
+        }
+
         // --- SAFETY: if a drone is 'flying' but has no waypoints left, treat job as complete and return to dock ---
-        // This ensures drones don't just float after finishing their assigned work.
         if(d.status === 'flying' && (!d.waypoints || d.waypoints.length === 0) && !d.taskCompleted){
           d.taskCompleted = true;
           recallDrone(d.id);
