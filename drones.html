@@ -77,7 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,25[...]
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,25[...]
           <button id="btnNewDrone" class="btn small">Create Drone</button>
           <button id="btnSpawnWave" class="btn small">Spawn Wave</button>
         </div>
@@ -142,11 +142,12 @@
 
   <script>
   (function(){
-    /* Changes in this update:
-       - Scouts only create POIs at their waypoints (65% chance).
-       - Explorers now mark POIs scanned and set items (50% object/item odds) — when items are present the POI remains and renders green/check; when not, the POI is removed immediately.
-       - Drones that finish their waypoints auto-return to dock.
-       - Immediate target velocity applied on launch so drones visibly move.
+    /* Current behavior highlights:
+       - Scouts create POIs only at their waypoints (65% chance).
+       - Explorers scan POIs; if items are produced the POI remains and renders green with check; otherwise the POI is removed.
+       - Collectors queue multiple collectable POIs and visit them sequentially instead of returning after the first.
+       - Drones that finish assigned waypoints auto-return to dock.
+       - Immediate velocity applied at launch so drones visibly move.
     */
 
     // Elements
@@ -572,14 +573,22 @@
       else if(d.type === 'collector'){
         const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
         if(ready.length > 0){
-          const target = ready[Math.floor(Math.random() * ready.length)];
-          d.waypoints = [{ x: target.x, y: target.y, id: generateId() }];
+          // Queue up several nearest collectable POIs so the collector visits multiple items in one sortie
+          ready.sort((a,b) => (Math.hypot(a.x-d.x,a.y-d.y) - Math.hypot(b.x-d.x,b.y-d.y)));
+          const pick = Math.min(6, ready.length);
+          d.waypoints = [];
+          for (let i = 0; i < pick; i++) {
+            d.waypoints.push({ x: ready[i].x, y: ready[i].y, poiId: ready[i].id, id: generateId() });
+          }
+          // set velocity toward first queued waypoint
+          const target = d.waypoints[0];
           const dx = target.x - d.x, dy = target.y - d.y;
           const dist = Math.hypot(dx,dy) || 1;
           const desiredV = 1.1 + (Math.random() * 0.4);
           d.targetVx = (dx/dist) * desiredV;
           d.targetVy = (dy/dist) * desiredV;
         } else {
+          // fallback wandering behavior
           d.waypoints = [];
           const numWaypoints = 2 + Math.floor(Math.random() * 3);
           for(let i=0;i<numWaypoints;i++){
@@ -771,7 +780,7 @@
           c.fillStyle = 'rgba(79,209,197,0.6)';
           c.strokeStyle = 'rgba(79,209,197,0.8)';
         } else if(poi.scanned){
-          // Scanned but no items: grey and dot (should be rare, we remove such POIs)
+          // Scanned but no items: grey and dot (should be removed in most cases)
           c.fillStyle = 'rgba(100,100,100,0.4)';
           c.strokeStyle = 'rgba(100,100,100,0.6)';
         } else {
@@ -967,7 +976,6 @@
                     // Scanned but nothing collectable -> remove POI from map
                     log(`${d.name} scanned ${poi.name} - No collectable items found; removing POI`);
                     pointsOfInterest.splice(i, 1);
-                    // adjust loop index since we removed current element
                     i--;
                   }
                 } else {
@@ -1025,8 +1033,8 @@
           }
         }
 
-        // Collector behavior
-        if(d.type === 'collector' && !d.taskCompleted){
+        // Collector behavior: visit queued collectable waypoints, continue after collection
+        if(d.type === 'collector'){
           for(let i = pointsOfInterest.length - 1; i >= 0; i--){
             const poi = pointsOfInterest[i];
             if(poi.scanned && poi.items && poi.items.length > 0){
@@ -1044,19 +1052,57 @@
                     timestamp: Date.now()
                   };
                   collectedItems.push(collectedItem);
-                  // add to inventory/research where appropriate
                   if(!item.mundane) addToResearch(item.name, `${item.name} recovered from ${poi.name}`);
                   addToPartsInventory(item.name);
                 });
 
-                // Remove POI after collection
                 log(`${d.name} collected ${poi.items.length} item(s) from ${poi.name}`);
+                // Remove POI after collection
                 pointsOfInterest.splice(i,1);
                 saveCollectedItems();
 
-                // mark task completed and return to base
-                d.taskCompleted = true;
-                recallDrone(d.id);
+                // Remove any matching waypoint(s) that pointed to this POI from the collector's queue
+                if(d.waypoints && d.waypoints.length){
+                  for(let wi = d.waypoints.length - 1; wi >= 0; wi--){
+                    if(d.waypoints[wi].poiId === poi.id || (Math.hypot(d.waypoints[wi].x - poi.x, d.waypoints[wi].y - poi.y) < 6)){
+                      d.waypoints.splice(wi,1);
+                    }
+                  }
+                }
+
+                // If there are more queued collectable waypoints, set course to the next one.
+                const nextWP = (d.waypoints && d.waypoints.length) ? d.waypoints[0] : null;
+                if(nextWP){
+                  const ndx = nextWP.x - d.x, ndy = nextWP.y - d.y;
+                  const ndist = Math.hypot(ndx, ndy) || 1;
+                  const speed = 1.1 + (Math.random() * 0.4);
+                  d.targetVx = (ndx/ndist)*speed;
+                  d.targetVy = (ndy/ndist)*speed;
+                  d.status = 'flying';
+                  // continue collecting
+                } else {
+                  // No queued POIs left - look for any remaining collectable POIs and queue them
+                  const ready = pointsOfInterest.filter(p => p.scanned && p.items && p.items.length > 0);
+                  if(ready.length > 0){
+                    ready.sort((a,b) => (Math.hypot(a.x-d.x,a.y-d.y) - Math.hypot(b.x-d.x,b.y-d.y)));
+                    const pick = Math.min(6, ready.length);
+                    d.waypoints = [];
+                    for(let k=0;k<pick;k++) d.waypoints.push({ x: ready[k].x, y: ready[k].y, poiId: ready[k].id, id: generateId() });
+                    const next = d.waypoints[0];
+                    const ndx = next.x - d.x, ndy = next.y - d.y;
+                    const ndist = Math.hypot(ndx, ndy) || 1;
+                    const speed = 1.1 + (Math.random() * 0.4);
+                    d.targetVx = (ndx/ndist)*speed;
+                    d.targetVy = (ndy/ndist)*speed;
+                    d.status = 'flying';
+                  } else {
+                    // Nothing left to collect -> return to dock
+                    d.taskCompleted = true;
+                    recallDrone(d.id);
+                  }
+                }
+
+                // break after handling one collected POI to avoid multiple collects in same tick
                 break;
               }
             }
@@ -1135,7 +1181,7 @@
     });
 
     // Periodic intruder spawn only. DO NOT spawn POIs globally here.
-    // POIs are now only created by scouts when they check waypoints.
+    // POIs are only created by scouts when they check waypoints.
     setInterval(() => {
       if(Math.random() < 0.12) spawnIntruder();
     }, 4000);
