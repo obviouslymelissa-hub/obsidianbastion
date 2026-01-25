@@ -77,7 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,25[...]
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,25[...]
           <button id="btnNewDrone" class="btn small">Create Drone</button>
           <button id="btnSpawnWave" class="btn small">Spawn Wave</button>
         </div>
@@ -143,10 +143,10 @@
   <script>
   (function(){
     /* Changes in this update:
-       - Left-side list updates periodically (every 500ms) so battery% and status reflect live state.
-       - When docked (status === 'idle') AND battery < 100, display 'charging' in list and telemetry.
-       - Explorer scan/object/item chances increased to ~50%.
-       - Ensure drones (especially explorers) receive an immediate velocity when launched so they visibly move.
+       - POIs are no longer spawned globally on a timer. Scouts are the only source of POIs (they create POIs when they check waypoints).
+       - Drones that are done with their assigned waypoints (no remaining waypoints) now automatically return to dock instead of floating.
+       - Explorer/object/item chances left at ~50% from earlier change.
+       - Small safety: apply immediate velocity at launch so drones visibly move (retained).
     */
 
     // Elements
@@ -597,9 +597,7 @@
       }
 
       // Ensure the drone receives an immediate velocity so it visibly moves right after launch.
-      // This addresses cases where status shows "flying" but the drone appears stationary.
       if(d.status === 'flying'){
-        // if a meaningful target velocity was computed, apply it immediately
         if(typeof d.targetVx === 'number') d.vx = d.targetVx;
         if(typeof d.targetVy === 'number') d.vy = d.targetVy;
       }
@@ -922,6 +920,13 @@
           }
         }
 
+        // --- SAFETY: if a drone is 'flying' but has no waypoints left, treat job as complete and return to dock ---
+        // This ensures drones don't just float after finishing their assigned work.
+        if(d.status === 'flying' && (!d.waypoints || d.waypoints.length === 0) && !d.taskCompleted){
+          d.taskCompleted = true;
+          recallDrone(d.id);
+        }
+
         // Integrate position
         d.x += d.vx;
         d.y += d.vy;
@@ -987,18 +992,10 @@
       if(nearest) selectDrone(nearest.id);
     });
 
-    // Periodic intruder & POI spawns (guarded by suppressPOIUntil and active returns)
+    // Periodic intruder spawn only. DO NOT spawn POIs globally here.
+    // POIs are now only created by scouts when they check waypoints.
     setInterval(() => {
       if(Math.random() < 0.12) spawnIntruder();
-
-      // Only spawn a new random POI if:
-      // - we're not temporarily suppressing (suppressPOIUntil)
-      // - there are fewer than the max POIs
-      // - AND no drone is currently returning to base (so we don't pop one up while ships are coming home)
-      const anyReturning = drones.some(d => d.status === 'returning');
-      if (Math.random() < 0.08 && pointsOfInterest.length < 12 && !anyReturning && now() > suppressPOIUntil) {
-        pointsOfInterest.push(generatePOI());
-      }
     }, 4000);
 
     // Init: place some default drones at ship center and set up main loop
