@@ -18,9 +18,9 @@
     /* map styles: remove fixed height to let JS manage a larger, responsive height */
     #mapCanvas { width:100%; height:64vh; background:linear-gradient(180deg,#061018, #07131a); border-radius:8px; display:block; touch-action:none; }
     .telemetry dl { display:grid; grid-template-columns: 1fr 1fr; gap:6px 18px; }
-    .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); }
+    .log { max-height:220px; overflow:auto; font-family:monospace; font-size:12px; background:rgba(0,0,0,0.12); padding:8px; border-radius:6px; color:var(--muted); white-space:pre-wrap; }
     .btn.small { padding:6px 8px; font-size:13px; }
-    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-in[...]
+    #joystick { position:fixed; right:18px; bottom:18px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; z-index:1200; }
     #knob { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,0.06); transition:transform 0.02s linear; }
     .camera-box { background:#000; height:140px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#999; }
     .badge { background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:8px; font-weight:600; }
@@ -51,7 +51,7 @@
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <h1>Launch Bay — Drone Deck</h1>
-        <div class="hint">Captain! Deploy scouts to discover points of interest, explorers to scan them, and collectors to retrieve items. Click a drone on the map to select it. Space = land, R = reca[...]
+        <div class="hint">Captain! Deploy scouts to discover points of interest, explorers to scan them, and collectors to retrieve items. Click a drone on the map to select it. Space = land, R = recall.</div>
       </div>
       <div class="controls">
         <div class="controls-row">
@@ -77,7 +77,7 @@
             <option value="scout">Scout</option>
             <option value="collector">Collector</option>
           </select>
-          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,25[...]
+          <input id="customDroneNumber" type="number" min="1" placeholder="count" style="width:80px;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);">
           <button id="btnNewDrone" class="btn small">Create Drone</button>
           <button id="btnSpawnWave" class="btn small">Spawn Wave</button>
         </div>
@@ -253,7 +253,29 @@
     function loadCollectedItems(){ try { const raw = localStorage.getItem(STORAGE_KEY_COLLECTED); return raw ? JSON.parse(raw) : []; } catch(e){ return []; } }
     function saveCollectedItems(){ try { localStorage.setItem(STORAGE_KEY_COLLECTED, JSON.stringify(collectedItems)); } catch(e){ console.error('Failed to save collected items:', e); } }
 
-    // POI/item generators (unchanged)
+    // ----- Defensive no-op implementations for inventory/research helpers -----
+    // These used to be missing and caused a ReferenceError during collection.
+    function addToResearch(name, note){
+      try {
+        window._research = window._research || [];
+        window._research.push({ name, note, timestamp: Date.now() });
+        log(`Research logged: ${name}`);
+      } catch(e){
+        console.warn('addToResearch failed', e);
+      }
+    }
+    function addToPartsInventory(name){
+      try {
+        window._partsInventory = window._partsInventory || {};
+        window._partsInventory[name] = (window._partsInventory[name] || 0) + 1;
+        log(`Added to parts inventory: ${name}`);
+      } catch(e){
+        console.warn('addToPartsInventory failed', e);
+      }
+    }
+    // -----------------------------------------------------------------------
+
+    // POI/item generators
     function generatePOI(){
       const types = ['asteroid', 'moon fragment', 'planet debris', 'space junk', 'derelict probe', 'crystal formation'];
       const type = types[Math.floor(Math.random() * types.length)];
@@ -262,7 +284,14 @@
       return { id: 'poi-' + generateId(), x, y, type, scanned: false, name: null, items: null, discoveredBy: null, examined: false };
     }
     function generateItems(poiType){
-      const itemPool = { 'asteroid':[ { name:'Rare Mineral Sample', mundane:false },{ name:'Iron Ore', mundane:true },{ name:'Crystalline Fragment', mundane:false } ], 'moon fragment':[ { name:'Ancient Moon Rock', mundane:false },{ name:'Sensor Module', mundane:true },{ name:'Lunar Ice Sample', mundane:false } ], 'planet debris':[ { name:'Atmospheric Analyzer', mundane:true },{ name:'Alien Artifact', mundane:false },{ name:'Power Cell', mundane:true } ], 'space junk':[ { name:'Hull Plate', mundane:true },{ name:'Antenna', mundane:true },{ name:'Navigation Computer Fragment', mundane:false } ], 'derelict probe':[ { name:'Data Core', mundane:false },{ name:'Thruster Component', mundane:true },{ name:'Communication Array', mundane:true } ], 'crystal formation':[ { name:'Energy Crystal', mundane:false },{ name:'Quantum Resonator', mundane:false },{ name:'Coolant Pump', mundane:true } ] };
+      const itemPool = {
+        'asteroid': [ { name:'Rare Mineral Sample', mundane:false }, { name:'Iron Ore', mundane:true }, { name:'Crystalline Fragment', mundane:false } ],
+        'moon fragment': [ { name:'Ancient Alloy Shard', mundane:false }, { name:'Regolith', mundane:true } ],
+        'planet debris': [ { name:'Biogenic Residue', mundane:false }, { name:'Scrap Metal', mundane:true } ],
+        'space junk': [ { name:'Circuit Board', mundane:true }, { name:'Damaged Sensor', mundane:true } ],
+        'derelict probe': [ { name:'Probe Core', mundane:false }, { name:'Telemetry Cache', mundane:false } ],
+        'crystal formation': [ { name:'Luminar Crystal', mundane:false }, { name:'Crystal Dust', mundane:true } ]
+      };
       const pool = itemPool[poiType] || itemPool['space junk'];
       const numItems = 1 + Math.floor(Math.random() * 2);
       const items = [];
@@ -283,7 +312,7 @@
     }
     window.addEventListener('resize', resizeMapCanvas);
 
-    // Add drone (unchanged except collectors/defender handling happens in launch)
+    // Add drone
     function addDrone(name, type, opts = {}){
       if(!mapSize.w || !mapSize.h) resizeMapCanvas();
       if(!name){
@@ -306,7 +335,7 @@
         const tile = document.createElement('div'); tile.className='tile';
         const followerText = d.followers>0?` (${d.followers})`:'';
         const dispStatus = displayStatusFor(d);
-        tile.innerHTML = `<div><div style="font-weight:700">${d.name}${followerText}</div><div class="meta">${d.type} • ${dispStatus} • ${Math.round(d.battery)}%</div></div><div style="display:flex;gap:6px;align-items:center"><button class="btn small" data-action="select" data-id="${d.id}">Select</button><button class="btn small" data-action="launch" data-id="${d.id}">Launch</button><button class="btn small" data-action="abort" data-id="${d.id}">Abort</button></div>`;
+        tile.innerHTML = `<div><div style="font-weight:700">${d.name}${followerText}</div><div class="meta">${d.type} • ${dispStatus} • ${Math.round(d.battery)}%</div></div><div style="display:flex;gap:6px;align-items:center"><button data-action="select" data-id="${d.id}" class="btn small">View</button><button data-action="launch" data-id="${d.id}" class="btn small">Launch</button><button data-action="abort" data-id="${d.id}" class="btn small">Abort</button></div>`;
         el.droneList.appendChild(tile);
       });
     }
@@ -329,7 +358,7 @@
       const speedBase = d.type==='scout'?2.2:(d.type==='defender'?1.2:(d.type==='explorer'?1.4:1.0));
       d.targetVx = (Math.random()-0.5)*speedBase; d.targetVy = (Math.random()-0.5)*speedBase;
 
-      // Scouts (unchanged)
+      // Scouts
       if(d.type==='scout'){
         d.waypoints=[]; d.poisDiscovered=0; d.targetPOIs = 1 + Math.floor(Math.random()*5);
         const numWaypoints = 8 + Math.floor(Math.random()*5);
@@ -337,15 +366,22 @@
         if(d.waypoints.length){ const wp=d.waypoints[0]; const dx=wp.x-d.x, dy=wp.y-d.y, dist=Math.hypot(dx,dy)||1; const desiredV=1.6+(Math.random()*0.4); d.targetVx=(dx/dist)*desiredV; d.targetVy=(dy/dist)*desiredV; }
       }
 
-      // Explorer (unchanged)
+      // Explorer
       else if(d.type==='explorer'){
         const unscanned = pointsOfInterest.filter(p=>!p.scanned && !p.examined);
-        if(unscanned.length>0){ d.waypoints=[]; unscanned.sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y)); const pick=Math.min(4,unscanned.length); for(let i=0;i<pick;i++){ const t=unscanned[i]; d.waypoints.push({x:t.x,y:t.y,id:generateId()}); } }
-        else { d.waypoints=[]; const numWaypoints=4+Math.floor(Math.random()*4); for(let i=0;i<numWaypoints;i++){ const angle=Math.random()*Math.PI*2; const distance=80+Math.random()*260; const wx=clamp(d.x+Math.cos(angle)*distance,40,mapSize.w-40); const wy=clamp(d.y+Math.sin(angle)*distance,40,mapSize.h-40); d.waypoints.push({x:wx,y:wy,id:generateId()}); } }
+        if(unscanned.length>0){
+          d.waypoints = [];
+          unscanned.sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y));
+          const pick=Math.min(4,unscanned.length);
+          for(let i=0;i<pick;i++) d.waypoints.push({ x: unscanned[i].x, y: unscanned[i].y, id: generateId() });
+        } else {
+          d.waypoints=[]; const numWaypoints=4+Math.floor(Math.random()*4);
+          for(let i=0;i<numWaypoints;i++){ const angle=Math.random()*Math.PI*2; const distance=80+Math.random()*260; const wx=clamp(d.x+Math.cos(angle)*distance,40,mapSize.w-40); const wy=clamp(d.y+Math.sin(angle)*distance,40,mapSize.h-40); d.waypoints.push({x:wx,y:wy,id:generateId()}); }
+        }
         if(d.waypoints && d.waypoints.length){ const wp=d.waypoints[0]; const dx=wp.x-d.x, dy=wp.y-d.y, dist=Math.hypot(dx,dy)||1; const desiredV=1.4+(Math.random()*0.4); d.targetVx=(dx/dist)*desiredV; d.targetVy=(dy/dist)*desiredV; }
       }
 
-      // Collector: queue up nearest collectable POIs (keeps previous collector behavior)
+      // Collector: queue up nearest collectable POIs
       else if(d.type==='collector'){
         const ready = pointsOfInterest.filter(p=>p.scanned && p.items && p.items.length>0);
         if(ready.length>0){
@@ -363,11 +399,10 @@
         }
       }
 
-      // --- DEFENDER: set up continuous patrol around ship center ---
+      // Defender: set up continuous patrol around ship center
       else if(d.type==='defender'){
-        // create a circular patrol around ship center
         const centerX = mapSize.w/2, centerY = mapSize.h/2;
-        const r = Math.min(mapSize.w, mapSize.h) * 0.22; // patrol radius
+        const r = Math.min(mapSize.w, mapSize.h) * 0.22;
         const num = 8;
         const start = Math.random() * Math.PI * 2;
         const delta = (Math.PI * 2) / num;
@@ -378,16 +413,13 @@
           const wy = clamp(centerY + Math.sin(ang) * r, 40, mapSize.h-40);
           d.waypoints.push({ x: wx, y: wy, id: generateId() });
         }
-        // track patrol state so we can append new patrol points as we go
         d._patrol = { nextAngle: start + num*delta, delta: delta, radius: r, centerX, centerY };
-        // set initial velocity toward first waypoint
         if(d.waypoints.length){
           const wp = d.waypoints[0];
           const dx = wp.x - d.x, dy = wp.y - d.y, dist = Math.hypot(dx,dy)||1;
           const desiredV = 1.2 + (Math.random()*0.3);
           d.targetVx = (dx/dist)*desiredV; d.targetVy = (dy/dist)*desiredV;
         }
-        // defenders shouldn't be auto-taskCompleted - clear that flag
         d.taskCompleted = false;
       }
 
@@ -416,7 +448,6 @@
       const d = drones.find(x=>x.id===id); if(!d) return;
       d.status='returning'; d.taskCompleted=false; d.waypoints=[{x:mapSize.w/2,y:mapSize.h/2}];
       suppressPOIUntil = now() + 2500; log(`Recalling ${d.name}`); updateStatusPrompt(`${d.name} returning to base...`);
-      // if defender had patrol state, clear it so it won't keep appending
       if(d._patrol) d._patrol = null;
     }
 
@@ -435,7 +466,7 @@
     // Waypoint add helper
     function addWaypointToSelected(x,y){ if(!selected){ alert('Select a drone first'); return; } selected.waypoints.push({ x,y,id:generateId() }); log(`Waypoint added to ${selected.name} (${Math.round(x)},${Math.round(y)})`); }
 
-    // spawnWave unchanged
+    // spawnWave
     function spawnWave(count = 6){
       const type = el.newDroneType.value || 'explorer';
       for(let i=0;i<count;i++){
@@ -450,19 +481,19 @@
       log(`Spawned wave of ${count} ${el.newDroneType.value}s`);
     }
 
-    // intruder spawn unchanged
-    function spawnIntruder(){ const x=Math.random()*(mapSize.w-40)+20; const y=Math.random()*(mapSize.h-40)+20; const id='intr-'+Math.random().toString(36).slice(2,8); intruders.push({id,x,y,ttl:8000}); log(`Intruder detected!`, 'intruder'); }
+    // intruder spawn
+    function spawnIntruder(){ const x=Math.random()*(mapSize.w-40)+20; const y=Math.random()*(mapSize.h-40)+20; const id='intr-'+Math.random().toString(36).slice(2,8); intruders.push({id,x,y,ttl:8000}); }
 
     // trails
     function pushTrail(d){ const t = trails[d.id] || (trails[d.id]=[]); t.push({x:d.x,y:d.y,ttl:2000 + Math.random()*800}); if(t.length>200) t.shift(); }
     function updateTrails(dt){ Object.keys(trails).forEach(id=>{ const arr=trails[id]; for(let i=arr.length-1;i>=0;--i){ arr[i].ttl -= dt; if(arr[i].ttl <= 0) arr.splice(i,1); } }); }
 
-    // renderMap (unchanged aside from POI render)
+    // renderMap
     function renderMap(){
       const c = ctx; c.clearRect(0,0,mapSize.w,mapSize.h); c.fillStyle='#041217'; c.fillRect(0,0,mapSize.w,mapSize.h);
       const centerX = mapSize.w/2, centerY = mapSize.h/2, maxRadius = Math.min(mapSize.w,mapSize.h)/2, ringCount = 5;
-      for(let i=1;i<=ringCount;i++){ const radius=(maxRadius/ringCount)*i; c.beginPath(); c.strokeStyle = `rgba(79, 209, 197, ${Math.max(RING_MIN_OPACITY, RING_BASE_OPACITY - (i * 0.01))})`; c.lineWidth = 1; c.arc(centerX, centerY, radius, 0, Math.PI*2); c.stroke(); }
-      c.fillStyle='#0f4f6f'; c.beginPath(); c.arc(mapSize.w/2,mapSize.h/2,26,0,Math.PI*2); c.fill(); c.fillStyle='#fff'; c.font='12px system-ui'; c.fillText('OBSIDIAN', mapSize.w/2 - 28, mapSize.h/2 + 4);
+      for(let i=1;i<=ringCount;i++){ const radius=(maxRadius/ringCount)*i; c.beginPath(); c.strokeStyle = `rgba(79, 209, 197, ${Math.max(RING_MIN_OPACITY, RING_BASE_OPACITY - (i * 0.01))})`; c.lineWidth=1; c.arc(centerX, centerY, radius, 0, Math.PI*2); c.stroke(); }
+      c.fillStyle='#0f4f6f'; c.beginPath(); c.arc(centerX,centerY,26,0,Math.PI*2); c.fill(); c.fillStyle='#fff'; c.font='12px system-ui'; c.fillText('OBSIDIAN', centerX - 28, centerY + 4);
 
       // intruders
       intruders.forEach(i=>{ c.beginPath(); c.fillStyle='rgba(255,80,80,0.95)'; c.arc(i.x,i.y,8,0,Math.PI*2); c.fill(); });
@@ -484,7 +515,7 @@
       });
 
       // trails
-      if(trailsEnabled){ Object.values(trails).forEach(arr=>{ for(let i=1;i<arr.length;i++){ const a=arr[i-1], b=arr[i]; c.beginPath(); c.strokeStyle = `rgba(155,231,198,${0.06 + ((b.ttl||1000)/3000)})`; c.lineWidth=2; c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); } }); }
+      if(trailsEnabled){ Object.values(trails).forEach(arr=>{ for(let i=1;i<arr.length;i++){ const a=arr[i-1], b=arr[i]; c.beginPath(); c.strokeStyle = `rgba(155,231,198,${0.06 + ((b.ttl||1000)/3000)})`; c.lineWidth = 1.2; c.moveTo(a.x,a.y); c.lineTo(b.x,b.y); c.stroke(); } }); }
 
       // paths & waypoints
       if(showPaths){
@@ -524,7 +555,7 @@
         else d.battery -= IDLE_DRAIN_PER_SEC * dtSec;
         d.battery = clamp(d.battery, 0, 100);
 
-        // auto-return on low battery (defender should also recall at critical level)
+        // auto-return on low battery
         if(d.battery <= AUTO_RETURN_THRESHOLD && d.status !== 'returning' && d.status !== 'landing' && d.status !== 'idle' && d.status !== 'dead'){
           log(`${d.name} battery low (${Math.round(d.battery)}%) — returning to dock`);
           recallDrone(d.id);
@@ -544,7 +575,7 @@
           const speed = d.type === 'scout' ? 1.6 : (d.type === 'explorer' ? 1.4 : (d.type === 'collector' ? 1.1 : 1.2));
           d.targetVx = (dx/dist) * speed; d.targetVy = (dy/dist) * speed;
 
-          // Scout waypoint check and POI creation (65% chance) - unchanged
+          // Scout waypoint check and POI creation (65% chance)
           if(d.type==='scout' && dist < 15 && !d.justCheckedWaypoint){
             d.justCheckedWaypoint = true;
             if(d.poisDiscovered < d.targetPOIs && Math.random() < 0.65){
@@ -566,7 +597,7 @@
             const isCenterWP = Math.hypot(wp.x - mapSize.w/2, wp.y - mapSize.h/2) < 12;
             d.waypoints.shift();
 
-            // Defender: if it's patrolling (not returning), append next patrol point to keep it moving
+            // Defender: append next patrol point to keep moving
             if(d.type === 'defender' && d.status === 'flying' && d._patrol && !isCenterWP){
               const ang = d._patrol.nextAngle;
               const r = d._patrol.radius;
@@ -583,7 +614,7 @@
           }
         }
 
-        // Explorer scanning behavior (unchanged, keeps/remove POIs accordingly)
+        // Explorer scanning behavior
         if(d.type === 'explorer' && d.status === 'flying'){
           for(let i=0;i<pointsOfInterest.length;i++){
             const poi = pointsOfInterest[i];
@@ -641,27 +672,33 @@
           }
         }
 
-        // Collector behavior: collect and continue to next queued target (updated previously)
+        // Collector behavior: collect and continue to next queued target
         if(d.type === 'collector'){
           for(let i=pointsOfInterest.length-1;i>=0;i--){
             const poi = pointsOfInterest[i];
             if(poi.scanned && poi.items && poi.items.length>0){
               const dx = poi.x - d.x, dy = poi.y - d.y; const dist = Math.hypot(dx,dy);
               if(dist < 15){
+                // Collect items
                 poi.items.forEach(item => {
-                  const collectedItem = { id:'item-'+generateId(), name:item.name, mundane:item.mundane, source:poi.name, collectedBy:d.name, timestamp:Date.now() };
+                  const collectedItem = { id:'item-'+generateId(), name:item.name, mundane:item.mundane, source:poi.name || poi.type, collectedBy:d.name, timestamp:Date.now() };
                   collectedItems.push(collectedItem);
-                  if(!item.mundane) addToResearch(item.name, `${item.name} recovered from ${poi.name}`);
+                  if(!item.mundane) addToResearch(item.name, `${item.name} recovered from ${poi.name || poi.type}`);
                   addToPartsInventory(item.name);
                 });
-                log(`${d.name} collected ${poi.items.length} item(s) from ${poi.name}`);
+                log(`${d.name} collected ${poi.items.length} item(s) from ${poi.name || poi.type}`);
+                // remove POI from map (green dot goes away)
                 pointsOfInterest.splice(i,1);
                 saveCollectedItems();
+
+                // remove any queued waypoints referring to this POI
                 if(d.waypoints && d.waypoints.length){
                   for(let wi=d.waypoints.length-1; wi>=0; wi--){
                     if(d.waypoints[wi].poiId === poi.id || (Math.hypot(d.waypoints[wi].x - poi.x, d.waypoints[wi].y - poi.y) < 6)) d.waypoints.splice(wi,1);
                   }
                 }
+
+                // move to next queued waypoint or find other ready POIs
                 const nextWP = (d.waypoints && d.waypoints.length) ? d.waypoints[0] : null;
                 if(nextWP){
                   const ndx = nextWP.x - d.x, ndy = nextWP.y - d.y; const ndist = Math.hypot(ndx,ndy)||1; const speed = 1.1 + (Math.random()*0.4);
@@ -681,7 +718,7 @@
           }
         }
 
-        // Defender intercept intruders (existing behavior) — still applies
+        // Defender intercept intruders
         if(d.type === 'defender' && currentIntruder && d.status === 'flying'){
           const dx = currentIntruder.x - d.x, dy = currentIntruder.y - d.y;
           const dist = Math.hypot(dx,dy);
@@ -727,6 +764,12 @@
       let nearest=null, nd=9999; drones.forEach(d=>{ const dist=Math.hypot(d.x-x,d.y-y); if(dist<nd && dist<20){ nd=dist; nearest=d; } });
       if(nearest) selectDrone(nearest.id);
     });
+
+    el.btnSpawnWave.addEventListener('click', ()=>{ const n = parseInt(el.customDroneNumber.value,10) || 6; spawnWave(n); });
+    el.btnNewDrone.addEventListener('click', ()=>{ const type = el.newDroneType.value || 'explorer'; addDrone(type.charAt(0).toUpperCase()+type.slice(1)+'-'+(drones.length+1), type, { autoLaunch: el.autoPilot.checked }); });
+    el.btnToggleTrails.addEventListener('click', ()=>{ trailsEnabled = !trailsEnabled; el.btnToggleTrails.textContent = trailsEnabled ? 'Toggle Trails' : 'Show Trails'; });
+    el.btnCmdReturn.addEventListener('click', ()=>{ if(selected) recallDrone(selected.id); });
+    el.btnRecallAll.addEventListener('click', ()=>{ recallAllDrones(); });
 
     // intruder spawns only
     setInterval(()=>{ if(Math.random()<0.12) spawnIntruder(); }, 4000);
