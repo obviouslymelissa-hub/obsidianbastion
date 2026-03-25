@@ -148,6 +148,7 @@
       filter: drop-shadow(0 0 8px rgba(79,209,197,0.6));
       transition: transform 0.12s ease;
       display: block;
+      mix-blend-mode: screen;
     }
 
     #engine-glow {
@@ -575,6 +576,9 @@ function ensureCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   return audioCtx;
 }
 
@@ -702,9 +706,11 @@ window.addEventListener('keydown', function(e) {
 
   keys[k] = true;
 
-  // start engine on first movement key press
-  if (!engineRunning && (k === 'w' || k === 'a' || k === 's' || k === 'd')) {
-    startEngine();
+  // start engine on first movement key press, or ramp back up if already running
+  if (k === 'w' || k === 'a' || k === 's' || k === 'd') {
+    if (!engineRunning) {
+      startEngine();
+    }
     rampEngine(true);
   }
 });
